@@ -131,9 +131,9 @@ public class OracleUtls {
 			} else if (value != null && java.math.BigDecimal.class.equals(value.getClass())) {
 				parameter.setType("NUMBER");
 				parameter.setValue(value.toString());
-			} else if (value != null && java.sql.Timestamp.class.equals(value.getClass())) {
+			} else if (value != null && java.util.Date.class.isInstance(value)) {
 				parameter.setType("DATE");
-				parameter.setValue(new CarabiDate((java.sql.Timestamp)value).toString());
+				parameter.setValue(new CarabiDate((java.util.Date)value).toString());
 			} else if (value != null && oracle.sql.TIMESTAMP.class.equals(value.getClass())) {
 				parameter.setType("DATE");
 				parameter.setValue(new CarabiDate(((oracle.sql.TIMESTAMP)value).timestampValue()).toString());

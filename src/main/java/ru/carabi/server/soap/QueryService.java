@@ -292,7 +292,7 @@ public class QueryService {
 	) throws CarabiException {
 		logger.log(
 				Level.FINE, 
-				"runStoredQuery token={0}, sessionName={1}, queryName={2}, fetchCount={3}, fetchAll={4}",
+				"getCarabiTable token={0}, sessionName={1}, tableName={2}, fetchCount={3}, fetchAll={4}",
 				new Object[] {token, sessionName, tableName, fetchCount, fetchAll}
 			);
 		if (fetchAll) {

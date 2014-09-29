@@ -113,10 +113,9 @@ public class Utls {
 			if (oracle.sql.CLOB.class.isInstance(object)) {
 				oracle.sql.CLOB clob = (oracle.sql.CLOB) object;
 				row.put(columnsNames.get(i-1), clob.stringValue());
-//			} else if (field != null && field.getClass().equals(java.sql.Timestamp.class)) {
-//				field = new CarabiDate((java.sql.Timestamp)field);
-//			} else if (field != null && field.getClass().equals(oracle.sql.TIMESTAMP.class)) {
-//				field = new CarabiDate(((oracle.sql.TIMESTAMP)field).timestampValue());
+			} else if (java.sql.Timestamp.class.isInstance(object) || oracle.sql.TIMESTAMP.class.isInstance(object)) {
+				CarabiDate carabiDate = new CarabiDate((java.sql.Timestamp)object);
+				row.put(columnsNames.get(i-1), carabiDate.toString());
 			} else {
 				row.put(columnsNames.get(i-1), object);
 			}
@@ -232,7 +231,7 @@ public class Utls {
 			JsonArray row = list.getJsonArray(i);
 			JsonObjectBuilder rowOutput = Json.createObjectBuilder();
 			for (int j=0; j< row.size(); j++) {
-				rowOutput.add(columnsNames.get(j), row.getString(j));
+				rowOutput.add(columnsNames.get(j), row.get(j));
 			}
 			result.add(rowOutput);
 		}

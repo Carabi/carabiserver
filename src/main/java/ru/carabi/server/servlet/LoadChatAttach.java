@@ -209,7 +209,7 @@ public class LoadChatAttach extends HttpServlet {
 			//Отправляем уведомления
 			Long id = chatBean.sendMessage(sender, receiver, comment, senderAttachmentId.value, receiverAttachmentId.value);
 			JsonObjectBuilder result = Json.createObjectBuilder();
-			result.add(token, id);
+			result.add("id", id);
 			response.getWriter().print(result.build().toString());
 		} catch (RegisterException e) {
 			sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Unknown token");
