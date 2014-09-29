@@ -1,5 +1,6 @@
 package ru.carabi.server.kernel;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
@@ -675,11 +676,37 @@ public class ChatBean {
 			return callDeleteMessagesSoap(targetServer, client.getToken(), messagesList);
 		}
 		List<Long> idList = parseMessagesIdList(messagesList);
-		//удаление
+		
+		//Получаем вложения удаляемых сообщений
+		TypedQuery<FileOnServer> getUserMessagesAttachments = emChat.createNamedQuery("getUserMessagesAttachments", FileOnServer.class);
+		getUserMessagesAttachments.setParameter("user", client.getUser().getId());
+		getUserMessagesAttachments.setParameter("idlist", idList);
+		List<FileOnServer> userMessagesAttachments = getUserMessagesAttachments.getResultList();
+		//Удаляем сообщения
 		Query deleteMessagesList = emChat.createNamedQuery("deleteMessagesList");
 		deleteMessagesList.setParameter("user", client.getUser().getId());
 		deleteMessagesList.setParameter("idlist", idList);
-		return deleteMessagesList.executeUpdate();
+		int deletedSize = deleteMessagesList.executeUpdate();
+		//Смотрим, какие из вложений более не используются
+		//(некоторые могут присутствовать в сообщении собеседника)
+		//удаляем их и файлы
+		for(FileOnServer attachment: userMessagesAttachments) {
+			Query getMessagesWithAttachment = emChat.createNamedQuery("getMessagesWithAttachment");
+			getMessagesWithAttachment.setParameter("attachment_id", attachment.getId());
+			List messagesWithAttachment = getMessagesWithAttachment.getResultList();
+			if (messagesWithAttachment.size() > 0) {
+				continue;
+			}
+			new File(attachment.getContentAddress()).delete();
+			emChat.remove(attachment);
+		}
+		//Отправляем событие клиентам
+		try {
+			eventer.fireEvent("", client.getUser().getLogin(), (short) 16, messagesList);
+		} catch (IOException ex) {
+			Logger.getLogger(ChatBean.class.getName()).log(Level.SEVERE, null, ex);
+		}
+		return deletedSize;
 	}
 	
 	/**

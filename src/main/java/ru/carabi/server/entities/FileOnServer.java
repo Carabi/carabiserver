@@ -9,9 +9,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 /**
- * Данные о файле на сервере, содержащем ядровую базу.
- * Скопировано с {@link ChatAttachment}, отличие в том, что файлы ChatAttachment
- * хранятся на current-сервере, и данные о них --  в current-базе.
+ * Данные о файле на текущем сервере.
  * @author sasha<kopilov.ad@gmail.com>
  */
 @Entity
@@ -31,6 +29,9 @@ public class FileOnServer implements Serializable {
 	
 	@Column(name="CONTENT_ADDRESS")
 	private String contentAddress;
+	
+	@Column(name="CONTENT_LENGTH")
+	private Long contentLength;
 	
 	public Long getId() {
 		return id;
@@ -63,9 +64,6 @@ public class FileOnServer implements Serializable {
 	public void setContentAddress(String contentAddress) {
 		this.contentAddress = contentAddress;
 	}
-	
-	@Column(name="CONTENT_LENGTH")
-	private Long contentLength;
 	
 	public Long getContentLength() {
 		return contentLength;

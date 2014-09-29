@@ -33,7 +33,11 @@ import javax.persistence.Temporal;
 @NamedQuery(name = "getRecentlyMessagesData",
 	query = "select CM.senderId, CM.receiverId, CM.sent from ChatMessage CM where CM.ownerId = :user and CM.sent >= :recently order by CM.sent desc"),
 @NamedQuery(name = "deleteMessagesList",
-	query = "delete from ChatMessage CM where CM.ownerId = :user and CM.id in :idlist")
+	query = "delete from ChatMessage CM where CM.ownerId = :user and CM.id in :idlist"),
+@NamedQuery(name = "getUserMessagesAttachments",
+		query = "select F from FileOnServer F where F in (select CM.attachment from ChatMessage CM where CM.ownerId = :user and CM.id in :idlist)" ),
+@NamedQuery(name = "getMessagesWithAttachment",
+		query = "select CM.id from ChatMessage CM where CM.attachment.id = :attachment_id")
 })
 @Table(name="CHAT_MESSAGE")
 public class ChatMessage implements Serializable {
