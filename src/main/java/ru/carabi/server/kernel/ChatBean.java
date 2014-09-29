@@ -307,7 +307,7 @@ public class ChatBean {
 			eventText.add("sender", sender.getLogin());
 			eventText.add("receiver", receiver.getLogin());
 			eventText.add("read", true);
-			eventText.add("messagesList", sentMessages.build().toString());
+			eventText.add("messagesList", sentMessages);
 			eventer.fireEvent("", sender.getLogin(), (short)13, eventText.build().toString());
 		} catch (IOException ex) {
 			Logger.getLogger(ChatBean.class.getName()).log(Level.SEVERE, null, ex);
