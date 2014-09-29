@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="2.1" xmlns="http://xmlns.jcp.org/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
+  <persistence-unit name="ru.carabi.server_carabiserver-kernel" transaction-type="JTA">
+    <jta-data-source>jdbc/carabikernel</jta-data-source>
+    <class>ru.carabi.server.UserLogon</class>
+    <class>ru.carabi.server.entities.AllowedSchema</class>
+    <class>ru.carabi.server.entities.CarabiAppServer</class>
+    <class>ru.carabi.server.entities.CarabiProduct</class>
+    <class>ru.carabi.server.entities.CarabiUser</class>
+    <class>ru.carabi.server.entities.ConnectionSchema</class>
+    <class>ru.carabi.server.entities.ProductVersion</class>
+    <class>ru.carabi.server.entities.QueryCategory</class>
+    <class>ru.carabi.server.entities.QueryEntity</class>
+    <class>ru.carabi.server.entities.QueryParameterEntity</class>
+    <class>ru.carabi.server.entities.UserServerEnter</class>
+    <class>ru.carabi.server.entities.FileOnServer</class>
+    <exclude-unlisted-classes>true</exclude-unlisted-classes>
+    <shared-cache-mode>NONE</shared-cache-mode>
+    <properties>
+    </properties>
+  </persistence-unit>
+  <persistence-unit name="ru.carabi.server_carabiserver-chat" transaction-type="JTA">
+    <jta-data-source>jdbc/carabichat</jta-data-source>
+    <class>ru.carabi.server.entities.ChatMessage</class>
+    <class>ru.carabi.server.entities.FileOnServer</class>
+    <exclude-unlisted-classes>true</exclude-unlisted-classes>
+    <shared-cache-mode>NONE</shared-cache-mode>
+    <properties>
+    </properties>
+  </persistence-unit>
+</persistence>

@@ -1,0 +1,279 @@
+<?xml version='1.0' encoding='UTF-8'?><!-- Published by JAX-WS RI at http://jax-ws.dev.java.net. RI's version is Metro/2.3 (tags/2.3-7528; 2013-04-29T19:34:10+0000) JAXWS-RI/2.2.8 JAXWS/2.2 svn-revision#unknown. --><xs:schema xmlns:tns="http://soap.server.carabi.ru/" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://soap.server.carabi.ru/">
+
+<xs:element name="CarabiException" type="tns:CarabiException"/>
+
+<xs:element name="deleteMessages" type="tns:deleteMessages"/>
+
+<xs:element name="deleteMessagesResponse" type="tns:deleteMessagesResponse"/>
+
+<xs:element name="forwardMessage" type="tns:forwardMessage"/>
+
+<xs:element name="forwardMessageResponse" type="tns:forwardMessageResponse"/>
+
+<xs:element name="getContactList" type="tns:getContactList"/>
+
+<xs:element name="getContactListResponse" type="tns:getContactListResponse"/>
+
+<xs:element name="getDialog" type="tns:getDialog"/>
+
+<xs:element name="getDialogResponse" type="tns:getDialogResponse"/>
+
+<xs:element name="getLastInterlocutors" type="tns:getLastInterlocutors"/>
+
+<xs:element name="getLastInterlocutorsResponse" type="tns:getLastInterlocutorsResponse"/>
+
+<xs:element name="getMessage" type="tns:getMessage"/>
+
+<xs:element name="getMessageDetails" type="tns:getMessageDetails"/>
+
+<xs:element name="getMessageDetailsResponse" type="tns:getMessageDetailsResponse"/>
+
+<xs:element name="getMessageResponse" type="tns:getMessageResponse"/>
+
+<xs:element name="getUnreadMessagesCount" type="tns:getUnreadMessagesCount"/>
+
+<xs:element name="getUnreadMessagesCountResponse" type="tns:getUnreadMessagesCountResponse"/>
+
+<xs:element name="getUnreadMessagesSenders" type="tns:getUnreadMessagesSenders"/>
+
+<xs:element name="getUnreadMessagesSendersResponse" type="tns:getUnreadMessagesSendersResponse"/>
+
+<xs:element name="markRead" type="tns:markRead"/>
+
+<xs:element name="markReadResponse" type="tns:markReadResponse"/>
+
+<xs:element name="markReceived" type="tns:markReceived"/>
+
+<xs:element name="markReceivedResponse" type="tns:markReceivedResponse"/>
+
+<xs:element name="prepareToForward" type="tns:prepareToForward"/>
+
+<xs:element name="prepareToForwardResponse" type="tns:prepareToForwardResponse"/>
+
+<xs:element name="putMessage" type="tns:putMessage"/>
+
+<xs:element name="putMessageResponse" type="tns:putMessageResponse"/>
+
+<xs:element name="replicateMessage" type="tns:replicateMessage"/>
+
+<xs:element name="replicateMessageResponse" type="tns:replicateMessageResponse"/>
+
+<xs:element name="sendMessage" type="tns:sendMessage"/>
+
+<xs:element name="sendMessageResponse" type="tns:sendMessageResponse"/>
+
+<xs:complexType name="sendMessage">
+<xs:sequence>
+<xs:element name="tokenSender" type="xs:string" minOccurs="0"/>
+<xs:element name="loginReceiver" type="xs:string" minOccurs="0"/>
+<xs:element name="messageText" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="sendMessageResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="CarabiException">
+<xs:sequence>
+<xs:element name="message" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="forwardMessage">
+<xs:sequence>
+<xs:element name="softwareToken" type="xs:string" minOccurs="0"/>
+<xs:element name="loginSender" type="xs:string" minOccurs="0"/>
+<xs:element name="loginReceiver" type="xs:string" minOccurs="0"/>
+<xs:element name="messageText" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="forwardMessageResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:long" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="deleteMessages">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="messagesList" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="deleteMessagesResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:int"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getUnreadMessagesCount">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getUnreadMessagesCountResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:long" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="replicateMessage">
+<xs:sequence>
+<xs:element name="tokenServer" type="xs:string" minOccurs="0"/>
+<xs:element name="loginSender" type="xs:string" minOccurs="0"/>
+<xs:element name="loginReceiver" type="xs:string" minOccurs="0"/>
+<xs:element name="messageText" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="replicateMessageResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="prepareToForward">
+<xs:sequence/>
+</xs:complexType>
+
+<xs:complexType name="prepareToForwardResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="markReceived">
+<xs:sequence>
+<xs:element name="softwareToken" type="xs:string" minOccurs="0"/>
+<xs:element name="loginSender" type="xs:string" minOccurs="0"/>
+<xs:element name="loginReceiver" type="xs:string" minOccurs="0"/>
+<xs:element name="messageId" type="xs:long" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="markReceivedResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getContactList">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="search" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getContactListResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getMessage">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="messageId" type="xs:long" minOccurs="0"/>
+<xs:element name="read" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getMessageResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getDialog">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="interlocutor" type="xs:string" minOccurs="0"/>
+<xs:element name="afterDate" type="xs:string" minOccurs="0"/>
+<xs:element name="search" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getDialogResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getUnreadMessagesSenders">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getUnreadMessagesSendersResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getMessageDetails">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="messageId" type="xs:long" minOccurs="0"/>
+<xs:element name="read" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getMessageDetailsResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getLastInterlocutors">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="size" type="xs:int"/>
+<xs:element name="afterDate" type="xs:string" minOccurs="0"/>
+<xs:element name="search" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="getLastInterlocutorsResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="putMessage">
+<xs:sequence>
+<xs:element name="softwareToken" type="xs:string" minOccurs="0"/>
+<xs:element name="loginOwner" type="xs:string" minOccurs="0"/>
+<xs:element name="loginSender" type="xs:string" minOccurs="0"/>
+<xs:element name="loginReceiver" type="xs:string" minOccurs="0"/>
+<xs:element name="receivedMessageId" type="xs:long" minOccurs="0"/>
+<xs:element name="receivedMessageServerId" type="xs:int" minOccurs="0"/>
+<xs:element name="messageText" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="putMessageResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:long" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="markRead">
+<xs:sequence>
+<xs:element name="token" type="xs:string" minOccurs="0"/>
+<xs:element name="messageId" type="xs:long" minOccurs="0"/>
+<xs:element name="read" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="markReadResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:boolean"/>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>
