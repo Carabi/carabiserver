@@ -27,6 +27,7 @@ import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
@@ -287,18 +288,22 @@ public class ChatBean {
 			TypedQuery<ChatMessage> getSentByReceived = emChat.createNamedQuery("getSentByReceived", ChatMessage.class);
 			getSentByReceived.setParameter("received", messageId);
 			getSentByReceived.setParameter("server", receiver.getMainServer().getId());
-			ChatMessage sentMessage = getSentByReceived.getSingleResult();
-			//проверяем, что письмо принадлежит отправителю
-			if (!sender.getId().equals(sentMessage.getOwnerId())) {
-				throw new CarabiException("Message does not belong to this user");
+			try {
+				ChatMessage sentMessage = getSentByReceived.getSingleResult();
+				//проверяем, что письмо принадлежит отправителю
+				if (!sender.getId().equals(sentMessage.getOwnerId())) {
+					throw new CarabiException("Message does not belong to this user");
+				}
+				if (!sender.getId().equals(sentMessage.getSenderId())) {
+					throw new CarabiException("Message is not outcome");
+				}
+				//помечаем
+				sentMessage.setReceived(new Date());
+				emChat.merge(sentMessage);
+				sentMessages.add(sentMessage.getId());
+			} catch (NoResultException e) {
+				//отправитель удалил отправленное раньше, чем получатель его прочитал
 			}
-			if (!sender.getId().equals(sentMessage.getSenderId())) {
-				throw new CarabiException("Message is not outcome");
-			}
-			//помечаем
-			sentMessage.setReceived(new Date());
-			emChat.merge(sentMessage);
-			sentMessages.add(sentMessage.getId());
 		}
 		emChat.flush();
 		try {
