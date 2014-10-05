@@ -243,27 +243,32 @@ public class ChatBean {
 		emChat.flush();
 		//отправляем события о прочитанных сообщениях
 		for (String senderLogin: messagesBySenders.keySet()) {
+			final JsonArrayBuilder senderMessages = messagesBySenders.get(senderLogin);
+			JsonObject eventTextBuilt;//В связи с тем, что библиотека очищает содержимое senderMessages
+			//при его добавлении в eventText, для повторного использования приходится доставать
+			JsonObjectBuilder eventText = Json.createObjectBuilder();
+			eventText.add("sender", senderLogin);
+			eventText.add("receiver", receiver.getLogin());
+			eventText.add("read", read);
+			eventText.add("messagesList", senderMessages);
+			eventTextBuilt = eventText.build();
+			try {
+				eventer.fireEvent("", receiver.getLogin(), (short)13, eventTextBuilt.toString());
+			} catch (IOException ex) {
+				Logger.getLogger(ChatBean.class.getName()).log(Level.SEVERE, null, ex);
+			}
 			if (!read) {
 				//У отправителя не скидываем
 			} else {
 				//Берём отправителя, помечаем письмо в отправленных
 				CarabiUser sender = senders.get(senderLogin);
 				targetServer = sender.getMainServer();
+				final JsonArray messagesListBuilt = eventTextBuilt.getJsonArray("messagesList");
 				if (currentServer.equals(targetServer)) {
-					markSentReceived(sender, receiver, messagesBySenders.get(senderLogin).build().toString());
+					markSentReceived(sender, receiver, messagesListBuilt.toString());
 				} else {
-					callMarkSentReceivedSoap(targetServer, senderLogin, receiver.getLogin(), messagesBySenders.get(senderLogin).build().toString());
+					callMarkSentReceivedSoap(targetServer, senderLogin, receiver.getLogin(), messagesListBuilt.toString());
 				}
-			}
-			try {
-				JsonObjectBuilder eventText = Json.createObjectBuilder();
-				eventText.add("sender", senderLogin);
-				eventText.add("receiver", receiver.getLogin());
-				eventText.add("read", read);
-				eventText.add("messagesList", messagesBySenders.get(senderLogin));
-				eventer.fireEvent("", receiver.getLogin(), (short)13, eventText.build().toString());
-			} catch (IOException ex) {
-				Logger.getLogger(ChatBean.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
 	}
