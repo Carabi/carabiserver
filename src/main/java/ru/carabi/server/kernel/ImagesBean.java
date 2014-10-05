@@ -166,7 +166,7 @@ public class ImagesBean {
 		url.append(targetServer.getGlassfishPort());
 		url.append("/");
 		url.append(targetServer.getContextroot());
-		url.append("/ChatService?wsdl");
+		url.append("/ImagesService?wsdl");
 		ImagesService_Service imagesService = new ImagesService_Service(new URL(url.toString()));
 		imageServicePort = imagesService.getImagesServicePort();
 		return imageServicePort;
