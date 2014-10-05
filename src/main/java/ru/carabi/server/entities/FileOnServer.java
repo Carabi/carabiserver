@@ -72,5 +72,22 @@ public class FileOnServer implements Serializable {
 	public void setContentLength(Long contentLength) {
 		this.contentLength = contentLength;
 	}
-	
+
+	public void setAllFromStub(ru.carabi.stub.FileOnServer stub) {
+		this.setContentAddress(stub.getContentAddress());
+		this.setContentLength(stub.getContentLength());
+		this.setId(stub.getId());
+		this.setMimeType(stub.getMimeType());
+		this.setName(stub.getName());
+	}
+
+	public ru.carabi.stub.FileOnServer createStub() {
+		ru.carabi.stub.FileOnServer stub = new ru.carabi.stub.FileOnServer();
+		stub.setContentAddress(this.getContentAddress());
+		stub.setContentLength(this.getContentLength());
+		stub.setId(this.getId());
+		stub.setMimeType(this.getMimeType());
+		stub.setName(this.getName());
+		return stub;
+	}
 }

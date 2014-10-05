@@ -948,11 +948,7 @@ public class ChatBean {
 			ChatService chatServicePort = getChatServicePort(targetServer);
 			ru.carabi.stub.FileOnServer messageAttachementSoap = chatServicePort.getMessageAttachement(CarabiFunc.encrypt(clientToken), messageId);
 			FileOnServer messageAttachement = new FileOnServer();
-			messageAttachement.setContentAddress(messageAttachementSoap.getContentAddress());
-			messageAttachement.setContentLength(messageAttachementSoap.getContentLength());
-			messageAttachement.setId(messageAttachementSoap.getId());
-			messageAttachement.setMimeType(messageAttachementSoap.getMimeType());
-			messageAttachement.setName(messageAttachementSoap.getName());
+			messageAttachement.setAllFromStub(messageAttachementSoap);
 			return messageAttachement;
 		} catch (MalformedURLException ex) {
 			logger.log(Level.SEVERE, null, ex);

@@ -14,6 +14,7 @@
     <class>ru.carabi.server.entities.QueryParameterEntity</class>
     <class>ru.carabi.server.entities.UserServerEnter</class>
     <class>ru.carabi.server.entities.FileOnServer</class>
+    <class>ru.carabi.server.entities.ThumbnailMeta</class>
     <exclude-unlisted-classes>true</exclude-unlisted-classes>
     <shared-cache-mode>NONE</shared-cache-mode>
     <properties>

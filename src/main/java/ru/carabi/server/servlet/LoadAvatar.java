@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -28,6 +29,7 @@ import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.FileStorage;
+import ru.carabi.server.kernel.ImagesBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
 import ru.carabi.server.rest.RestException;
@@ -51,6 +53,7 @@ public class LoadAvatar extends HttpServlet {
 
 	@EJB private UsersControllerBean uc;
 	@EJB private AdminBean admin;
+	@EJB private ImagesBean imagesBean;
 
 	/**
 	 * Обработка метода GET. Возвращает аватар.
@@ -59,11 +62,19 @@ public class LoadAvatar extends HttpServlet {
 	 */
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		Map<String, String[]> parameterMap = request.getParameterMap();
+		for (String param: parameterMap.keySet()) {
+			logger.log(Level.INFO, "{0}={1}", new Object[]{param, parameterMap.get(param)[0]});
+		}
 		String token = request.getParameter("token");
 		if (StringUtils.isEmpty(token)) {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter token required");
 			return;
 		}
+		//ширина масштабирования (по умолчанию без масштабирования)
+		int width = parceIntParam(request, response, -1, "width", "w");
+		//высота масштабирования (по умолчанию без масштабирования)
+		int height = parceIntParam(request, response, -1, "height", "h");
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
 			String login = request.getParameter("login");
 			if (StringUtils.isEmpty(login)) {
@@ -81,17 +92,35 @@ public class LoadAvatar extends HttpServlet {
 				sendError(response, HttpServletResponse.SC_NOT_FOUND, "no avatar for that user");
 				return;
 			}
+			//etag -- идентификатор совпадения контента
 			String etag = "avatar_" + file.getId();
+			if (width > 0) {
+				etag += ("_w" + width);
+			}
+			if (height > 0) {
+				etag += ("_h" + height);
+			}
+			logger.log(Level.INFO, "getScaledAvatar {0}x{1}", new Object[]{width, height});
+			file = getScaledAvatar(logon, file, width, height);
 			response.setHeader("Filename-Base64", DatatypeConverter.printBase64Binary(file.getName().getBytes("UTF-8")));
 			response.setHeader("Content-Type", file.getMimeType());
 			response.setHeader("ETag", etag);
+			//при совпадении с содержимым в кеше клиента выходим
 			if (etag.equals(request.getHeader("If-None-Match"))) {
 				response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
 				return;
 			}
 			response.setHeader("Content-Length", "" +file.getContentLength());
+			//передача клиенту (чтение или проксирование)
 			try (FileStreamer fileStreamer = FileStreamer.makeFileStreamer(Settings.getMasterServer(), null, file, token, request, urlPattern, wrapFileStorage())) {
-				fileStreamer.setGetUrl(urlPattern + "?token=" + token + "&login=" + login);
+				String getUrl = urlPattern + "?token=" + token + "&login=" + login;
+				if (width >= 0) {
+					getUrl += ("&width=" + width);
+				}
+				if (height >= 0) {
+					getUrl += ("&height=" + height);
+				}
+				fileStreamer.setGetUrl(getUrl);
 				InputStream inputStream = fileStreamer.getInputStream();
 				try (OutputStream outputStream = response.getOutputStream()) {
 					Utls.proxyStreams(inputStream, outputStream);
@@ -109,6 +138,24 @@ public class LoadAvatar extends HttpServlet {
 				sendError(response, restException.getResponse().getStatus(), cause.getMessage());
 			}
 		}
+	}
+
+	private int parceIntParam(HttpServletRequest request, HttpServletResponse response, int defaultValue, String... paramName) throws IOException {
+		int value = defaultValue;
+		String valueStr = request.getParameter(paramName[0]);
+		int i = 1;
+		while (StringUtils.isEmpty(valueStr) && i<paramName.length) {
+			valueStr = request.getParameter(paramName[i]);
+			i++;
+		}
+		if (!StringUtils.isEmpty(valueStr)) {
+			try {
+				value = Integer.valueOf(valueStr);
+			} catch (NumberFormatException e) {
+				sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter " + paramName[0] + " invalid");
+			}
+		}
+		return value;
 	}
 	
 	/**
@@ -252,6 +299,22 @@ public class LoadAvatar extends HttpServlet {
 	private void sendError(HttpServletResponse response, int status, String message) throws IOException {
 		response.setStatus(status);
 		response.getOutputStream().println(message);
+	}
+	
+	/**
+	 * Изменение данных об аватаре с учётом требуемых размеров.
+	 * На главном сервере -- собственно масштабирование (или получение данных
+	 * из кеша), на других -- получение метаданных с главного сервера.
+	 * @param file данные об оригинальном аватаре
+	 * @param width требуемая ширина
+	 * @param height требуемая высота
+	 * @return данные об масштабированном аватаре
+	 */
+	private FileOnServer getScaledAvatar(UserLogon logon, FileOnServer file, int width, int height) throws CarabiException {
+		if (width <= 0 && height <= 0) {
+			return file;
+		}
+		return imagesBean.getThumbnail(logon, Settings.getMasterServer(), file, width, height, true);
 	}
 	
 }

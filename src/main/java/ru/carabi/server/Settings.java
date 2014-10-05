@@ -50,6 +50,7 @@ public class Settings implements ServletContextListener {
 	 */
 	public static final String CHAT_ATTACHMENTS_LOCATION = settings.getString("CHAT_ATTACHMENTS_LOCATION");
 	public static String AVATARS_LOCATION = settings.getString("AVATARS_LOCATION");
+	public static String THUMBNAILS_LOCATION = settings.getString("THUMBNAILS_LOCATION");
 	
 	/**
 	 * Получение абсолютного пути к каталогу с логами.
