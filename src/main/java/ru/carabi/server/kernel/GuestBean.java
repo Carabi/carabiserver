@@ -59,9 +59,9 @@ public class GuestBean {
 	 * Возвращает ИД веб-пользователя по токену.
 	 * @param ul данные выполненной аутентификации
 	 * @return ИД веб-пользователя
-	 * @throws CarabiException если токен не найден
+	 * @throws ru.carabi.server.RegisterException если пользователь не найден
 	 */
-	public String getWebUserId(UserLogon ul) throws CarabiException
+	public String getWebUserId(UserLogon ul) throws RegisterException
 	{
 		logger.log(Level.INFO, "ru.carabi.server.kernel.GuestBean.getWebUserId called with param: UserLogon={0}", 
 				ul.toString());
@@ -184,7 +184,7 @@ public class GuestBean {
 			Holder<Integer> schemaID, //Порядковый номер схемы БД
 			Holder<SoapUserInfo> info, //Результат
 			GuestSesion guestSesion
-		) throws CarabiException {
+		) throws CarabiException, RegisterException {
 		String login = user.getLogin();
 		try {
 			authorize = (AuthorizeBean) ctx.lookup("java:module/AuthorizeBean");
@@ -195,13 +195,17 @@ public class GuestBean {
 			}
 			logger.log(Level.INFO, messages.getString("registerStart"), login);
 			//Получаем пользователя по имени из схемы с нужным номером или названием
-			UserLogon currentUser = createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user);
+			UserLogon userLogon = createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user);
 			//Сверяем пароль
-			logger.log(Level.INFO, "passwordCipher: {0}", currentUser.getPasswordCipher());
+			logger.log(Level.INFO, "passwordCipher: {0}", userLogon.getUser().getPassword());
 			logger.log(Level.INFO, "timestamp: {0}", guestSesion.getTimeStamp());
-			String passwordTokenServer = DigestUtils.md5Hex(currentUser.getPasswordCipher() + guestSesion.getTimeStamp());
+			String passwordTokenServer = DigestUtils.md5Hex(userLogon.getUser().getPassword() + guestSesion.getTimeStamp());
 			logger.log(Level.INFO, "passwordTokenServer: {0}", passwordTokenServer);
 			logger.log(Level.INFO, "passwordTokenClient: {0}", passwordTokenClient);
+			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
+				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_DERBY);
+			}
+//			passwordTokenServer = DigestUtils.md5Hex(userLogon.getPasswordCipher() + guestSesion.getTimeStamp());
 //			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
 //				CarabiLogging.logError(messages.getString("registerRefusedDetailsPass"),
 //						new Object[]{login, "Oracle " + authorize.getSchema().getSysname(), passwordTokenServer, passwordTokenClient},
@@ -210,21 +214,25 @@ public class GuestBean {
 //				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_ORACLE);
 //			}
 			//Запоминаем пользователя
-			currentUser.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
-			currentUser.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
-			currentUser.setServerContext(connectionProperties.getProperty("serverContext"));
+			userLogon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
+			userLogon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
+			userLogon.setServerContext(connectionProperties.getProperty("serverContext"));
 			String token = authorize.authorizeUser(true);
 			//Готовим информацию для возврата
 			SoapUserInfo soapUserInfo = new SoapUserInfo();//authorize.createSoapUserInfo();
 			soapUserInfo.token = token;
 			info.value = soapUserInfo;
 			schemaID.value = -1;//currentUser.getSchema().getId();
-		} catch (NamingException | CarabiException | SQLException e) {
-			logger.log(Level.INFO, messages.getString("registerError"), login);
-			logger.log(Level.SEVERE, "", e);
+		} catch (CarabiException e) {
+			if (!RegisterException.class.isInstance(e)) {
+				CarabiLogging.logError("GuestService.registerUser failed with Exception. ", null, null, false, Level.SEVERE, e);
+			}
+			throw e;
+		} catch (NamingException | SQLException e) {
+			CarabiLogging.logError("GuestService.registerUser failed with Exception. ", null, null, false, Level.SEVERE, e);
 			throw new CarabiException(e);
 		} catch (Exception e) {
-			logger.log(Level.SEVERE, "UNKNOWN ERROR", e);
+			CarabiLogging.logError("GuestService.registerUser failed with UNKNOWN Exception. ", null, null, false, Level.SEVERE, e);
 			throw new CarabiException(e);
 		} finally {
 			if (authorize != null) authorize.remove();
@@ -251,7 +259,7 @@ public class GuestBean {
 			Properties connectionProperties,
 			Holder<String> schemaName,
 			Holder<String> token
-		) throws RegisterException, CarabiException {
+		) throws CarabiException {
 		logger.log(Level.INFO,
 				   "GuestService.registerUserLight called with params: user={0}, password={1}, "
 				   +"requireSession={2}, schemaName={3}", 
@@ -294,18 +302,18 @@ public class GuestBean {
 			logger.log(Level.INFO, "Пользователю выдан токен: {0}", token.value);
 			return logon.getId();
 		} catch (CarabiException ex) {
+			if (RegisterException.class.isInstance(ex)) {
+				throw ex;
+			}
 			CarabiLogging.logError("GuestService.registerUserLight failed with Exception. ", null, null, false, Level.SEVERE, ex);
 			throw ex;
-		} catch (NamingException | SQLException ex) {
-			CarabiLogging.logError("GuestService.registerUserLight failed with Exception. ", null, null, false, Level.SEVERE, ex);
-			throw new RegisterException(RegisterException.MessageCode.INTERNAL_ERROR);
 		} catch (Exception ex) {
 			CarabiLogging.logError("GuestService.registerUserLight failed with Exception. ", null, null, false, Level.SEVERE, ex);
+			throw new CarabiException(ex);
 		} finally {
 			if (authorize != null) authorize.remove();
 			authorize = null;
 		}
-		return 0;
 	}
 	
 	/**
@@ -416,9 +424,9 @@ public class GuestBean {
 		
 		if (user.getMainServer() == null) {
 			user.setMainServer(currentServer);
-			return em.merge(user);
-		} else {
-			return user;
+			user = em.merge(user);
 		}
+		em.flush();
+		return user;
 	}
 }

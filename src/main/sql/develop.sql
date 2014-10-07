@@ -67,10 +67,10 @@ create index FILE_NAME on FILE(NAME);
  * Миниатюры картинок
  */
 create table THUMBNAIL (
-	ORIGINAL_ID bigint references FILE(FILE_ID),
+	ORIGINAL_ID bigint references FILE(FILE_ID) on delete cascade,
 	WIDTH integer,
 	HEIGHT integer,
-	THUMBNAIL_ID bigint references FILE(FILE_ID),
+	THUMBNAIL_ID bigint references FILE(FILE_ID) on delete cascade,
 	primary key (ORIGINAL_ID, WIDTH, HEIGHT)
 );
 

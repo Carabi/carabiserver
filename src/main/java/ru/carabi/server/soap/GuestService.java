@@ -20,6 +20,7 @@ import javax.xml.ws.Holder;
 import javax.xml.ws.WebServiceContext;
 import javax.xml.ws.handler.MessageContext;
 import ru.carabi.server.CarabiException;
+import ru.carabi.server.CarabiOracleMessage;
 import ru.carabi.server.RegisterException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
@@ -114,16 +115,26 @@ public class GuestService {
 			@WebParam(name = "vc") int vc,//Номер версии
 			@WebParam(name = "schemaID", mode = WebParam.Mode.OUT) Holder<Integer> schemaID, //Порядковый номер схемы БД
 			@WebParam(name = "info", mode = WebParam.Mode.OUT) Holder<SoapUserInfo> info//Результат
-		) throws CarabiException {
+		) throws CarabiException, RegisterException {
 		try {
 			logger.log(Level.INFO, "cg.tryConnectToOracle({0}, {1}, {2});", new Object[]{guestSesion.getSchemaID(), guestSesion.getSchemaName(), login});
 			cg.tryConnectToOracle(guestSesion.getSchemaID(), guestSesion.getSchemaName(), login);
 		} catch (Exception ex) {
 			logger.log(Level.SEVERE, null, ex);
 		}
-		CarabiUser user = guest.searchUserInDerby(login);
-		user = guest.checkCurrentServer(user);
-		return guest.registerUser(user, passwordTokenClient, getConnectionProperties(clientIp), version, vc, schemaID, info, guestSesion);
+		try {
+			CarabiUser user = guest.searchUserInDerby(login);
+			user = guest.checkCurrentServer(user);
+			return guest.registerUser(user, passwordTokenClient, getConnectionProperties(clientIp), version, vc, schemaID, info, guestSesion);
+		} catch (RegisterException e) {
+			if (e.badLoginPassword()) {
+				logger.log(Level.INFO, "", e);
+				throw new RegisterException(RegisterException.MessageCode.ILLEGAL_LOGIN_OR_PASSWORD);
+			} else {
+				logger.log(Level.SEVERE, "", e);
+				throw e;
+			}
+		}
 	}
 	
 	/**
@@ -147,10 +158,20 @@ public class GuestService {
 			@WebParam(name = "token", mode = WebParam.Mode.OUT) Holder<String> token
 		) throws RegisterException, CarabiException {
 		logger.log(Level.INFO, "{0} is logining", login);
-		CarabiUser user = guest.searchUserInDerby(login);
-		user = guest.checkCurrentServer(user);
-		cg.tryConnectToOracle(-1, schemaName.value, login);
-		return guest.registerUserLight(user, passwordCipherClient, requireSession, getConnectionProperties(clientIp), schemaName, token);
+		try {
+			CarabiUser user = guest.searchUserInDerby(login);
+			user = guest.checkCurrentServer(user);
+			cg.tryConnectToOracle(-1, schemaName.value, login);
+			return guest.registerUserLight(user, passwordCipherClient, requireSession, getConnectionProperties(clientIp), schemaName, token);
+		} catch (RegisterException e) {
+			if (e.badLoginPassword()) {
+				logger.log(Level.INFO, "", e);
+				throw new RegisterException(RegisterException.MessageCode.ILLEGAL_LOGIN_OR_PASSWORD);
+			} else {
+				logger.log(Level.SEVERE, "", e);
+				throw e;
+			}
+		}
 	}
 	
 	/**
