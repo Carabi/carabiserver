@@ -199,13 +199,9 @@ public class GuestBean {
 			//Сверяем пароль
 			logger.log(Level.INFO, "passwordCipher: {0}", userLogon.getUser().getPassword());
 			logger.log(Level.INFO, "timestamp: {0}", guestSesion.getTimeStamp());
-			String passwordTokenServer = DigestUtils.md5Hex(userLogon.getUser().getPassword() + guestSesion.getTimeStamp());
+			String passwordTokenServer = DigestUtils.md5Hex(userLogon.getPasswordCipher() + guestSesion.getTimeStamp());
 			logger.log(Level.INFO, "passwordTokenServer: {0}", passwordTokenServer);
 			logger.log(Level.INFO, "passwordTokenClient: {0}", passwordTokenClient);
-			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
-				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_DERBY);
-			}
-//			passwordTokenServer = DigestUtils.md5Hex(userLogon.getPasswordCipher() + guestSesion.getTimeStamp());
 //			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
 //				CarabiLogging.logError(messages.getString("registerRefusedDetailsPass"),
 //						new Object[]{login, "Oracle " + authorize.getSchema().getSysname(), passwordTokenServer, passwordTokenClient},
@@ -213,6 +209,10 @@ public class GuestBean {
 //				authorize.closeConnection();
 //				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_ORACLE);
 //			}
+			passwordTokenServer = DigestUtils.md5Hex(userLogon.getUser().getPassword() + guestSesion.getTimeStamp());
+			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
+				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_DERBY);
+			}
 			//Запоминаем пользователя
 			userLogon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
 			userLogon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
