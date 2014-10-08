@@ -426,7 +426,8 @@ public class ChatBean {
 			getUsersList = emKernel.createNamedQuery("getUsersListSearch", CarabiUser.class);
 			getUsersList.setParameter("search", "%" + search.toUpperCase() + "%");
 		} else {
-			getUsersList = emKernel.createNamedQuery("getAllUsersList", CarabiUser.class);
+			getUsersList = emKernel.createNamedQuery("getRelatedUsersList", CarabiUser.class);
+			getUsersList.setParameter("user", client.getUser());
 		}
 		List<CarabiUser> usersList = getUsersList.getResultList();
 		return printUsersForOutput(client, usersList, null).toString();
@@ -537,7 +538,7 @@ public class ChatBean {
 		JsonObject unreadMessagesSenders;
 		if (!usersList.isEmpty()) {//если список пользователей пустой -- доп. статистику не собираем
 			onlineUsers = getOnlineUsers();
-			final String unreadMessagesSendersJson = getUnreadMessagesSenders(client);
+			final String unreadMessagesSendersJson = getUnreadMessagesSenders(client);//TODO: Вызывать не эту ф-ю, а только запрос, без цикла, привязывающего логины к ID
 			unreadMessagesSenders = Json.createReader(new StringReader(unreadMessagesSendersJson)).readObject();
 		} else {
 			onlineUsers = new HashSet<>();

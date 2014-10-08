@@ -6,14 +6,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Resource;
 import javax.ejb.EJB;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
+import javax.json.JsonException;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
@@ -22,6 +28,7 @@ import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrBuilder;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,6 +43,7 @@ import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.entities.QueryCategory;
 import ru.carabi.server.entities.QueryEntity;
 import ru.carabi.server.entities.QueryParameterEntity;
+import ru.carabi.server.entities.UserRelation;
 
 @Stateless
 /**
@@ -720,7 +728,7 @@ public class AdminBean {
 		em.flush();
 		em.clear();
 	}
-
+	
 	public FileOnServer createUserAvatar(String login) throws CarabiException {
 		CarabiUser user = findUser(login);
 		FileOnServer avatar = user.getAvatar();
@@ -741,8 +749,86 @@ public class AdminBean {
 		em.flush();
 		return avatar;
 	}
-
+	
 	public FileOnServer refreshAvatar(FileOnServer fileMetadata) {
 		return em.merge(fileMetadata);
+	}
+	
+//	@Resource
+//	private SessionContext ctx;
+	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+	public void addUserRelations(CarabiUser mainUser, String relatedUsersListStr) throws CarabiException {
+		logger.info("relatedUser: " + relatedUsersListStr);
+		List<CarabiUser> relatedUsersList = makeRelatedUsersList(relatedUsersListStr);
+		for (CarabiUser relatedUser: relatedUsersList) {
+			TypedQuery<UserRelation> findUsersRelation = em.createNamedQuery("findUsersRelation", UserRelation.class);
+			findUsersRelation.setParameter("mainUser", mainUser);
+			findUsersRelation.setParameter("relatedUser", relatedUser);
+			if (findUsersRelation.getResultList().isEmpty()) {
+				UserRelation relation = new UserRelation();
+				relation.setMainUser(mainUser);
+				relation.setRelatedUser(relatedUser);
+				em.merge(relation);
+				// послать event
+			}
+		}
+		em.flush();
+	}
+
+	private List<CarabiUser> makeRelatedUsersList(String relatedUsersListStr) throws CarabiException {
+		//		ctx.setRollbackOnly();
+		List<String> relatedUsersLoginList = new LinkedList<>();
+		try {
+			JsonReader usersListReader = Json.createReader(new StringReader(relatedUsersListStr));
+			JsonArray usersJsonArray = usersListReader.readArray();
+			for (int i=0; i<usersJsonArray.size(); i++) {
+				String relatedUser = usersJsonArray.getString(i);
+				relatedUsersLoginList.add(relatedUser);
+			}
+		} catch (JsonException | ClassCastException e) {
+			relatedUsersLoginList.add(relatedUsersListStr);
+		}
+		List<CarabiUser> relatedUsersList = new ArrayList<>(relatedUsersLoginList.size());
+		for (String relatedUserLogin: relatedUsersLoginList) {
+			CarabiUser relatedUser = findUser(relatedUserLogin);
+			relatedUsersList.add(relatedUser);
+		}
+		return relatedUsersList;
+	}
+
+	public void removeUserRelations(CarabiUser mainUser, String relatedUsersListStr) throws CarabiException {
+		List<CarabiUser> relatedUsersList = makeRelatedUsersList(relatedUsersListStr);
+		for (CarabiUser relatedUser: relatedUsersList) {
+			TypedQuery<UserRelation> deleteUsersRelation = em.createNamedQuery("deleteUsersRelation", UserRelation.class);
+			deleteUsersRelation.setParameter("mainUser", mainUser);
+			deleteUsersRelation.setParameter("relatedUser", relatedUser);
+			int removed = deleteUsersRelation.executeUpdate();
+			if (removed > 0) {
+				//послать event
+			}
+		}
+		em.flush();
+	}
+	
+	/**
+	 * Выбор редактируемого пользователя.
+	 * Выдаётся пользователь текущей сессии, если не задан userLogin. Если userLogin
+	 * задан -- текущий пользователь должен иметь право на его редактирование, иначе выдаётся ошибка.
+	 * @param logon текущая сессия
+	 * @param userLogin логин редактируемого пользователя -- должен быть пустым, если текущий пользователь не имеет прав
+	 * @return
+	 * @throws CarabiException 
+	 */
+	public CarabiUser chooseEditableUser(UserLogon logon, String userLogin) throws CarabiException {
+		CarabiUser mainUser;
+		if (StringUtils.isEmpty(userLogin)) {
+			mainUser = logon.getUser();
+		} else {
+			if (!logon.isPermanent()) {
+				throw new CarabiException("You can not edit another user");
+			}
+			mainUser= findUser(userLogin);
+		}
+		return mainUser;
 	}
 }

@@ -1,6 +1,8 @@
 package ru.carabi.server.soap;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.jws.WebMethod;
 import javax.jws.WebParam;
@@ -8,8 +10,10 @@ import javax.jws.WebService;
 import org.json.JSONException;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
+import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
+import ru.carabi.server.logging.CarabiLogging;
 
 /**
  * Сервис для управления сервером и основными данными в служебной БД
@@ -18,9 +22,9 @@ import ru.carabi.server.kernel.UsersControllerBean;
  */
 @WebService(serviceName = "AdminService")
 public class AdminService {
-	@EJB private UsersControllerBean usersController;	
+	@EJB private UsersControllerBean usersController;
 	@EJB private AdminBean admin;
-	
+	Logger logger = CarabiLogging.getLogger(AdminService.class);
 	/**
 	 * Получение списка схем, доступных пользователю.
 	 * @param login логин
@@ -395,5 +399,47 @@ public class AdminService {
 	{
 		usersController.tokenControl(token);
 		admin.deleteQuery(id);
+	}
+	
+	/**
+	 * Создать связь между пользователями
+	 * @param token токен текущего пользователя или администратора
+	 * @param relatedUsersList  привязываемый пользователь (логин или JSON-массив логинов)
+	 * @param mainUserLogin  редактируемый пользователь -- если задан, под токеном должен входить администратор
+	 */
+	@WebMethod(operationName = "addUserRelations")
+	public void addUserRelations(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "relatedUsersList") String relatedUsersList,
+			@WebParam(name = "mainUserLogin") String mainUserLogin
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
+			CarabiUser mainUser = admin.chooseEditableUser(logon, mainUserLogin);
+			admin.addUserRelations(mainUser, relatedUsersList);
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
+	
+	/**
+	 * Удалить связь между пользователями
+	 * @param token токен текущего пользователя или администратора
+	 * @param relatedUsersList  отвязываемый пользователь (логин или JSON-массив логинов)
+	 * @param mainUserLogin  редактируемый пользователь -- если задан, под токеном должен входить администратор
+	 */
+	@WebMethod(operationName = "removeUserRelations")
+	public void removeUserRelations(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "relatedUsersList") String relatedUsersList,
+			@WebParam(name = "mainUserLogin") String mainUserLogin
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
+			CarabiUser mainUser = admin.chooseEditableUser(logon, mainUserLogin);
+			admin.removeUserRelations(mainUser, relatedUsersList);
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
 	}
 }

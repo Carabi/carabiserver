@@ -145,7 +145,7 @@ public class GuestBean {
 		}
 		timestampBuilder.append(DateFormat.getInstance().format(new Date()));
 		timestamp.value = timestampBuilder.toString();
-		guestSesion.setTimeStamp(Settings.projectName + "1024" + Settings.serverName + timestamp.value);
+		guestSesion.setTimeStamp(Settings.projectName + "9999" + Settings.serverName + timestamp.value);
 			//Проверка доступности БД - надо?
 //		} catch (Exception e) {
 //			logger.log(Level.INFO, messages.getString("welcomeError"), login);

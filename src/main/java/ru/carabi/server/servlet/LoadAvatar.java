@@ -133,9 +133,13 @@ public class LoadAvatar extends HttpServlet {
 			sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Unknown token");
 		} catch (CarabiException e) {
 			Throwable cause = e.getCause();
-			if (RestException.class.isAssignableFrom(cause.getClass())) {
+			if (cause != null && RestException.class.isAssignableFrom(cause.getClass())) {
 				RestException restException = (RestException) cause;
 				sendError(response, restException.getResponse().getStatus(), cause.getMessage());
+			} else if (cause != null) {
+				sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, cause.getMessage());
+			} else {
+				sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
 			}
 		}
 	}
@@ -251,7 +255,6 @@ public class LoadAvatar extends HttpServlet {
 		} catch (RegisterException e) {
 			sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Unknown token");
 		} catch (CarabiException ex) {
-			Throwable cause = ex.getCause();
 			Logger.getLogger(LoadAvatar.class.getName()).log(Level.SEVERE, null, ex);
 			sendError(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());
 		} catch (GeneralSecurityException ex) {
