@@ -289,7 +289,7 @@ public class ChatService {
 	}
 	
 	/**
-	 * Получение списка пользователей.
+	 * Получение полного списка пользователей.
 	 * @param token авторизационный токен клиента
 	 * @param search поиск по ФИО, логину, описанию (если пустой &mdash; возвращаются все пользователи)
 	 * @return Выборка в формате, используемом при запуске хранимых запросов
@@ -301,6 +301,25 @@ public class ChatService {
 		) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
 			return chatBean.getContactList(logon, search);
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
+	
+	/**
+	 * Получение списка связанных пользователей.
+	 * @param token авторизационный токен клиента
+	 * @param search поиск по ФИО, логину, описанию (если пустой &mdash; возвращаются все пользователи)
+	 * @return Выборка в формате, используемом при запуске хранимых запросов
+	 */
+	@WebMethod(operationName = "getRelatedUsersList")
+	public String getRelatedUsersList(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "relations") String relations
+		) throws CarabiException {
+		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+			return chatBean.getRelatedUsersList(logon, relations);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;

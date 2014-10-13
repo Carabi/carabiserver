@@ -3,6 +3,7 @@ package ru.carabi.server.kernel;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
@@ -337,6 +338,10 @@ public class ChatBean {
 	}
 	
 	public String getUnreadMessagesSenders(UserLogon client) throws CarabiException {
+		return getUnreadMessagesSenders_Internal(client, false);
+	}
+	
+	public String getUnreadMessagesSenders_Internal(UserLogon client, boolean addLastMessages) throws CarabiException {
 		//При необходимости переходим на сервер клиента
 		CarabiAppServer targetServer = client.getUser().getMainServer();
 		if (!Settings.getCurrentServer().equals(targetServer)) {
@@ -355,7 +360,25 @@ public class ChatBean {
 			} else {
 				login = sender.getLogin();
 			}
-			result.add(login, (Long)senderMessages[1]);
+			if (addLastMessages) {
+				JsonObjectBuilder userMessageAndCount = Json.createObjectBuilder();
+				userMessageAndCount.add("messages", (Long)senderMessages[1]);
+				Query getLastUserMessages = emChat.createNamedQuery("getLastUserMessages");
+				getLastUserMessages.setMaxResults(1);
+				getLastUserMessages.setParameter("user", client.getUser().getId());
+				getLastUserMessages.setParameter("sender", sender.getId());
+				List<Object[]> LastUserMessages = getLastUserMessages.getResultList();
+				if (LastUserMessages.isEmpty()) {
+					userMessageAndCount.add("lastMessage", "");
+				} else {
+					Object[] lastUserMessage = LastUserMessages.get(0);
+					userMessageAndCount.add("lastMessageId", (Long)lastUserMessage[0]);
+					userMessageAndCount.add("lastMessage", (String)lastUserMessage[1]);
+				}
+				result.add(login, userMessageAndCount);
+			} else {
+				result.add(login, (Long)senderMessages[1]);
+			}
 		}
 		return result.build().toString();
 	}
@@ -426,17 +449,25 @@ public class ChatBean {
 			getUsersList = emKernel.createNamedQuery("getUsersListSearch", CarabiUser.class);
 			getUsersList.setParameter("search", "%" + search.toUpperCase() + "%");
 		} else {
-			getUsersList = emKernel.createNamedQuery("getRelatedUsersList", CarabiUser.class);
-			getUsersList.setParameter("user", client.getUser());
+			getUsersList = emKernel.createNamedQuery("getAllUsersList", CarabiUser.class);
 		}
 		List<CarabiUser> usersList = getUsersList.getResultList();
-		return printUsersForOutput(client, usersList, null).toString();
+		return printUsersForOutput(client, usersList, null, false).toString();
+	}
+	
+	public String getRelatedUsersList(UserLogon client, String relations) throws CarabiException {
+		//Выбираем пользователей
+		TypedQuery<CarabiUser> getUsersList;
+		getUsersList = emKernel.createNamedQuery("getRelatedUsersList", CarabiUser.class);
+		getUsersList.setParameter("user", client.getUser());
+		List<CarabiUser> usersList = getUsersList.getResultList();
+		return printUsersForOutput(client, usersList, null, true).toString();
 	}
 	
 	public String getContact(UserLogon client, String login) throws CarabiException {
 		List<CarabiUser> usersList = new ArrayList<>(1);
 		usersList.add(admin.findUser(login));
-		JsonObject userForOutput = printUsersForOutput(client, usersList, null);
+		JsonObject userForOutput = printUsersForOutput(client, usersList, null, true);
 		return Utls.redim(userForOutput).toString();
 	}
 	
@@ -505,7 +536,7 @@ public class ChatBean {
 		} else {
 			interlocutorsOrdered = new ArrayList<>(0);
 		}
-		return printUsersForOutput(client, interlocutorsOrdered, interlocutorsLastContact).toString();
+		return printUsersForOutput(client, interlocutorsOrdered, interlocutorsLastContact, true).toString();
 	}
 
 	private CarabiDate parceDate(String dateStr, String defaultVal) throws CarabiException {
@@ -533,12 +564,12 @@ public class ChatBean {
 	 * @param usersList
 	 * @return 
 	 */
-	private JsonObject printUsersForOutput(UserLogon client, List<CarabiUser> usersList, Map<Long, Date> userLastContact) throws CarabiException {
+	private JsonObject printUsersForOutput(UserLogon client, List<CarabiUser> usersList, Map<Long, Date> userLastContact, boolean addLastMessages) throws CarabiException {
 		Set<String> onlineUsers;
 		JsonObject unreadMessagesSenders;
 		if (!usersList.isEmpty()) {//если список пользователей пустой -- доп. статистику не собираем
 			onlineUsers = getOnlineUsers();
-			final String unreadMessagesSendersJson = getUnreadMessagesSenders(client);//TODO: Вызывать не эту ф-ю, а только запрос, без цикла, привязывающего логины к ID
+			final String unreadMessagesSendersJson = getUnreadMessagesSenders_Internal(client, addLastMessages);//TODO: Вызывать не эту ф-ю, а только запрос, без цикла, привязывающего логины к ID
 			unreadMessagesSenders = Json.createReader(new StringReader(unreadMessagesSendersJson)).readObject();
 		} else {
 			onlineUsers = new HashSet<>();
@@ -557,6 +588,10 @@ public class ChatBean {
 		headerColumns.add(Utls.parametersToJson("SCHEMA_DESCRIPTION", "VARCHAR2"));
 		headerColumns.add(Utls.parametersToJson("ONLINE", "NUMBER"));
 		headerColumns.add(Utls.parametersToJson("MESSAGES_UNREAD", "NUMBER"));
+		if (addLastMessages) {
+			headerColumns.add(Utls.parametersToJson("LAST_MESSAGE_ID", "NUMBER"));
+			headerColumns.add(Utls.parametersToJson("LAST_MESSAGE", "VARCHAR2"));
+		}
 		if (userLastContact != null) {
 			headerColumns.add(Utls.parametersToJson("LAST_CONTACT_DATE", "DATE"));
 			headerColumns.add(Utls.parametersToJson("LAST_CONTACT_DATE_STR", "VARCHAR2"));
@@ -577,26 +612,39 @@ public class ChatBean {
 			Utls.addJsonObject(userJson, user.getDepartment());
 			Utls.addJsonObject(userJson, user.getRole());
 			if (user.getDefaultSchema() != null) {
-				Utls.addJsonObject(userJson, user.getDefaultSchema().getName());
-				Utls.addJsonObject(userJson, user.getDefaultSchema().getDescription());
+				Utls.addJsonObject(userJson, user.getDefaultSchema().getName());//SCHEMA_NAME
+				Utls.addJsonObject(userJson, user.getDefaultSchema().getDescription());//SCHEMA_DESCRIPTION
 			} else {
-				userJson.addNull();
-				userJson.addNull();
+				userJson.addNull();//SCHEMA_NAME
+				userJson.addNull();//SCHEMA_DESCRIPTION
 			}
 			if (onlineUsers.contains(user.getLogin())) {
-				userJson.add("1");
+				userJson.add("1");//ONLINE
 			} else {
-				userJson.add("0");
+				userJson.add("0");//ONLINE
 			}
-			JsonValue unreadMessages = unreadMessagesSenders.get(login);
-			if (unreadMessages == null) {
-				userJson.add("0");
+			if (addLastMessages) {
+				JsonObject unreadMessages = unreadMessagesSenders.getJsonObject(login);
+				if (unreadMessages == null) {
+					userJson.add("0");//MESSAGES_UNREAD
+					userJson.add("-1");//LAST_MESSAGE_ID
+					userJson.add("");//LAST_MESSAGE
+				} else {
+					userJson.add(unreadMessages.get("messages").toString());//MESSAGES_UNREAD
+					userJson.add(unreadMessages.get("lastMessageId").toString());//LAST_MESSAGE_ID
+					userJson.add(unreadMessages.getString("lastMessage"));//LAST_MESSAGE
+				}
 			} else {
-				userJson.add(unreadMessages.toString());
+				JsonValue unreadMessages = unreadMessagesSenders.get(login);
+				if (unreadMessages == null) {
+					userJson.add("0");//MESSAGES_UNREAD
+				} else {
+					userJson.add(unreadMessages.toString());//MESSAGES_UNREAD
+				}
 			}
 			if (userLastContact != null) {
-				userJson.add(ThreadSafeDateParser.format(userLastContact.get(user.getId()), CarabiDate.pattern));
-				userJson.add(ThreadSafeDateParser.format(userLastContact.get(user.getId()), CarabiDate.patternShort));
+				userJson.add(ThreadSafeDateParser.format(userLastContact.get(user.getId()), CarabiDate.pattern));//LAST_CONTACT_DATE
+				userJson.add(ThreadSafeDateParser.format(userLastContact.get(user.getId()), CarabiDate.patternShort));//LAST_CONTACT_DATE_STR
 			}
 			rows.add(userJson);
 		}
@@ -613,7 +661,7 @@ public class ChatBean {
 		for (CarabiAppServer server: servers) {
 			try {
 				String usersOnlineJson = eventer.eventerSingleRequestResponse(server, "[]", new Holder<>((short)15), true);
-				logger.info("online from " + server.getComputer() + ": " + usersOnlineJson);
+				logger.log(Level.INFO, "online from {0}: {1}", new Object[]{server.getComputer(), usersOnlineJson});
 				JsonReader reader = Json.createReader(new StringReader(usersOnlineJson));
 				JsonObject usersOnline = reader.readObject();
 				result.addAll(usersOnline.keySet());
