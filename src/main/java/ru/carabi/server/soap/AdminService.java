@@ -411,11 +411,12 @@ public class AdminService {
 	public void addUserRelations(
 			@WebParam(name = "token") String token,
 			@WebParam(name = "relatedUsersList") String relatedUsersList,
+			@WebParam(name = "relation") String relation,
 			@WebParam(name = "mainUserLogin") String mainUserLogin
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
 			CarabiUser mainUser = admin.chooseEditableUser(logon, mainUserLogin);
-			admin.addUserRelations(mainUser, relatedUsersList);
+			admin.addUserRelations(mainUser, relatedUsersList, relation);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;
@@ -432,11 +433,12 @@ public class AdminService {
 	public void removeUserRelations(
 			@WebParam(name = "token") String token,
 			@WebParam(name = "relatedUsersList") String relatedUsersList,
+			@WebParam(name = "relation") String relation,
 			@WebParam(name = "mainUserLogin") String mainUserLogin
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
 			CarabiUser mainUser = admin.chooseEditableUser(logon, mainUserLogin);
-			admin.removeUserRelations(mainUser, relatedUsersList);
+			admin.removeUserRelations(mainUser, relatedUsersList, relation);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;

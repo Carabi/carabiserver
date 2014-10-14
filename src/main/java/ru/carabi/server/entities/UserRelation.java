@@ -1,12 +1,15 @@
 package ru.carabi.server.entities;
 
 import java.io.Serializable;
+import java.util.Collection;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
@@ -21,6 +24,8 @@ import javax.persistence.Table;
 @NamedQueries ({
 @NamedQuery(name = "findUsersRelation",
 		query = "select UR from UserRelation UR where UR.mainUser = :mainUser and UR.relatedUser = :relatedUser"),
+@NamedQuery(name = "findUsersRelations",
+		query = "select UR from UserRelation UR where UR.mainUser = :mainUser and UR.relatedUser in :relatedUsers"),
 @NamedQuery(name = "deleteUsersRelation",
 		query = "delete from UserRelation UR where UR.mainUser = :mainUser and UR.relatedUser = :relatedUser")
 })
@@ -41,6 +46,16 @@ public class UserRelation implements Serializable {
 	@JoinColumn(name="RELATED_USER_ID")
 	CarabiUser relatedUser;
 	
+	@ManyToMany
+	@JoinTable(
+		name="RELATION_HAS_TYPE",
+		joinColumns=
+			@JoinColumn(name="USER_RELATION_ID", referencedColumnName="USER_RELATION_ID"),
+		inverseJoinColumns=
+			@JoinColumn(name="RELATION_TYPE_ID", referencedColumnName="RELATION_TYPE_ID")
+	)
+	private Collection<UserRelationType> relationTypes;
+	
 	public CarabiUser getMainUser() {
 		return mainUser;
 	}
@@ -55,6 +70,14 @@ public class UserRelation implements Serializable {
 	
 	public void setRelatedUser(CarabiUser contact) {
 		this.relatedUser = contact;
+	}
+
+	public Collection<UserRelationType> getRelationTypes() {
+		return relationTypes;
+	}
+
+	public void setRelationTypes(Collection<UserRelationType> relationTypes) {
+		this.relationTypes = relationTypes;
 	}
 	
 	@Override

@@ -310,16 +310,21 @@ public class ChatService {
 	/**
 	 * Получение списка связанных пользователей.
 	 * @param token авторизационный токен клиента
-	 * @param search поиск по ФИО, логину, описанию (если пустой &mdash; возвращаются все пользователи)
+	 * @param relations Json-массив типов связей, которые должен иметь пользователь.
+	 * Если пустой / пустая строка -- возвращаются пользователи со всеми связями,
+	 * в том числе немаркированными. Если не читается, как Json -- воспринимается, как имя одного типа.
+	 * @param conjunction если true -- возвращаются пользователи, имеющие все указанные типы связи,
+	 * иначе -- имеющие хотя бы один из указанных типов связи
 	 * @return Выборка в формате, используемом при запуске хранимых запросов
 	 */
 	@WebMethod(operationName = "getRelatedUsersList")
 	public String getRelatedUsersList(
 			@WebParam(name = "token") String token,
-			@WebParam(name = "relations") String relations
+			@WebParam(name = "relations") String relations,
+			@WebParam(name = "conjunction") boolean conjunction
 		) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
-			return chatBean.getRelatedUsersList(logon, relations);
+			return chatBean.getRelatedUsersList(logon, relations, conjunction);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;

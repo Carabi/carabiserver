@@ -1,6 +1,7 @@
 package ru.carabi.server.kernel;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,9 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Resource;
 import javax.ejb.EJB;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -33,6 +32,7 @@ import org.apache.commons.lang3.text.StrBuilder;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import ru.carabi.libs.CarabiEventType;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
@@ -44,6 +44,7 @@ import ru.carabi.server.entities.QueryCategory;
 import ru.carabi.server.entities.QueryEntity;
 import ru.carabi.server.entities.QueryParameterEntity;
 import ru.carabi.server.entities.UserRelation;
+import ru.carabi.server.entities.UserRelationType;
 
 @Stateless
 /**
@@ -61,9 +62,8 @@ public class AdminBean {
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManager em;
 	
-	@EJB 
-	private ConnectionsGateBean cg;
-	
+	private @EJB ConnectionsGateBean cg;
+	private @EJB EventerBean eventer;
 	/**
 	 * Получение ID пользователя Carabi.
 	 * @param login логин пользователя
@@ -754,27 +754,65 @@ public class AdminBean {
 		return em.merge(fileMetadata);
 	}
 	
-//	@Resource
-//	private SessionContext ctx;
 	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-	public void addUserRelations(CarabiUser mainUser, String relatedUsersListStr) throws CarabiException {
-		logger.info("relatedUser: " + relatedUsersListStr);
+	public void addUserRelations(CarabiUser mainUser, String relatedUsersListStr, String relationName) throws CarabiException {
 		List<CarabiUser> relatedUsersList = makeRelatedUsersList(relatedUsersListStr);
+		UserRelationType relationType = getUserRelationType(relationName);
 		for (CarabiUser relatedUser: relatedUsersList) {
 			TypedQuery<UserRelation> findUsersRelation = em.createNamedQuery("findUsersRelation", UserRelation.class);
 			findUsersRelation.setParameter("mainUser", mainUser);
 			findUsersRelation.setParameter("relatedUser", relatedUser);
-			if (findUsersRelation.getResultList().isEmpty()) {
-				UserRelation relation = new UserRelation();
+			UserRelation relation;
+			List<UserRelation> findUsersRelationResult = findUsersRelation.getResultList();
+			if (findUsersRelationResult.isEmpty()) {
+				relation = new UserRelation();
 				relation.setMainUser(mainUser);
 				relation.setRelatedUser(relatedUser);
-				em.merge(relation);
-				// послать event
+			} else {
+				relation = findUsersRelationResult.get(0);
 			}
+			relation.getRelationTypes().add(relationType);
+			em.merge(relation);
 		}
 		em.flush();
+		try {
+			fireRelationEvent(relatedUsersListStr, relationName, mainUser, CarabiEventType.usersRelationsAdd.getCode());
+		} catch (IOException ex) {
+			Logger.getLogger(AdminBean.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 
+	private void fireRelationEvent(String relatedUsersListStr, String relationName, CarabiUser mainUser, short code) throws CarabiException, IOException {
+		String event = "{\"users\":" + relatedUsersListStr + ", \"relation\":";
+		if (StringUtils.isEmpty(relationName)) {
+			event += "null}";
+		} else {
+			event += "\"" + relationName + "\"}";
+		}
+		eventer.fireEvent("", mainUser.getLogin(), code, event);
+	}
+
+	private UserRelationType getUserRelationType(String relationName) {
+		TypedQuery<UserRelationType> findRelationType = em.createNamedQuery("findRelationType", UserRelationType.class);
+		findRelationType.setParameter("name", relationName);
+		UserRelationType relationType;
+		List<UserRelationType> findRelationTypeResult = findRelationType.getResultList();
+		if (findRelationTypeResult.isEmpty()) {
+			return findRelationType.getSingleResult();
+		} else if (!StringUtils.isEmpty(relationName)) {
+			relationType = new UserRelationType();
+			relationType.setSysname(relationName);
+			return em.merge(relationType);
+		}
+		return null;
+	}
+
+	/**
+	 * Составление списка пользователей из Json-списка логинов
+	 * @param relatedUsersListStr
+	 * @return
+	 * @throws CarabiException 
+	 */
 	private List<CarabiUser> makeRelatedUsersList(String relatedUsersListStr) throws CarabiException {
 		//		ctx.setRollbackOnly();
 		List<String> relatedUsersLoginList = new LinkedList<>();
@@ -796,18 +834,33 @@ public class AdminBean {
 		return relatedUsersList;
 	}
 
-	public void removeUserRelations(CarabiUser mainUser, String relatedUsersListStr) throws CarabiException {
+	public void removeUserRelations(CarabiUser mainUser, String relatedUsersListStr, String relationName) throws CarabiException {
 		List<CarabiUser> relatedUsersList = makeRelatedUsersList(relatedUsersListStr);
+		UserRelationType relationType = getUserRelationType(relationName);
 		for (CarabiUser relatedUser: relatedUsersList) {
-			TypedQuery<UserRelation> deleteUsersRelation = em.createNamedQuery("deleteUsersRelation", UserRelation.class);
-			deleteUsersRelation.setParameter("mainUser", mainUser);
-			deleteUsersRelation.setParameter("relatedUser", relatedUser);
-			int removed = deleteUsersRelation.executeUpdate();
-			if (removed > 0) {
-				//послать event
+			if (StringUtils.isEmpty(relationName)) {// без указания категории удаляем всё
+				TypedQuery<UserRelation> deleteUsersRelation = em.createNamedQuery("deleteUsersRelation", UserRelation.class);
+				deleteUsersRelation.setParameter("mainUser", mainUser);
+				deleteUsersRelation.setParameter("relatedUser", relatedUser);
+				int removed = deleteUsersRelation.executeUpdate();
+			} else {
+				TypedQuery<UserRelation> findUsersRelation = em.createNamedQuery("findUsersRelation", UserRelation.class);
+				findUsersRelation.setParameter("mainUser", mainUser);
+				findUsersRelation.setParameter("relatedUser", relatedUser);
+				List<UserRelation> findUsersRelationResult = findUsersRelation.getResultList();
+				if (!findUsersRelationResult.isEmpty()) {
+					UserRelation usersRelation = findUsersRelationResult.get(0);
+					usersRelation.getRelationTypes().remove(relationType);
+					em.merge(usersRelation);
+				}
 			}
 		}
 		em.flush();
+		try {
+			fireRelationEvent(relatedUsersListStr, relationName, mainUser, CarabiEventType.usersRelationsRemove.getCode());
+		} catch (IOException ex) {
+			Logger.getLogger(AdminBean.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 	
 	/**

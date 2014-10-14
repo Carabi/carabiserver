@@ -16,6 +16,7 @@
     <class>ru.carabi.server.entities.FileOnServer</class>
     <class>ru.carabi.server.entities.ThumbnailMeta</class>
     <class>ru.carabi.server.entities.UserRelation</class>
+    <class>ru.carabi.server.entities.UserRelationType</class>
     <exclude-unlisted-classes>true</exclude-unlisted-classes>
     <shared-cache-mode>NONE</shared-cache-mode>
     <properties>

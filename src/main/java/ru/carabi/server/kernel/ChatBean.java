@@ -3,12 +3,12 @@ package ru.carabi.server.kernel;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
-import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +23,7 @@ import javax.ejb.Singleton;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
+import javax.json.JsonException;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
@@ -37,6 +38,8 @@ import javax.xml.ws.BindingProvider;
 import javax.xml.ws.Holder;
 import javax.xml.ws.WebServiceException;
 import me.lima.ThreadSafeDateParser;
+import org.apache.commons.lang3.StringUtils;
+import ru.carabi.libs.CarabiEventType;
 import ru.carabi.libs.CarabiFunc;
 import static ru.carabi.libs.CarabiFunc.*;
 import ru.carabi.server.CarabiException;
@@ -47,6 +50,8 @@ import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.ChatMessage;
 import ru.carabi.server.entities.FileOnServer;
+import ru.carabi.server.entities.UserRelation;
+import ru.carabi.server.entities.UserRelationType;
 import ru.carabi.server.kernel.oracle.CarabiDate;
 import ru.carabi.server.logging.CarabiLogging;
 import ru.carabi.server.rest.RestException;
@@ -132,7 +137,7 @@ public class ChatBean {
 			eventTextBuild.add("receiver", receiver.getLogin());
 			eventTextBuild.add("id", messageId);
 			eventText = eventTextBuild.build().toString();
-			eventer.fireEvent("", toReceiver ? receiver.getLogin() : sender.getLogin(), (short) 12, eventText);
+			eventer.fireEvent("", toReceiver ? receiver.getLogin() : sender.getLogin(), CarabiEventType.chatMessage.getCode(), eventText);
 		} catch (IOException ex) {
 			logger.log(Level.SEVERE, null, ex);
 		}
@@ -254,7 +259,7 @@ public class ChatBean {
 			eventText.add("messagesList", senderMessages);
 			eventTextBuilt = eventText.build();
 			try {
-				eventer.fireEvent("", receiver.getLogin(), (short)13, eventTextBuilt.toString());
+				eventer.fireEvent("", receiver.getLogin(), CarabiEventType.chatMessageRead.getCode(), eventTextBuilt.toString());
 			} catch (IOException ex) {
 				Logger.getLogger(ChatBean.class.getName()).log(Level.SEVERE, null, ex);
 			}
@@ -455,13 +460,62 @@ public class ChatBean {
 		return printUsersForOutput(client, usersList, null, false).toString();
 	}
 	
-	public String getRelatedUsersList(UserLogon client, String relations) throws CarabiException {
+	public String getRelatedUsersList(UserLogon client, String relationsStr, boolean conjunction) throws CarabiException {
+		if (StringUtils.isEmpty(relationsStr)) {
+			return getRelatedUsers(client);
+		}
+		List<String> relations = new ArrayList<>();
+		try {
+			JsonReader reader = Json.createReader(new StringReader(relationsStr));
+			JsonArray relationsJson = reader.readArray();
+			final int size = relationsJson.size();
+			if (size == 0) {
+				return getRelatedUsers(client);
+			}
+			for (int i=0; i<size; i++) {
+				final String relation = relationsJson.getString(i);
+				relations.add(relation);
+			}
+		} catch (JsonException ex) {
+			relations.add(relationsStr);
+		}
+		Query getRelationTypesIds = emKernel.createNamedQuery("getRelationTypesIds");
+		getRelationTypesIds.setParameter("relations", relations);
+		List relationsIds = getRelationTypesIds.getResultList();
+		Query getUsersList = null;
+		if (conjunction) {
+			String sql = "select * from CARABI_USER where  USER_ID in (\n" +
+				"	select RELATED_USER_ID from USER_RELATION\n";
+			String term = "";
+			for (Object relationId: relationsIds) {
+				sql += "	left join RELATION_HAS_TYPE T"+relationId + " on USER_RELATION.USER_RELATION_ID = T"+relationId+".USER_RELATION_ID\n";
+				term += "and T"+relationId+".RELATION_TYPE_ID = " + relationId;
+			}
+			sql += "	where MAIN_USER_ID = ? " + term + "\n)";
+			getUsersList = emKernel.createNativeQuery(sql, CarabiUser.class);
+			
+		} else {
+			getUsersList = emKernel.createNativeQuery("select * from CARABI_USER where  USER_ID in (\n" +
+				"	select RELATED_USER_ID from USER_RELATION\n" +
+				"	left join RELATION_HAS_TYPE on USER_RELATION.USER_RELATION_ID = RELATION_HAS_TYPE.USER_RELATION_ID\n" +
+				"	where MAIN_USER_ID = ? and RELATION_TYPE_ID in (" + StringUtils.join(relationsIds, ", ") +")\n" +
+				")", CarabiUser.class);
+		}
+		getUsersList.setParameter(1, client.getUser().getId());
 		//Выбираем пользователей
-		TypedQuery<CarabiUser> getUsersList;
-		getUsersList = emKernel.createNamedQuery("getRelatedUsersList", CarabiUser.class);
-		getUsersList.setParameter("user", client.getUser());
+//		List<String> relations = new ArrayList<>();
+//		relations.add("searchable");
+//		relations.add("favourite");
+//		getUsersList.setParameter("relations", relations);
 		List<CarabiUser> usersList = getUsersList.getResultList();
 		return printUsersForOutput(client, usersList, null, true).toString();
+	}
+
+	private String getRelatedUsers(UserLogon client) throws CarabiException {
+		TypedQuery<CarabiUser> getUsersList = emKernel.createNamedQuery("getRelatedUsersList", CarabiUser.class);
+		getUsersList.setParameter("user", client.getUser());
+		List<CarabiUser> usersList = getUsersList.getResultList();
+		return printUsersForOutput(client, usersList, null, false).toString();
 	}
 	
 	public String getContact(UserLogon client, String login) throws CarabiException {
@@ -567,13 +621,16 @@ public class ChatBean {
 	private JsonObject printUsersForOutput(UserLogon client, List<CarabiUser> usersList, Map<Long, Date> userLastContact, boolean addLastMessages) throws CarabiException {
 		Set<String> onlineUsers;
 		JsonObject unreadMessagesSenders;
+		Map<String, UserRelation> userRelations;
 		if (!usersList.isEmpty()) {//если список пользователей пустой -- доп. статистику не собираем
 			onlineUsers = getOnlineUsers();
 			final String unreadMessagesSendersJson = getUnreadMessagesSenders_Internal(client, addLastMessages);//TODO: Вызывать не эту ф-ю, а только запрос, без цикла, привязывающего логины к ID
 			unreadMessagesSenders = Json.createReader(new StringReader(unreadMessagesSendersJson)).readObject();
+			userRelations = getUserRelations(client.getUser(), usersList);
 		} else {
 			onlineUsers = new HashSet<>();
 			unreadMessagesSenders = Json.createObjectBuilder().build();
+			userRelations = new HashMap<>();
 		}
 		
 		//формируем вывод
@@ -592,6 +649,7 @@ public class ChatBean {
 			headerColumns.add(Utls.parametersToJson("LAST_MESSAGE_ID", "NUMBER"));
 			headerColumns.add(Utls.parametersToJson("LAST_MESSAGE", "VARCHAR2"));
 		}
+		headerColumns.add(Utls.parametersToJson("RELATIONS", "VARCHAR2"));
 		if (userLastContact != null) {
 			headerColumns.add(Utls.parametersToJson("LAST_CONTACT_DATE", "DATE"));
 			headerColumns.add(Utls.parametersToJson("LAST_CONTACT_DATE_STR", "VARCHAR2"));
@@ -642,6 +700,22 @@ public class ChatBean {
 					userJson.add(unreadMessages.toString());//MESSAGES_UNREAD
 				}
 			}
+			UserRelation relation = userRelations.get(login);
+			if (relation == null) {
+				userJson.addNull();//RELATIONS
+			} else {
+				Collection<UserRelationType> relationTypes = relation.getRelationTypes();
+				StringBuilder relations = new StringBuilder();
+				int r = 0;
+				for (UserRelationType relationType: relationTypes) {
+					if (r > 0) {
+						relations.append(";");
+					}
+					relations.append(relationType.getSysname());
+					r++;
+				}
+				userJson.add(relations.toString());//RELATIONS
+			}
 			if (userLastContact != null) {
 				userJson.add(ThreadSafeDateParser.format(userLastContact.get(user.getId()), CarabiDate.pattern));//LAST_CONTACT_DATE
 				userJson.add(ThreadSafeDateParser.format(userLastContact.get(user.getId()), CarabiDate.patternShort));//LAST_CONTACT_DATE_STR
@@ -670,6 +744,18 @@ public class ChatBean {
 			}
 		}
 		return result;
+	}
+	
+	private Map<String, UserRelation> getUserRelations(CarabiUser user, List<CarabiUser> usersList) {
+		Map<String, UserRelation> userRelations = new HashMap<>();
+		TypedQuery<UserRelation> findUsersRelations = emKernel.createNamedQuery("findUsersRelations", UserRelation.class);
+		findUsersRelations.setParameter("mainUser", user);
+		findUsersRelations.setParameter("relatedUsers", usersList);
+		List<UserRelation> userRelationsList = findUsersRelations.getResultList();
+		for (UserRelation userRelation: userRelationsList) {
+			userRelations.put(userRelation.getRelatedUser().getLogin(), userRelation);
+		}
+		return userRelations;
 	}
 	
 	public String getDialog(UserLogon client, CarabiUser interlocutor, String afterDateStr, String search) throws CarabiException {
@@ -761,7 +847,7 @@ public class ChatBean {
 		}
 		//Отправляем событие клиентам
 		try {
-			eventer.fireEvent("", client.getUser().getLogin(), (short) 16, messagesList);
+			eventer.fireEvent("", client.getUser().getLogin(), CarabiEventType.chatMessageRemove.getCode(), messagesList);
 		} catch (IOException ex) {
 			Logger.getLogger(ChatBean.class.getName()).log(Level.SEVERE, null, ex);
 		}
@@ -817,7 +903,7 @@ public class ChatBean {
 	public void fireUserState(UserLogon logon, boolean online) throws IOException, CarabiException {
 		if (online) {
 			//При подключении передаём событие всегда.
-			eventer.fireEvent("", "", (short)14, "{\"login\":\"" + logon.getUser().getLogin() + "\",\"online\":true}");
+			eventer.fireEvent("", "", CarabiEventType.userOnlineEvent.getCode(), "{\"login\":\"" + logon.getUser().getLogin() + "\",\"online\":true}");
 		} else {
 			//При отключении проверяем, что других сессий этого пользователя нет
 			TypedQuery<CarabiAppServer> getSevers = emKernel.createNamedQuery("getAllServers", CarabiAppServer.class);
@@ -839,7 +925,7 @@ public class ChatBean {
 				}
 			}
 			if (!stillOnline) {
-				eventer.fireEvent("", "", (short)14, "{\"login\":\"" + logon.getUser().getLogin() + "\",\"online\":false}");
+				eventer.fireEvent("", "", CarabiEventType.userOnlineEvent.getCode(), "{\"login\":\"" + logon.getUser().getLogin() + "\",\"online\":false}");
 			}
 		}
 	}

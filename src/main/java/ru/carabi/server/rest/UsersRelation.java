@@ -59,7 +59,8 @@ public class UsersRelation {
 	public String addRelation(
 			@QueryParam("token") String token,
 			@DefaultValue("") @QueryParam("userLogin") String userLogin,
-			@DefaultValue("") @QueryParam("relatedUser") String relatedUser
+			@DefaultValue("") @QueryParam("relatedUser") String relatedUser,
+			@DefaultValue("") @QueryParam("relation") String relation
 			) {
 		logger.info("relatedUser: " + relatedUser);
 		String[] relatedUsersArray;
@@ -70,7 +71,7 @@ public class UsersRelation {
 		}
 		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
 			CarabiUser mainUser = admin.chooseEditableUser(logon, userLogin);
-			admin.addUserRelations(mainUser, Utls.parametersToJson(relatedUsersArray).build().toString());
+			admin.addUserRelations(mainUser, Utls.parametersToJson(relatedUsersArray).build().toString(), relation);
 		} catch (RegisterException e) {
 			logger.log(Level.INFO, "", e);
 			throw new RestException(e.getMessage(), Response.Status.UNAUTHORIZED);
@@ -85,7 +86,8 @@ public class UsersRelation {
 	public String removeRelation(
 			@QueryParam("token") String token,
 			@DefaultValue("") @QueryParam("userLogin") String userLogin,
-			@DefaultValue("") @QueryParam("relatedUser") String relatedUser
+			@DefaultValue("") @QueryParam("relatedUser") String relatedUser,
+			@DefaultValue("") @QueryParam("relation") String relation
 			) {
 		String[] relatedUsersArray;
 		if (relatedUser.contains(";")) {
@@ -95,7 +97,7 @@ public class UsersRelation {
 		}
 		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
 			CarabiUser mainUser = admin.chooseEditableUser(logon, userLogin);
-			admin.removeUserRelations(mainUser, Utls.parametersToJson(relatedUsersArray).build().toString());
+			admin.removeUserRelations(mainUser, Utls.parametersToJson(relatedUsersArray).build().toString(), relation);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 		}
