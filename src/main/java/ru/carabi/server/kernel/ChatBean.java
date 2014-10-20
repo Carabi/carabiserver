@@ -639,6 +639,7 @@ public class ChatBean {
 		headerColumns.add(Utls.parametersToJson("FIRSTNAME", "VARCHAR2"));
 		headerColumns.add(Utls.parametersToJson("MIDDLENAME", "VARCHAR2"));
 		headerColumns.add(Utls.parametersToJson("LASTNAME", "VARCHAR2"));
+		headerColumns.add(Utls.parametersToJson("EMAIL", "VARCHAR2"));
 		headerColumns.add(Utls.parametersToJson("DEPARTMENT", "VARCHAR2"));
 		headerColumns.add(Utls.parametersToJson("ROLE", "VARCHAR2"));
 		headerColumns.add(Utls.parametersToJson("SCHEMA_NAME", "VARCHAR2"));
@@ -667,6 +668,7 @@ public class ChatBean {
 			Utls.addJsonObject(userJson, user.getFirstname());
 			Utls.addJsonObject(userJson, user.getMiddlename());
 			Utls.addJsonObject(userJson, user.getLastname());
+			Utls.addJsonObject(userJson, user.getEmail());
 			Utls.addJsonObject(userJson, user.getDepartment());
 			Utls.addJsonObject(userJson, user.getRole());
 			if (user.getDefaultSchema() != null) {

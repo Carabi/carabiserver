@@ -294,6 +294,22 @@ public class Utls {
 		}
 	}
 	
+	public static void addJsonNumber(JsonObjectBuilder jsonObject, String name, Number value) {
+		if (value == null) {
+			jsonObject.addNull(name);
+		} else {
+			jsonObject.add(name, value.toString());
+		}
+	}
+	
+	public static void addJsonNumber(JsonArrayBuilder jsonArray, Number value) {
+		if (value == null) {
+			jsonArray.addNull();
+		} else {
+			jsonArray.add(value.longValue());
+		}
+	}
+	
 	/**
 	 * Извлечение массива ASCII символов из строки, перевод
 	 * в массива байтов и строку в кодировке UTF-8.

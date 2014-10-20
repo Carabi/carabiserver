@@ -66,6 +66,7 @@ public class CarabiUser implements Serializable {
 	private String firstname;
 	private String middlename;
 	private String lastname;
+	private String email;
 	private String role;
 	private String department;
 	
@@ -91,6 +92,9 @@ public class CarabiUser implements Serializable {
 	
 	@OneToMany(mappedBy="user")
 	private Collection<UserServerEnter> entersToServers;
+	
+	@OneToMany(mappedBy="owner")
+	private Collection<Phone> phonesList;
 	
 	@OneToOne
 	@JoinColumn(name="AVATAR")
@@ -145,6 +149,14 @@ public class CarabiUser implements Serializable {
 	
 	public void setLastname(String lastname) {
 		this.lastname = lastname;
+	}
+	
+	public String getEmail() {
+		return email;
+	}
+	
+	public void setEmail(String email) {
+		this.email = email;
 	}
 	
 	public String getRole() {
@@ -202,14 +214,22 @@ public class CarabiUser implements Serializable {
 		this.entersToServers = entersToServers;
 	}
 	
+	public Collection<Phone> getPhonesList() {
+		return phonesList;
+	}
+	
+	public void setPhonesList(Collection<Phone> phonesList) {
+		this.phonesList = phonesList;
+	}
+	
 	public FileOnServer getAvatar() {
 		return avatar;
 	}
-
+	
 	public void setAvatar(FileOnServer avatar) {
 		this.avatar = avatar;
 	}
-
+	
 	public Date getLastActive() {
 		return lastActive;
 	}
