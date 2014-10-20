@@ -768,6 +768,7 @@ public class AdminBean {
 				relation = new UserRelation();
 				relation.setMainUser(mainUser);
 				relation.setRelatedUser(relatedUser);
+				relation.setRelationTypes(new ArrayList<UserRelationType>());
 			} else {
 				relation = findUsersRelationResult.get(0);
 			}
@@ -797,10 +798,11 @@ public class AdminBean {
 		findRelationType.setParameter("name", relationName);
 		UserRelationType relationType;
 		List<UserRelationType> findRelationTypeResult = findRelationType.getResultList();
-		if (findRelationTypeResult.isEmpty()) {
+		if (!findRelationTypeResult.isEmpty()) {
 			return findRelationType.getSingleResult();
 		} else if (!StringUtils.isEmpty(relationName)) {
 			relationType = new UserRelationType();
+			relationType.setName(relationName);
 			relationType.setSysname(relationName);
 			return em.merge(relationType);
 		}
@@ -842,7 +844,7 @@ public class AdminBean {
 				TypedQuery<UserRelation> deleteUsersRelation = em.createNamedQuery("deleteUsersRelation", UserRelation.class);
 				deleteUsersRelation.setParameter("mainUser", mainUser);
 				deleteUsersRelation.setParameter("relatedUser", relatedUser);
-				int removed = deleteUsersRelation.executeUpdate();
+				deleteUsersRelation.executeUpdate();
 			} else {
 				TypedQuery<UserRelation> findUsersRelation = em.createNamedQuery("findUsersRelation", UserRelation.class);
 				findUsersRelation.setParameter("mainUser", mainUser);

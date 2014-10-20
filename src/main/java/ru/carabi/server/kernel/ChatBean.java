@@ -515,7 +515,7 @@ public class ChatBean {
 		TypedQuery<CarabiUser> getUsersList = emKernel.createNamedQuery("getRelatedUsersList", CarabiUser.class);
 		getUsersList.setParameter("user", client.getUser());
 		List<CarabiUser> usersList = getUsersList.getResultList();
-		return printUsersForOutput(client, usersList, null, false).toString();
+		return printUsersForOutput(client, usersList, null, true).toString();
 	}
 	
 	public String getContact(UserLogon client, String login) throws CarabiException {
