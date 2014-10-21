@@ -171,7 +171,8 @@ create table PHONE (
 	COUNTRY_CODE integer,
 	REGION_CODE integer,
 	MAIN_NUMBER bigint not null,
-	SUFFIX INTEGER
+	SUFFIX INTEGER,
+	SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) --Только для sip: ID схемы БД, через которую осуществляется управление АТС
 );
 
 /**

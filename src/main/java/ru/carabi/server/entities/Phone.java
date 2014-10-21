@@ -45,6 +45,10 @@ public class Phone implements Serializable {
 	@Column(name="SUFFIX")
 	private int suffix;
 	
+	@ManyToOne
+	@JoinColumn(name="SCHEMA_ID")
+	private ConnectionSchema sipSchema;
+	
 	public Long getId() {
 		return id;
 	}
@@ -101,6 +105,13 @@ public class Phone implements Serializable {
 		this.suffix = suffix;
 	}
 	
+	public ConnectionSchema getSipSchema() {
+		return sipSchema;
+	}
+	
+	public void setSipSchema(ConnectionSchema sipSchema) {
+		this.sipSchema = sipSchema;
+	}
 	
 	@Override
 	public int hashCode() {
@@ -120,5 +131,10 @@ public class Phone implements Serializable {
 			return false;
 		}
 		return true;
+	}
+	
+	@Override
+	public String toString() {
+		return "+" + countryCode + "-" + regionCode + "-" + mainNumber;
 	}
 }
