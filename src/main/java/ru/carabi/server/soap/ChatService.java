@@ -221,6 +221,7 @@ public class ChatService {
 	 * @param token токен пользователя
 	 * @param messageId id сообщения
 	 * @param read поставить пометку о прочтении
+	 * @param crop при положительном значении -- обрезаем сообщение до данного числа символов
 	 * @return JSON-объект с деталями о сообщении
 	 * @throws ru.carabi.server.CarabiException Если пользователь не найден или сообщение не его, либо не найдено
 	 */
@@ -228,10 +229,11 @@ public class ChatService {
 	public String getMessageDetails(
 			@WebParam(name = "token") String token,
 			@WebParam(name = "messageId") Long messageId,
-			@WebParam(name = "read") boolean read
+			@WebParam(name = "read") boolean read,
+			@WebParam(name = "crop") int crop
 		) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
-			return chatBean.getMessageDetails(logon, messageId, read);
+			return chatBean.getMessageDetails(logon, messageId, read, crop);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;
@@ -379,6 +381,7 @@ public class ChatService {
 	 * @param interlocutor логин собеседника
 	 * @param afterDate дата в формате Carabi. Cообщения новее этой даты включаются в выборку.
 	 * @param search поиск по тексту и названию вложенных файлов
+	 * @param crop gри положительном значении -- обрезаем сообщение до данного числа символов
 	 * @return Выборка в формате, используемом при запуске хранимых запросов
 	 */
 	@WebMethod(operationName = "getDialog")
@@ -386,10 +389,11 @@ public class ChatService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "interlocutor") String interlocutor,
 			@WebParam(name = "afterDate") String afterDate,
-			@WebParam(name = "search") String search
+			@WebParam(name = "search") String search,
+			@WebParam(name = "crop") int crop
 		) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
-			return chatBean.getDialog(logon, admin.findUser(interlocutor), afterDate, search);
+			return chatBean.getDialog(logon, admin.findUser(interlocutor), afterDate, search, crop);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;

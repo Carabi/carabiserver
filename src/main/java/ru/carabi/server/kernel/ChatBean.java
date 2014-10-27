@@ -410,11 +410,11 @@ public class ChatBean {
 		return message.getMessageText();
 	}
 	
-	public String getMessageDetails(UserLogon client, Long messageId, boolean read) throws CarabiException {
+	public String getMessageDetails(UserLogon client, Long messageId, boolean read, int crop) throws CarabiException {
 		//При необходимости переходим на сервер клиента
 		CarabiAppServer targetServer = client.getUser().getMainServer();
 		if (!Settings.getCurrentServer().equals(targetServer)) {
-			return callGetMessageDetailsSoap(targetServer, client.getToken(), messageId, read);
+			return callGetMessageDetailsSoap(targetServer, client.getToken(), messageId, read, crop);
 		}
 		//Письмо должно принадлежать текущему пользователю
 		ChatMessage message = emChat.find(ChatMessage.class, messageId);
@@ -440,10 +440,15 @@ public class ChatBean {
 		} else {
 			result.add("received", ThreadSafeDateParser.format(message.getReceived(), CarabiDate.pattern));
 		}
-		result.add("message", message.getMessageText());
-		if (message.getAttachment() != null) {
-			result.add("attachment", true);
+		String messageText = message.getMessageText();
+		if (crop > 0 && messageText.length() > crop) {
+			result.add("message", messageText.substring(0, crop));
+			result.add("messageIsFull", false);
+		} else {
+			result.add("message", messageText);
+			result.add("messageIsFull", true);
 		}
+		result.add("attachment", message.getAttachment() != null);
 		return result.build().toString();
 	}
 	
@@ -760,11 +765,11 @@ public class ChatBean {
 		return userRelations;
 	}
 	
-	public String getDialog(UserLogon client, CarabiUser interlocutor, String afterDateStr, String search) throws CarabiException {
+	public String getDialog(UserLogon client, CarabiUser interlocutor, String afterDateStr, String search, int crop) throws CarabiException {
 		//При необходимости переходим на сервер клиента
 		CarabiAppServer targetServer = client.getUser().getMainServer();
 		if (!Settings.getCurrentServer().equals(targetServer)) {
-			return callGetDialogSoap(targetServer, client.getToken(), interlocutor, afterDateStr, search);
+			return callGetDialogSoap(targetServer, client.getToken(), interlocutor, afterDateStr, search, crop);
 		}
 		//получаем сообщения
 		CarabiDate afterDate = parceDate(afterDateStr, "01.01.1970");
@@ -786,6 +791,7 @@ public class ChatBean {
 		headerColumns.add(Utls.parametersToJson("SENDER", "VARCHAR2"));
 		headerColumns.add(Utls.parametersToJson("RECEIVER", "VARCHAR2"));
 		headerColumns.add(Utls.parametersToJson("MESSAGE_TEXT", "VARCHAR2"));
+		headerColumns.add(Utls.parametersToJson("MESSAGE_IS_FULL", "NUMBER"));
 		headerColumns.add(Utls.parametersToJson("ATTACHMENT", "NUMBER"));
 		headerColumns.add(Utls.parametersToJson("SENT", "DATE"));
 		headerColumns.add(Utls.parametersToJson("RECEIVED", "DATE"));
@@ -806,7 +812,14 @@ public class ChatBean {
 				logger.warning("message " + message.getId() + "do not have current user (" + userId + ") as sender or receiver");
 				continue;
 			}
-			Utls.addJsonObject(messageJson, message.getMessageText());
+			String messageText = message.getMessageText();
+			if (crop > 0 && messageText.length() > crop) {
+				Utls.addJsonObject(messageJson, messageText.substring(0, crop));//MESSAGE_TEXT
+				messageJson.add("0");//MESSAGE_IS_FULL
+			} else {
+				Utls.addJsonObject(messageJson, messageText);//MESSAGE_TEXT
+				messageJson.add("1");//MESSAGE_IS_FULL
+			}
 			Utls.addJsonObject(messageJson, message.getAttachment() == null ? "0" : "1");
 			Utls.addJsonObject(messageJson, CarabiDate.wrap(message.getSent()));
 			Utls.addJsonObject(messageJson, CarabiDate.wrap(message.getReceived()));
@@ -1033,10 +1046,10 @@ public class ChatBean {
 		}
 	}
 	
-	private String callGetMessageDetailsSoap(CarabiAppServer targetServer, String clientToken, Long messageId, boolean read) throws CarabiException {
+	private String callGetMessageDetailsSoap(CarabiAppServer targetServer, String clientToken, Long messageId, boolean read, int crop) throws CarabiException {
 		try {
 			ChatService chatServicePort = getChatServicePort(targetServer);
-			return chatServicePort.getMessageDetails(clientToken, messageId, read);
+			return chatServicePort.getMessageDetails(clientToken, messageId, read, crop);
 		} catch (MalformedURLException ex) {
 			logger.log(Level.SEVERE, null, ex);
 			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);
@@ -1059,10 +1072,10 @@ public class ChatBean {
 		}
 	}
 	
-	private String callGetDialogSoap(CarabiAppServer targetServer, String clientToken, CarabiUser interlocutor, String afterDate, String search) throws CarabiException {
+	private String callGetDialogSoap(CarabiAppServer targetServer, String clientToken, CarabiUser interlocutor, String afterDate, String search, int crop) throws CarabiException {
 		try {
 			ChatService chatServicePort = getChatServicePort(targetServer);
-			return chatServicePort.getDialog(clientToken, interlocutor.getLogin(), afterDate, search);
+			return chatServicePort.getDialog(clientToken, interlocutor.getLogin(), afterDate, search, crop);
 		} catch (MalformedURLException ex) {
 			logger.log(Level.SEVERE, null, ex);
 			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);
