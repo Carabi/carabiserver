@@ -117,7 +117,7 @@ public class UsersAdmin {
 	 * Запись или обновление данных о пользователе с передачей их POST или GET-параметрами
 	 */
 	public String addUser(
-			@FormParam("token") String token,
+			@QueryParam("token") String token,
 			@DefaultValue("") @FormParam("login") String login,
 			@DefaultValue("") @FormParam("password") String password,
 			@DefaultValue("") @FormParam("firstName") String firstName,

@@ -36,6 +36,7 @@ public class Phone implements Serializable {
 	@JoinColumn(name="OWNER_ID")
 	private CarabiUser owner;
 	
+	private int ordernumber;
 	@Column(name="COUNTRY_CODE")
 	private int countryCode;
 	@Column(name="REGION_CODE")
@@ -63,6 +64,14 @@ public class Phone implements Serializable {
 	
 	public void setPhoneType(PhoneType phoneType) {
 		this.phoneType = phoneType;
+	}
+	
+	public int getOrdernumber() {
+		return ordernumber;
+	}
+	
+	public void setOrdernumber(int orderby) {
+		this.ordernumber = orderby;
 	}
 	
 	public CarabiUser getOwner() {

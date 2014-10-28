@@ -1,6 +1,10 @@
 package ru.carabi.server.soap;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -43,6 +47,7 @@ public class PhoneService {
 	 * @param login логин пользователя, телефоны которого нужны
 	 * @return JSON-массив объектов вида [{id: id,
 	 * type: тип телефона (SIP, mobile, simple),
+	 * ordernumber: порядковый номер (приоритет при дозвоне),
 	 * countryCode: код страны (7 для России),
 	 * regionCode: код региона или оператора (812, 911 и т.п.),
 	 * mainNumber: номер телефона (обычно семизначный),
@@ -65,12 +70,19 @@ public class PhoneService {
 					throw new CarabiException("user " + login + " not found");
 				}
 			}
-			Collection<Phone> phonesList = user.getPhonesList();
+			List<Phone> phonesList = new ArrayList(user.getPhonesList());
+			Collections.sort(phonesList, new Comparator<Phone> (){
+				@Override
+				public int compare(Phone p1, Phone p2) {
+					return p1.getOrdernumber() - p2.getOrdernumber();
+				}
+			});
 			JsonArrayBuilder phonesListJson = Json.createArrayBuilder();
 			for (Phone phone: phonesList) {
 				JsonObjectBuilder phoneJson = Json.createObjectBuilder();
 				Utls.addJsonNumber(phoneJson, "id", phone.getId());
 				Utls.addJsonObject(phoneJson, "type", phone.getPhoneType().getSysname());
+				Utls.addJsonObject(phoneJson, "ordernumber", phone.getOrdernumber());
 				Utls.addJsonNumber(phoneJson, "countryCode", phone.getCountryCode());
 				Utls.addJsonNumber(phoneJson, "regionCode", phone.getRegionCode());
 				Utls.addJsonNumber(phoneJson, "mainNumber", phone.getMainNumber());
