@@ -43,13 +43,13 @@ public class Phone implements Serializable {
 	
 	private int ordernumber;
 	@Column(name="COUNTRY_CODE")
-	private int countryCode;
+	private Integer countryCode;
 	@Column(name="REGION_CODE")
-	private int regionCode;
+	private Integer regionCode;
 	@Column(name="MAIN_NUMBER")
 	private long mainNumber;
 	@Column(name="SUFFIX")
-	private int suffix;
+	private Integer suffix;
 	
 	@ManyToOne
 	@JoinColumn(name="SCHEMA_ID")
