@@ -32,6 +32,8 @@ import javax.persistence.Temporal;
 	query = "select CM.senderId, count(CM.senderId) from ChatMessage CM where CM.received is null and CM.ownerId = :user and CM.receiverId = :user group by CM.senderId"),
 @NamedQuery(name = "getLastUserMessages",
 	query = "select CM.id, CM.messageText from ChatMessage CM where CM.ownerId = :user and CM.receiverId = :user and CM.senderId = :sender order by CM.sent desc"),
+@NamedQuery(name = "getOldUnreadMessages",
+	query = "select CM.id from ChatMessage CM where CM.ownerId = :user and CM.receiverId = :user and CM.senderId = :sender and CM.received is null and CM.sent <= :sentBefore"),
 @NamedQuery(name = "getRecentlyMessagesData",
 	query = "select CM.senderId, CM.receiverId, CM.sent from ChatMessage CM where CM.ownerId = :user and CM.sent >= :recently order by CM.sent desc"),
 @NamedQuery(name = "deleteMessagesList",

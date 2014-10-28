@@ -17,6 +17,9 @@ public class CarabiDate extends Timestamp {
 	public static final Pattern patternValidate = Pattern.compile("\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d\\^\\d\\d:\\d\\d:\\d\\d");
 	public static final Pattern patternValidateShort = Pattern.compile("\\d\\d\\.\\d\\d\\.\\d\\d\\d\\d");
 	
+	public CarabiDate() {
+		super(new java.util.Date().getTime());
+	}
 	public CarabiDate(java.util.Date date) {
 		super(date.getTime());
 	}

@@ -196,6 +196,7 @@ public class ChatBean {
 	 * @throws ru.carabi.server.CarabiException 
 	 */
 	public void markRead(UserLogon receiverLogon, String messagesList, boolean read) throws CarabiException {
+		logger.info(messagesList);
 		//Функция должна выполняться на сервере владельца.
 		final CarabiUser receiver = receiverLogon.getUser();
 		CarabiAppServer targetServer = receiver.getMainServer();
@@ -279,6 +280,35 @@ public class ChatBean {
 		}
 	}
 	
+
+	public int markReadPrevios(UserLogon receiverLogon, CarabiUser sender, String date) throws CarabiException {
+		final CarabiUser receiver = receiverLogon.getUser();
+		CarabiAppServer targetServer = receiver.getMainServer();
+		final CarabiAppServer currentServer = Settings.getCurrentServer();
+		if (!currentServer.equals(targetServer)) {
+			return callMarkReadPreviosSoap(targetServer, receiverLogon.getToken(), sender.getLogin(), date);
+		}
+		Date sentBefore;
+		try {
+			CarabiDate carabiDate = new CarabiDate(date);
+			sentBefore = new Date(carabiDate.getTime());
+		} catch (ParseException ex) {
+			sentBefore = new Date();
+		}
+		Query getOldUnreadMessages = emChat.createNamedQuery("getOldUnreadMessages");
+		getOldUnreadMessages.setParameter("user", receiver.getId());
+		getOldUnreadMessages.setParameter("sender", sender.getId());
+		getOldUnreadMessages.setParameter("sentBefore", sentBefore);
+		List resultList = getOldUnreadMessages.getResultList();
+		JsonArrayBuilder messagesList = Json.createArrayBuilder();
+		for (Object result: resultList) {
+			Long unreadMessageId = (Long) result;
+			messagesList.add(unreadMessageId);
+		}
+		final JsonArray messagesListBuilt = messagesList.build();
+		markRead(receiverLogon, messagesListBuilt.toString(), true);
+		return messagesListBuilt.size();
+	}
 	/**
 	 * Установка уведомления о доставке в отправленном сообщении.
 	 * @param sender
@@ -981,6 +1011,19 @@ public class ChatBean {
 		try {
 			ChatService chatServicePort = getChatServicePort(targetServer);
 			chatServicePort.markRead(clientToken, messageList, read);
+		} catch (MalformedURLException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);
+		} catch (CarabiException_Exception ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new CarabiException(ex);
+		}
+	}
+	
+	private int callMarkReadPreviosSoap(CarabiAppServer targetServer, String clientToken, String loginSender, String date) throws CarabiException {
+		try {
+			ChatService chatServicePort = getChatServicePort(targetServer);
+			return chatServicePort.markReadPrevios(clientToken, loginSender, date);
 		} catch (MalformedURLException ex) {
 			logger.log(Level.SEVERE, null, ex);
 			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);

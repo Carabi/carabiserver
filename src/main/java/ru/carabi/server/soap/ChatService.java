@@ -267,6 +267,31 @@ public class ChatService {
 	}
 	
 	/**
+	 * Пометить прочитанность старых сообщений. 
+	  * Выподняется функция {@link #markRead(java.lang.String, java.lang.String, boolean) }
+	  * для всех сообщений, отправленных до указанной даты.
+	 * @param token Токен пользователя (получателя сообщения, ставящего пометки о прочтении)
+	 * @param loginSender логин отправителя, письма которого помечаем
+	 * @param timestamp Дата и время в формате Carabi. Более старые общения будут помечены прочитанными.
+	 * @return число помеченных сообщений
+	 * @throws ru.carabi.server.CarabiException если пользователь не найден, если сообщение не принадлежит пользователю или не найдено
+	 */
+	@WebMethod(operationName = "markReadPrevios")
+	public int markReadPrevios(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "loginSender") String loginSender,
+			@WebParam(name = "timestamp") String timestamp
+		) throws CarabiException {
+		try (UserLogon receiverLogon = uc.tokenAuthorize(token, false)) {
+			CarabiUser sender = admin.findUser(loginSender);
+			return chatBean.markReadPrevios(receiverLogon, sender, timestamp);
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
+	
+	/**
 	 * Установка уведомления о доставке в отправленном сообщении
 	 * Выставляется текущая дата в поле RECEIVED.
 	 * @param softwareToken
