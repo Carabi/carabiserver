@@ -27,8 +27,11 @@ import javax.inject.Named;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
+import javax.json.JsonNumber;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonString;
+import javax.json.JsonValue;
 import oracle.jdbc.OracleConnection;
 import ru.carabi.server.kernel.oracle.CarabiDate;
 import ru.carabi.server.kernel.oracle.QueryParameter;
@@ -244,10 +247,11 @@ public class Utls {
 			if (putToList != null && putToList.length > 0 && Arrays.binarySearch(putToList, key) < 0) {
 				continue;
 			}
-			if (mapObject.get(key) == null) {
+			final Object object = mapObject.get(key);
+			if (object == null) {
 				jsonObject.addNull(key);
 			} else {
-				jsonObject.add(key, mapObject.get(key).toString());
+				jsonObject.add(key, object.toString());
 			}
 		}
 		return jsonObject;
@@ -308,6 +312,68 @@ public class Utls {
 		} else {
 			jsonArray.add(value.longValue());
 		}
+	}
+	
+	public static String getNativeJsonString(JsonObject object, String property) {
+		JsonValue jsonValue = object.get(property);
+		return getNativeJsonString(jsonValue);
+	}
+	
+	public static String getNativeJsonString(JsonValue jsonValue) {
+		if (jsonValue.getValueType().equals(JsonValue.ValueType.STRING)) {
+			return ((JsonString)jsonValue).getString();
+		} else if (jsonValue.getValueType().equals(JsonValue.ValueType.NUMBER)) {
+			return "" + ((JsonNumber)jsonValue).longValue();
+		} else if (jsonValue.getValueType().equals(JsonValue.ValueType.NULL)) {
+			return null;
+		} else if (jsonValue.getValueType().equals(JsonValue.ValueType.TRUE)) {
+			return "true";
+		} else if (jsonValue.getValueType().equals(JsonValue.ValueType.FALSE)) {
+			return "false";
+		} else if (jsonValue.getValueType().equals(JsonValue.ValueType.OBJECT)) {
+			return ((JsonObject)jsonValue).toString();
+		} else if (jsonValue.getValueType().equals(JsonValue.ValueType.ARRAY)) {
+			return ((JsonArray)jsonValue).toString();
+		} else {
+			throw new IllegalStateException("unknown ValueType");
+		}
+	}
+	
+	public static JsonObjectBuilder jsonObjectToBuilder(JsonObject mapObject, String[] putToList) {
+		JsonObjectBuilder jsonObject = Json.createObjectBuilder();
+		for (String key: mapObject.keySet()) {
+			if (putToList != null && putToList.length > 0 && Arrays.binarySearch(putToList, key) < 0) {
+				continue;
+			}
+			final JsonValue jsonValue = mapObject.get(key);
+			if (jsonValue == null) {
+				jsonObject.addNull(key);
+			} else if (jsonValue.getValueType().equals(JsonValue.ValueType.STRING)) {
+				String stringValue = ((JsonString)jsonValue).getString();
+				jsonObject.add(key, stringValue);
+			} else if (jsonValue.getValueType().equals(JsonValue.ValueType.NUMBER)) {
+				long longValue = ((JsonNumber)jsonValue).longValue();
+				jsonObject.add(key, longValue);
+			} else if (jsonValue.getValueType().equals(JsonValue.ValueType.NULL)) {
+				jsonObject.addNull(key);
+			} else if (jsonValue.getValueType().equals(JsonValue.ValueType.TRUE)) {
+				jsonObject.add(key, true);
+			} else if (jsonValue.getValueType().equals(JsonValue.ValueType.FALSE)) {
+				jsonObject.add(key, false);
+			} else if (jsonValue.getValueType().equals(JsonValue.ValueType.OBJECT)) {
+				JsonObject objectValue = ((JsonObject)jsonValue);
+				jsonObject.add(key, objectValue);
+			} else if (jsonValue.getValueType().equals(JsonValue.ValueType.ARRAY)) {
+				JsonArray arrayValue = ((JsonArray)jsonValue);
+				jsonObject.add(key, arrayValue);
+			} else {
+				throw new IllegalStateException("unknown ValueType");
+			}
+		}
+		return jsonObject;
+	}
+	public static JsonObjectBuilder jsonObjectToBuilder(JsonObject mapObject) {
+		return jsonObjectToBuilder(mapObject, null);
 	}
 	
 	/**

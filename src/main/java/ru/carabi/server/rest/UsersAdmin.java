@@ -83,7 +83,7 @@ public class UsersAdmin {
 			return ex.getMessage();
 		}
 		String login = userData.getString("login");
-		JsonObjectBuilder userDataNew = Utls.mapToJson(userData);
+		JsonObjectBuilder userDataNew = Utls.jsonObjectToBuilder(userData);
 		//если редактируемый пользователь с таким логином существует -- проверка, что нет коллизии между базами
 		long userID = admin.getUserID(login);
 		boolean userIsNew = userID == -1;
@@ -125,6 +125,7 @@ public class UsersAdmin {
 			@DefaultValue("") @FormParam("lastName") String lastName,
 			@DefaultValue("") @FormParam("department") String department,
 			@DefaultValue("") @FormParam("role") String role,
+			@DefaultValue("") @FormParam("phones") String phones,
 			@PathParam("schema") String schemaName
 	) {
 		JsonObjectBuilder userData = Json.createObjectBuilder();
@@ -135,7 +136,8 @@ public class UsersAdmin {
 				.add("middleName", middleName)
 				.add("lastName", lastName)
 				.add("department", department)
-				.add("role", role);
+				.add("role", role)
+				.add("phones", phones);
 		return addUserJson(token, userData.build(), schemaName);
 	}
 }

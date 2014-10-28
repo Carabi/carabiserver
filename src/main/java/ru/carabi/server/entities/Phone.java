@@ -1,6 +1,9 @@
 package ru.carabi.server.entities;
 
+import com.ctc.wstx.util.StringUtil;
 import java.io.Serializable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -11,6 +14,8 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import org.apache.commons.lang3.StringUtils;
+import ru.carabi.server.logging.CarabiLogging;
 
 /**
  *
@@ -49,6 +54,52 @@ public class Phone implements Serializable {
 	@ManyToOne
 	@JoinColumn(name="SCHEMA_ID")
 	private ConnectionSchema sipSchema;
+	
+	/**
+	 * Создание телефона парсингом строки вида код1^код2^номер^добавочный
+	 * @param phoneStr 
+	 */
+	public void parse (String phoneStr) {
+		Logger logger = CarabiLogging.getLogger(this);
+		logger.info(phoneStr);
+		String[] split = phoneStr.split("\\^");
+		logger.log(Level.INFO, "split.length: {0}", split.length);
+		for (String s: split) {
+			logger.log(Level.INFO, s);
+		}
+		try {
+			switch (split.length) {
+				case 4:
+					countryCode = Integer.valueOf(split[0]);
+					regionCode = Integer.valueOf(split[1]);
+					mainNumber = Integer.valueOf(split[2]);
+					if (!StringUtils.isEmpty(split[3])) {
+						suffix = Integer.valueOf(split[3]);
+					}
+				break;
+				case 3:
+					countryCode = Integer.valueOf(split[0]);
+					regionCode = Integer.valueOf(split[1]);
+					mainNumber = Integer.valueOf(split[2]);
+				break;
+				case 2:
+					regionCode = Integer.valueOf(split[0]);
+					mainNumber = Integer.valueOf(split[1]);
+				break;
+				case 1:
+					mainNumber = Integer.valueOf(split[0]);
+				break;
+				default:
+					throw new IllegalArgumentException("too many segments");
+			}
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Can not parse segment as number", e);
+		}
+	}
+	
+	public String toString() {
+		return countryCode + "^" + regionCode + "^" + mainNumber + "^" + suffix;
+	}
 	
 	public Long getId() {
 		return id;
@@ -142,8 +193,4 @@ public class Phone implements Serializable {
 		return true;
 	}
 	
-	@Override
-	public String toString() {
-		return "+" + countryCode + "-" + regionCode + "-" + mainNumber;
-	}
 }

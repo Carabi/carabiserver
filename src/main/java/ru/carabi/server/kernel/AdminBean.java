@@ -29,7 +29,6 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrBuilder;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import ru.carabi.libs.CarabiEventType;
@@ -40,6 +39,8 @@ import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.ConnectionSchema;
 import ru.carabi.server.entities.FileOnServer;
+import ru.carabi.server.entities.Phone;
+import ru.carabi.server.entities.PhoneType;
 import ru.carabi.server.entities.QueryCategory;
 import ru.carabi.server.entities.QueryEntity;
 import ru.carabi.server.entities.QueryParameterEntity;
@@ -135,9 +136,8 @@ public class AdminBean {
 	 * </code>
 	 * @param logon сессия текущего пользователя
 	 * @return Cnhjrf c Json-объектом
-	 * @throws JSONException - unhandled for now
 	 */
-	public String getUsersList(UserLogon logon) throws JSONException {
+	public String getUsersList(UserLogon logon) {
 		final Query query = em.createNamedQuery("getSchemaUsersList");
 		query.setParameter("schema_id", logon.getSchema().getId());
 		final List resultList = query.getResultList();
@@ -236,9 +236,8 @@ public class AdminBean {
 	 * @param strUser Информация о пользователе в JSON
 	 * @return ID пользователя
 	 * @throws CarabiException
-	 * @throws JSONException 
 	 */
-	public Long saveUser(String strUser) throws CarabiException, JSONException {
+	public Long saveUser(String strUser) throws CarabiException {
 		return saveUser(strUser, true);
 	}
 	
@@ -249,21 +248,21 @@ public class AdminBean {
 	 * @param updateSchemas обновлять данные о доступе к схемам (если редактируем имевшегося пользователя из Oracle -- то нет)
 	 * @return ID пользователя
 	 * @throws CarabiException
-	 * @throws JSONException 
 	 */
-	public Long saveUser(String strUser, boolean updateSchemas) throws CarabiException, JSONException {
+	public Long saveUser(String strUser, boolean updateSchemas) throws CarabiException {
 		// parse url string
 		final String nonUrlNewData = strUser.replace("&quot;", "\"");
-		final JSONObject userDetails = new JSONObject(nonUrlNewData);
+		JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
+		final JsonObject userDetails = jsonReader.readObject();
 		
 		// создание или получение пользователя
 		CarabiUser user;
-		if (!userDetails.has("id") || "".equals(userDetails.getString("id"))) {
+		if (!userDetails.containsKey("id") || "".equals(Utls.getNativeJsonString(userDetails,"id"))) {
 			user = new CarabiUser();
 		} else {
 			Long userId;
 			try {
-				 userId = Long.decode(userDetails.get("id").toString());			 
+				userId = Long.decode(Utls.getNativeJsonString(userDetails,"id"));
 			} catch (NumberFormatException nfe) {
 				final CarabiException e = new CarabiException(
 						"Неверный формат ID пользователя. "
@@ -283,9 +282,50 @@ public class AdminBean {
 		user.setDepartment(userDetails.getString("department"));
 		user.setRole(userDetails.getString("role"));
 		
+		//обновление телефонов
+		String[] phones;
+		if (!StringUtils.isEmpty(userDetails.getString("phones"))) {
+			for (Phone phone: user.getPhonesList()) {//удаляем старые телефоны, если на входе есть новые
+				em.remove(phone);
+			}
+			phones = userDetails.getString("phones").split("\\|\\|");
+		} else {
+			phones = new String[]{};
+		}
+		ArrayList<Phone> phonesList = new ArrayList<>(phones.length);
+		int i = 1;
+		for (String phoneStr: phones) {
+			String[] phoneElements = phoneStr.split("\\|");
+			Phone phone = new Phone();
+			phone.parse(phoneElements[0]);
+			PhoneType phoneType = null;
+			if (phoneElements.length > 1) {
+				String phoneTypeName = phoneElements[1];
+				TypedQuery<PhoneType> findPhoneType = em.createNamedQuery("findPhoneType", PhoneType.class);
+				findPhoneType.setParameter("name", phoneTypeName);
+				List<PhoneType> resultList = findPhoneType.getResultList();
+				if (resultList.isEmpty()) {
+					phoneType = new PhoneType();
+					phoneType.setName(phoneTypeName);
+					phoneType.setSysname(phoneTypeName);
+				} else {
+					phoneType = resultList.get(0);
+				}
+				if (phoneType.getSysname().equals("SIP")) {
+					phone.setSipSchema(user.getDefaultSchema());
+				}
+			}
+			phone.setPhoneType(phoneType);
+			phone.setOrdernumber(i);
+			i++;
+			phone.setOwner(user);
+			phonesList.add(phone);
+		}
+		user.setPhonesList(phonesList);
+		
 		if (updateSchemas) {
 			// схема по умолчанию
-			if (!userDetails.has("defaultSchemaId")) {
+			if (!userDetails.containsKey("defaultSchemaId")) {
 				user.setDefaultSchema(null);
 			} else {
 				int schemaId;
@@ -300,17 +340,16 @@ public class AdminBean {
 				}
 				final ConnectionSchema schema = em.find(ConnectionSchema.class, schemaId);
 				user.setDefaultSchema(schema);
-			}		
+			}
 
 			// обновеление списка доступных схем 
-			final JSONArray allowedSchemaIds = 
-				userDetails.getJSONArray("allowedSchemaIds");
+			final JsonArray allowedSchemaIds = userDetails.getJsonArray("allowedSchemaIds");
 
-			if (allowedSchemaIds.length()>0) {
-				final Collection<Integer> listAllowedSchemaIds = new ArrayList(
-					allowedSchemaIds.length());
-				for (int i = 0; i < allowedSchemaIds.length(); i++) 
-					listAllowedSchemaIds.add(allowedSchemaIds.getInt(i));		
+			if (allowedSchemaIds.size()>0) {
+				final Collection<Integer> listAllowedSchemaIds = new ArrayList(allowedSchemaIds.size());
+				for (i = 0; i < allowedSchemaIds.size(); i++) {
+					listAllowedSchemaIds.add(allowedSchemaIds.getInt(i));
+				}
 
 				final TypedQuery<ConnectionSchema> allowedSchemasQuery = 
 					em.createQuery(
@@ -332,7 +371,7 @@ public class AdminBean {
 		return user.getId();
 	}	
 	
-	public void deleteUser(Long id) throws CarabiException, JSONException {
+	public void deleteUser(Long id) throws CarabiException {
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
 					+ "пользователя, т.к. не задан ID удаляемой записи");
@@ -591,8 +630,7 @@ public class AdminBean {
 		return jsonQuery.build().toString();
 	}
 	
-	public Long saveQuery(String strQuery) throws CarabiException, JSONException 
-	{
+	public Long saveQuery(String strQuery) throws CarabiException {
 		logger.log(Level.INFO, "package ru.carabi.server.kernel"
 		                      +".AdminBean.saveQuery(String strQuery)"
 		                      +" caller params: {0}", strQuery);
@@ -691,7 +729,7 @@ public class AdminBean {
 		return queryEntity.getId();
 	}
 	
-	public void deleteQuery(Long id) throws CarabiException, JSONException {				
+	public void deleteQuery(Long id) throws CarabiException {
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
 					+ "хранимый запрос, т.к. не задан ID удаляемой записи");
