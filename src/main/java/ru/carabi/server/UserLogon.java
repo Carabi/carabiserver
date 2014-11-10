@@ -57,9 +57,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 	@JoinColumn(name="USER_ID")
 	private CarabiUser user;
 	
-	@Transient
-	private String passwordCipher;
-	
 	private String display;
 	
 	@ManyToOne
@@ -125,11 +122,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 	
 	public String getPasswordCipher() {
-		return passwordCipher;
-	}
-	
-	public void setPasswordCipher(String passwordCipher) {
-		this.passwordCipher = passwordCipher;
+		return user.getPassword();
 	}
 	
 	public String getDisplay() {

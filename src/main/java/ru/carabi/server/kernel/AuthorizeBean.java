@@ -123,7 +123,6 @@ public class AuthorizeBean {
 		userLogon = new UserLogon();
 		userLogon.setId(-1);
 		userLogon.setUser(currentUser);
-		userLogon.setPasswordCipher("==");
 		userLogon.setDisplay(currentUser.getLastname());
 		userLogon.setSchema(schema);
 		userLogon.setConnection(connection);
