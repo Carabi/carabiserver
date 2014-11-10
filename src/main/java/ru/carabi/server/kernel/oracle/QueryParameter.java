@@ -22,7 +22,19 @@ public class QueryParameter {
 	public String getName() {
 		return name;
 	}
-
+	
+	public QueryParameter(String name, String value) {
+		this.name = name;
+		this.value = value;
+		this.type= "VARCHAR";
+	}
+	
+	public QueryParameter(String name, long value) {
+		this.name = name;
+		this.value = Long.toString(value);
+		this.type= "NUMBER";
+	}
+	
 	public void setName(String name) {
 		this.name = name;
 	}
