@@ -19,8 +19,8 @@ public class QueryParameter {
 	private Integer isIn;//является входным (0 -- нет, 1 -- да)
 	private Integer isOut;//является выходным (0 -- нет, 1 -- да)
 	private Integer isNull = 0;
-	public String getName() {
-		return name;
+	
+	public QueryParameter() {
 	}
 	
 	public QueryParameter(String name, String value) {
@@ -35,54 +35,58 @@ public class QueryParameter {
 		this.type= "NUMBER";
 	}
 	
+	public String getName() {
+		return name;
+	}
+	
 	public void setName(String name) {
 		this.name = name;
 	}
-
+	
 	public String getValue() {
 		return value;
 	}
-
+	
 	public void setValue(String value) {
 		this.value = value;
 	}
-
+	
 	public Object getValueObject() {
 		return valueObject;
 	}
-
+	
 	public void setValueObject(Object valueObject) {
 		this.valueObject = valueObject;
 	}
-
+	
 	public String getType() {
 		return type;
 	}
-
+	
 	public void setType(String type) {
 		this.type = type;
 	}
-
+	
 	public Integer getIsIn() {
 		return isIn;
 	}
-
+	
 	public void setIsIn(Integer isIn) {
 		this.isIn = isIn;
 	}
-
+	
 	public Integer getIsOut() {
 		return isOut;
 	}
-
+	
 	public void setIsOut(Integer isOut) {
 		this.isOut = isOut;
 	}
-
+	
 	public Integer getIsNull() {
 		return isNull;
 	}
-
+	
 	public void setIsNull(Integer isNull) {
 		this.isNull = isNull;
 	}
