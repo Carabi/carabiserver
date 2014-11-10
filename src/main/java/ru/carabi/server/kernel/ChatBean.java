@@ -530,11 +530,15 @@ public class ChatBean {
 			getUsersList = emKernel.createNativeQuery(sql, CarabiUser.class);
 			
 		} else {
-			getUsersList = emKernel.createNativeQuery("select * from CARABI_USER where  USER_ID in (\n" +
-				"	select RELATED_USER_ID from USER_RELATION\n" +
-				"	left join RELATION_HAS_TYPE on USER_RELATION.USER_RELATION_ID = RELATION_HAS_TYPE.USER_RELATION_ID\n" +
-				"	where MAIN_USER_ID = ? and RELATION_TYPE_ID in (" + StringUtils.join(relationsIds, ", ") +")\n" +
-				")", CarabiUser.class);
+			String sql = "select * from CARABI_USER where  USER_ID in (\n" +
+					"	select RELATED_USER_ID from USER_RELATION\n" +
+					"	left join RELATION_HAS_TYPE on USER_RELATION.USER_RELATION_ID = RELATION_HAS_TYPE.USER_RELATION_ID\n" +
+					"	where MAIN_USER_ID = ?";
+			if (!relationsIds.isEmpty()) {
+				sql = sql + " and RELATION_TYPE_ID in (" + StringUtils.join(relationsIds, ", ") +")\n";
+			}
+			sql = sql + "\n)";
+			getUsersList = emKernel.createNativeQuery(sql, CarabiUser.class);
 		}
 		getUsersList.setParameter(1, client.getUser().getId());
 		//Выбираем пользователей
