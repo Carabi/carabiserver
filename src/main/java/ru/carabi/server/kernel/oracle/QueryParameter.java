@@ -23,16 +23,30 @@ public class QueryParameter {
 	public QueryParameter() {
 	}
 	
-	public QueryParameter(String name, String value) {
+	public QueryParameter(String name, String value, boolean isOut) {
 		this.name = name;
 		this.value = value;
 		this.type= "VARCHAR";
+		if (isOut) {
+			this.isOut = 1;
+			isIn = 0;
+		} else {
+			this.isOut = 0;
+			isIn = 1;
+		}
 	}
 	
-	public QueryParameter(String name, long value) {
+	public QueryParameter(String name, long value, boolean isOut) {
 		this.name = name;
 		this.value = Long.toString(value);
 		this.type= "NUMBER";
+		if (isOut) {
+			this.isOut = 1;
+			isIn = 0;
+		} else {
+			this.isOut = 0;
+			isIn = 1;
+		}
 	}
 	
 	public String getName() {

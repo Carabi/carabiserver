@@ -103,7 +103,7 @@ public class ImagesBean {
 		thumbnailAddr += ".jpeg";
 		//Запуск ImageMagick Convert 
 		logger.log(Level.INFO, "convert {0} -scale {1} {2}", new Object[]{original.getContentAddress(), scale, thumbnailAddr});
-		ProcessBuilder procBuilder = new ProcessBuilder("convert", original.getContentAddress(), "-auto-orient", "-resize", scale+"^", "-gravity", "center", "-extent", scale, thumbnailAddr); 
+		ProcessBuilder procBuilder = new ProcessBuilder("convert", original.getContentAddress(), "-auto-orient", "-resize", scale+"^", "-gravity", "North", "-extent", scale, thumbnailAddr); 
 		try {
 			Process process = procBuilder.start();
 			InputStream errorStream = process.getErrorStream();

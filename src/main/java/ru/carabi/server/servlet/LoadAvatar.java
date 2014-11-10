@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
-import javax.mail.internet.MimeUtility;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.annotation.WebServlet;
@@ -92,16 +91,19 @@ public class LoadAvatar extends HttpServlet {
 				sendError(response, HttpServletResponse.SC_NOT_FOUND, "no avatar for that user");
 				return;
 			}
-			//etag -- идентификатор совпадения контента
-			String etag = "avatar_" + file.getId();
-			if (width > 0) {
-				etag += ("_w" + width);
-			}
-			if (height > 0) {
-				etag += ("_h" + height);
-			}
 			logger.log(Level.INFO, "getScaledAvatar {0}x{1}", new Object[]{width, height});
 			file = getScaledAvatar(logon, file, width, height);
+			//etag -- идентификатор совпадения контента
+			String etag = "avatar_" + file.getId();
+			if (width > 0 || height > 0) {
+				if (width > 0) {
+					etag += ("_w" + width);
+				}
+				if (height > 0) {
+					etag += ("_h" + height);
+				}
+				etag += ("_thumb" + file.getId());
+			}
 			response.setHeader("Filename-Base64", DatatypeConverter.printBase64Binary(file.getName().getBytes("UTF-8")));
 			response.setHeader("Content-Type", file.getMimeType());
 			response.setHeader("ETag", etag);
