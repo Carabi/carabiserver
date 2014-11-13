@@ -296,7 +296,9 @@ public class AdminBean {
 			for (String phoneStr: phones) {
 				String[] phoneElements = phoneStr.split("\\|");
 				Phone phone = new Phone();
-				phone.parse(phoneElements[0]);
+				if (phoneElements.length > 0) {
+					phone.parse(phoneElements[0]);
+				}
 				PhoneType phoneType = null;
 				if (phoneElements.length > 1) {
 					String phoneTypeName = phoneElements[1];
