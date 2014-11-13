@@ -285,44 +285,43 @@ public class AdminBean {
 		//обновление телефонов
 		String[] phones;
 		if (!StringUtils.isEmpty(userDetails.getString("phones"))) {
-			for (Phone phone: user.getPhonesList()) {//удаляем старые телефоны, если на входе есть новые
-				em.remove(phone);
+			if (user.getPhonesList() != null) {
+				for (Phone phone: user.getPhonesList()) {//удаляем старые телефоны, если на входе есть новые
+					em.remove(phone);
+				}
 			}
 			phones = userDetails.getString("phones").split("\\|\\|");
-		} else {
-			phones = new String[]{};
-		}
-		ArrayList<Phone> phonesList = new ArrayList<>(phones.length);
-		int i = 1;
-		for (String phoneStr: phones) {
-			String[] phoneElements = phoneStr.split("\\|");
-			Phone phone = new Phone();
-			phone.parse(phoneElements[0]);
-			PhoneType phoneType = null;
-			if (phoneElements.length > 1) {
-				String phoneTypeName = phoneElements[1];
-				TypedQuery<PhoneType> findPhoneType = em.createNamedQuery("findPhoneType", PhoneType.class);
-				findPhoneType.setParameter("name", phoneTypeName);
-				List<PhoneType> resultList = findPhoneType.getResultList();
-				if (resultList.isEmpty()) {
-					phoneType = new PhoneType();
-					phoneType.setName(phoneTypeName);
-					phoneType.setSysname(phoneTypeName);
-				} else {
-					phoneType = resultList.get(0);
+			ArrayList<Phone> phonesList = new ArrayList<>(phones.length);
+			int i = 1;
+			for (String phoneStr: phones) {
+				String[] phoneElements = phoneStr.split("\\|");
+				Phone phone = new Phone();
+				phone.parse(phoneElements[0]);
+				PhoneType phoneType = null;
+				if (phoneElements.length > 1) {
+					String phoneTypeName = phoneElements[1];
+					TypedQuery<PhoneType> findPhoneType = em.createNamedQuery("findPhoneType", PhoneType.class);
+					findPhoneType.setParameter("name", phoneTypeName);
+					List<PhoneType> resultList = findPhoneType.getResultList();
+					if (resultList.isEmpty()) {
+						phoneType = new PhoneType();
+						phoneType.setName(phoneTypeName);
+						phoneType.setSysname(phoneTypeName);
+					} else {
+						phoneType = resultList.get(0);
+					}
+					if (phoneType.getSysname().equals("SIP")) {
+						phone.setSipSchema(user.getDefaultSchema());
+					}
 				}
-				if (phoneType.getSysname().equals("SIP")) {
-					phone.setSipSchema(user.getDefaultSchema());
-				}
+				phone.setPhoneType(phoneType);
+				phone.setOrdernumber(i);
+				i++;
+				phone.setOwner(user);
+				phonesList.add(phone);
 			}
-			phone.setPhoneType(phoneType);
-			phone.setOrdernumber(i);
-			i++;
-			phone.setOwner(user);
-			phonesList.add(phone);
+			user.setPhonesList(phonesList);
 		}
-		user.setPhonesList(phonesList);
-		
 		if (updateSchemas) {
 			// схема по умолчанию
 			if (!userDetails.containsKey("defaultSchemaId")) {
@@ -347,7 +346,7 @@ public class AdminBean {
 
 			if (allowedSchemaIds.size()>0) {
 				final Collection<Integer> listAllowedSchemaIds = new ArrayList(allowedSchemaIds.size());
-				for (i = 0; i < allowedSchemaIds.size(); i++) {
+				for (int i = 0; i < allowedSchemaIds.size(); i++) {
 					listAllowedSchemaIds.add(allowedSchemaIds.getInt(i));
 				}
 
