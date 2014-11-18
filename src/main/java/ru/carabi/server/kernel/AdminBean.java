@@ -216,7 +216,7 @@ public class AdminBean {
 			Utls.addJsonObject(jsonConnectionSchemaDetails, "name", connectionSchema.getName());
 			Utls.addJsonObject(jsonConnectionSchemaDetails, "sysName", connectionSchema.getSysname());
 			Utls.addJsonObject(jsonConnectionSchemaDetails, "jndi", connectionSchema.getJNDI());
-			Utls.addJsonObject(jsonConnectionSchemaDetails, "isAllowed", isAllowed);
+			jsonConnectionSchemaDetails.add("isAllowed", isAllowed);
 			
 			final JsonObjectBuilder jsonConnectionSchema = Json.createObjectBuilder();
 			jsonConnectionSchema.add("connectionSchema", jsonConnectionSchemaDetails);

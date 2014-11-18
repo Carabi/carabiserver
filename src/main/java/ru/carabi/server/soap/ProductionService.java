@@ -85,7 +85,6 @@ public class ProductionService {
 	}
 	
 	private static int[] parseVersion(String version) {
-		logger.info(version);
 		String[] elements = version.split("\\.");
 		int[] numbers = new int[elements.length];
 		int i = 0;
