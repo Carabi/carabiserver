@@ -925,4 +925,9 @@ public class AdminBean {
 		}
 		return mainUser;
 	}
+
+	public void setShowOnlineMode(CarabiUser user, boolean showOnline) {
+		user.setShowOnline(showOnline);
+		em.merge(user);
+	}
 }

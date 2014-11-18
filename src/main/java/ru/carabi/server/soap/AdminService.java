@@ -14,6 +14,7 @@ import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
+import static ru.carabi.server.soap.ChatService.logger;
 
 /**
  * Сервис для управления сервером и основными данными в служебной БД
@@ -185,6 +186,31 @@ public class AdminService {
 		usersController.tokenControl(token);
 		admin.deleteUser(id);
 	}	
+	
+	@WebMethod(operationName = "getShowOnlineMode")
+	public boolean getShowOnlineMode(
+			@WebParam(name = "token") String token
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+			return logon.getUser().showOnline();
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
+	
+	@WebMethod(operationName = "setShowOnlineMode")
+	public void setShowOnlineMode(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "showOnline") boolean showOnline
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+			admin.setShowOnlineMode(logon.getUser(), showOnline);
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
 	
 	/**
 	 * Получение списка всех схем подключений системы
