@@ -187,31 +187,6 @@ public class AdminService {
 		admin.deleteUser(id);
 	}	
 	
-	@WebMethod(operationName = "getShowOnlineMode")
-	public boolean getShowOnlineMode(
-			@WebParam(name = "token") String token
-		) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
-			return logon.getUser().showOnline();
-		} catch (CarabiException e) {
-			logger.log(Level.SEVERE, "", e);
-			throw e;
-		}
-	}
-	
-	@WebMethod(operationName = "setShowOnlineMode")
-	public void setShowOnlineMode(
-			@WebParam(name = "token") String token,
-			@WebParam(name = "showOnline") boolean showOnline
-		) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
-			admin.setShowOnlineMode(logon.getUser(), showOnline);
-		} catch (CarabiException e) {
-			logger.log(Level.SEVERE, "", e);
-			throw e;
-		}
-	}
-	
 	/**
 	 * Получение списка всех схем подключений системы
 	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
