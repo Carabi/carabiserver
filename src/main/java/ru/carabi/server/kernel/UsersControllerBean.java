@@ -65,7 +65,6 @@ public class UsersControllerBean {
 	 * @param logon
 	 * @return Авторизованный пользователь (с установленным токеном и созданным журналом)
 	 */
-	@TransactionAttribute
 	public synchronized UserLogon addUser(UserLogon logon) {
 		String token = RandomStringUtils.randomAlphanumeric(Settings.TOKEN_LENGTH);
 		//Генерируем случайный токен. Убеждаемся, что он не совпадает с уже используемыми
@@ -75,14 +74,9 @@ public class UsersControllerBean {
 		}
 		logon.setToken(token);
 		final DateFormat dateFormat = DateFormat.getInstance();
-		logger.info("addUser, lastActive: " + dateFormat.format(logon.getLastActive()));
-		logon.updateLastActive();
-		logger.info("addUser, updatedLastActive: " + dateFormat.format(logon.getLastActive()));
+		logger.log(Level.FINE, "addUser, lastActive: {0}", dateFormat.format(logon.getLastActive()));
 		logon.setConnectionsGate(connectionsGate);
-		em.joinTransaction();
-		logon = em.merge(logon);
-		em.flush();
-		logger.info("addUser, lastActive in base: " + dateFormat.format(logon.getLastActive()));
+		logon = updateLastActive(logon);
 		activeUsers.put(token, logon);
 		if (logon.getSchema() != null) {
 			logger.log(Level.FINEST, "put {0} to activeUsers in Add", token);
@@ -105,7 +99,6 @@ public class UsersControllerBean {
 		UserLogon logon = activeUsers.get(token);
 		if (logon != null) {
 			logger.log(Level.FINEST, "got {0} from activeUsers", token);
-			logon.updateLastActive();
 			return logon;
 		}
 		logon = em.find(UserLogon.class, token);
@@ -226,7 +219,6 @@ public class UsersControllerBean {
 	 * @return
 	 * @throws CarabiException 
 	 */
-	@TransactionAttribute
 	public UserLogon tokenControl(String token) throws CarabiException {
 		UserLogon logon = getUserLogon(token);
 		if (logon == null) {
@@ -236,14 +228,21 @@ public class UsersControllerBean {
 			throw new RegisterException(RegisterException.MessageCode.NO_TOKEN);
 		} else {
 			logger.info("tokenAuthorize, lastActive in base: " + DateFormat.getInstance().format(logon.getLastActive()));
-			em.joinTransaction();
-			logon.updateLastActive();
 			if (!logon.isPermanent()) {
 				logon.setAppServer(Settings.getCurrentServer());
 			}
-			logon = em.merge(logon);
-			em.flush();
+			logon = updateLastActive(logon);
 		}
+		return logon;
+	}
+	
+	@TransactionAttribute
+	private UserLogon updateLastActive(UserLogon logon) {
+		em.joinTransaction();
+		logon.updateLastActive();
+		logon = em.merge(logon);
+		em.merge(logon.getUser());
+		em.flush();
 		return logon;
 	}
 	/**

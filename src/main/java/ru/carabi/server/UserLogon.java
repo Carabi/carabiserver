@@ -287,6 +287,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	public void updateLastActive() {
 		lastActive = new Date();
+		user.setLastActive(new Date());
 	}
 	
 	public void actAsSelf() throws SQLException {

@@ -103,6 +103,9 @@ public class CarabiUser implements Serializable {
 	@Temporal(javax.persistence.TemporalType.TIMESTAMP)
 	private Date lastActive; //Время, когда пользователь последний раз заходил
 	
+	@Column(name="SHOW_ONLINE")
+	private int showOnlineInt;
+	
 	public Long getId() {
 		return id;
 	}
@@ -233,9 +236,25 @@ public class CarabiUser implements Serializable {
 	public Date getLastActive() {
 		return lastActive;
 	}
-
+	
 	public void setLastActive(Date lastActive) {
 		this.lastActive = lastActive;
+	}
+	
+	public int getShowOnlineInt() {
+		return showOnlineInt;
+	}
+	
+	public void setShowOnlineInt(int showOnlineInt) {
+		this.showOnlineInt = showOnlineInt;
+	}
+	
+	public boolean showOnline() {
+		return showOnlineInt > 0;
+	}
+	
+	public void setShowOnline(boolean showOnline) {
+		this.showOnlineInt = showOnline ? 1 : 0;
 	}
 	
 	@Override

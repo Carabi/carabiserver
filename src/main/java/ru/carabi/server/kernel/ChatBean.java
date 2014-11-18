@@ -376,7 +376,7 @@ public class ChatBean {
 		return getUnreadMessagesSenders_Internal(client, false);
 	}
 	
-	public String getUnreadMessagesSenders_Internal(UserLogon client, boolean addLastMessages) throws CarabiException {
+	private String getUnreadMessagesSenders_Internal(UserLogon client, boolean addLastMessages) throws CarabiException {
 		//При необходимости переходим на сервер клиента
 		CarabiAppServer targetServer = client.getUser().getMainServer();
 		if (!Settings.getCurrentServer().equals(targetServer)) {
@@ -574,7 +574,7 @@ public class ChatBean {
 		//берём недавно полученные письма
 		Query getRecentlyMessagesData = emChat.createNamedQuery("getRecentlyMessagesData", Object[].class);
 		getRecentlyMessagesData.setParameter("user", client.getUser().getId());
-		getRecentlyMessagesData.setParameter("recently", afterDate);
+		getRecentlyMessagesData.setParameter("recently", afterDate);//TODO: тут мы читаем ВСЕ письма в обратном порядке, а надо только одно -- исправить!
 		
 		List<Object[]> messagesMetadata = getRecentlyMessagesData.getResultList();//список писем (отправитель, получатель, дата) в порядке устаревания
 		List<Long> interlocutorsIdOrdered = new ArrayList();
@@ -694,6 +694,8 @@ public class ChatBean {
 			headerColumns.add(Utls.parametersToJson("LAST_CONTACT_DATE", "DATE"));
 			headerColumns.add(Utls.parametersToJson("LAST_CONTACT_DATE_STR", "VARCHAR2"));
 		}
+		headerColumns.add(Utls.parametersToJson("LAST_ONLINE_ACTIVE", "DATE"));
+		headerColumns.add(Utls.parametersToJson("LAST_ONLINE_ACTIVE_STR", "VARCHAR2"));
 		JsonObjectBuilder result = Json.createObjectBuilder();
 		result.add("columns", headerColumns);
 		JsonArrayBuilder rows = Json.createArrayBuilder();
@@ -717,7 +719,7 @@ public class ChatBean {
 				userJson.addNull();//SCHEMA_NAME
 				userJson.addNull();//SCHEMA_DESCRIPTION
 			}
-			if (onlineUsers.contains(user.getLogin())) {
+			if (user.showOnline() && onlineUsers.contains(user.getLogin())) {
 				userJson.add("1");//ONLINE
 			} else {
 				userJson.add("0");//ONLINE
@@ -758,9 +760,11 @@ public class ChatBean {
 				userJson.add(relations.toString());//RELATIONS
 			}
 			if (userLastContact != null) {
-				userJson.add(ThreadSafeDateParser.format(userLastContact.get(user.getId()), CarabiDate.pattern));//LAST_CONTACT_DATE
-				userJson.add(ThreadSafeDateParser.format(userLastContact.get(user.getId()), CarabiDate.patternShort));//LAST_CONTACT_DATE_STR
+				Utls.addJsonDate(userJson, userLastContact.get(user.getId()), CarabiDate.pattern);//LAST_CONTACT_DATE
+				Utls.addJsonDate(userJson, userLastContact.get(user.getId()), CarabiDate.patternShort);//LAST_CONTACT_DATE
 			}
+			Utls.addJsonDate(userJson, user.getLastActive(), CarabiDate.pattern);//LAST_ONLINE_ACTIVE
+			Utls.addJsonDate(userJson, user.getLastActive(), CarabiDate.patternShort);//LAST_ONLINE_ACTIVE_STR
 			rows.add(userJson);
 		}
 		result.add("list", rows);
@@ -775,8 +779,8 @@ public class ChatBean {
 		Set<String> result = new HashSet<>();
 		for (CarabiAppServer server: servers) {
 			try {
-				String usersOnlineJson = eventer.eventerSingleRequestResponse(server, "[]", new Holder<>((short)15), true);
-				logger.log(Level.INFO, "online from {0}: {1}", new Object[]{server.getComputer(), usersOnlineJson});
+				String usersOnlineJson = eventer.eventerSingleRequestResponse(server, "[]", new Holder<>(CarabiEventType.userOnlineQuery.getCode()), true);
+				logger.log(Level.FINE, "online from {0}: {1}", new Object[]{server.getComputer(), usersOnlineJson});
 				JsonReader reader = Json.createReader(new StringReader(usersOnlineJson));
 				JsonObject usersOnline = reader.readObject();
 				result.addAll(usersOnline.keySet());
@@ -787,6 +791,12 @@ public class ChatBean {
 		return result;
 	}
 	
+	/**
+	 * Из списка пользователей выбирает имеющих связи с данным
+	 * @param user произмвольный пользователь
+	 * @param usersList пользователи, из которых выбираем привязанных
+	 * @return карта "логин привязанного пользователя"=>"объект со связкой"
+	 */
 	private Map<String, UserRelation> getUserRelations(CarabiUser user, List<CarabiUser> usersList) {
 		Map<String, UserRelation> userRelations = new HashMap<>();
 		TypedQuery<UserRelation> findUsersRelations = emKernel.createNamedQuery("findUsersRelations", UserRelation.class);

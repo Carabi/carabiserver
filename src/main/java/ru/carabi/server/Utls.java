@@ -15,13 +15,10 @@ import java.sql.Types;
 import java.sql.Wrapper;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.enterprise.context.Dependent;
 import javax.inject.Named;
 import javax.json.Json;
@@ -32,10 +29,10 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
 import javax.json.JsonValue;
+import me.lima.ThreadSafeDateParser;
 import oracle.jdbc.OracleConnection;
 import ru.carabi.server.kernel.oracle.CarabiDate;
 import ru.carabi.server.kernel.oracle.QueryParameter;
-import ru.carabi.server.logging.CarabiLogging;
 
 /**
  * Полезные методы для применения откуда угодно
@@ -311,6 +308,22 @@ public class Utls {
 			jsonArray.addNull();
 		} else {
 			jsonArray.add(value.longValue());
+		}
+	}
+	
+	public static void addJsonDate(JsonObjectBuilder jsonObject, String name, Date value, String pattern) {
+		if (value == null) {
+			jsonObject.addNull(name);
+		} else {
+			jsonObject.add(name, ThreadSafeDateParser.format(value, pattern));
+		}
+	}
+	
+	public static void addJsonDate(JsonArrayBuilder jsonArray, Date value, String pattern) {
+		if (value == null) {
+			jsonArray.addNull();
+		} else {
+			jsonArray.add(ThreadSafeDateParser.format(value, pattern));
 		}
 	}
 	
