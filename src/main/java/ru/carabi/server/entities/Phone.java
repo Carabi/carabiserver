@@ -133,19 +133,19 @@ public class Phone implements Serializable {
 		this.owner = owner;
 	}
 	
-	public int getCountryCode() {
+	public Integer getCountryCode() {
 		return countryCode;
 	}
 	
-	public void setCountryCode(int countryCode) {
+	public void setCountryCode(Integer countryCode) {
 		this.countryCode = countryCode;
 	}
 	
-	public int getRegionCode() {
+	public Integer getRegionCode() {
 		return regionCode;
 	}
 	
-	public void setRegionCode(int regionCode) {
+	public void setRegionCode(Integer regionCode) {
 		this.regionCode = regionCode;
 	}
 	
@@ -157,11 +157,11 @@ public class Phone implements Serializable {
 		this.mainNumber = mainNumber;
 	}
 	
-	public int getSuffix() {
+	public Integer getSuffix() {
 		return suffix;
 	}
 	
-	public void setSuffix(int suffix) {
+	public void setSuffix(Integer suffix) {
 		this.suffix = suffix;
 	}
 	
