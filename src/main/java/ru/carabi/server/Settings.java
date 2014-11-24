@@ -49,9 +49,23 @@ public class Settings implements ServletContextListener {
 	 * каталог, в котором хранятся вложения чата
 	 */
 	public static final String CHAT_ATTACHMENTS_LOCATION = settings.getString("CHAT_ATTACHMENTS_LOCATION");
+	/**
+	 * каталог, в котором хранятся пользовательские аватары (оригиналы)
+	 */
 	public static String AVATARS_LOCATION = settings.getString("AVATARS_LOCATION");
+	/**
+	 * каталог, в котором хранятся миниатюры аватаров
+	 */
 	public static String THUMBNAILS_LOCATION = settings.getString("THUMBNAILS_LOCATION");
 	
+	/**
+	 * Максимальный объём оригинала аватара
+	 */
+	public static int maxAvatarSize = Integer.valueOf(settings.getString("MAX_AVATAR_SIZE")) * 1024 * 1024;
+	/**
+	 * Максимальный объём вложения чата
+	 */
+	public static int maxAttachmentSize = Integer.valueOf(settings.getString("MAX_ATTACHMENT_SIZE")) * 1024 * 1024;
 	/**
 	 * Получение абсолютного пути к каталогу с логами.
 	 * Вычисление абсолютного пути из относительного в конфиге. При ошибке возвращает запасной

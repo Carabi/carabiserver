@@ -177,6 +177,11 @@ public class LoadAvatar extends HttpServlet {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Not enough parameters. Required: token, filename");
 			return;
 		}
+		int contentLength = request.getContentLength();
+		if (contentLength > Settings.maxAvatarSize) {
+			sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "Max avatar size is: " + Settings.maxAvatarSize + ", your is: " + contentLength);
+			return;
+		}
 		try {
 			token = CarabiFunc.decrypt(token);
 		} catch (GeneralSecurityException ex) {
@@ -230,6 +235,11 @@ public class LoadAvatar extends HttpServlet {
 		String token = request.getParameter("token");
 		if (StringUtils.isEmpty(token)) {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter token required");
+			return;
+		}
+		int contentLength = request.getContentLength();
+		if (contentLength > Settings.maxAvatarSize) {
+			sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "Max avatar size is: " + Settings.maxAvatarSize + ", your is: " + contentLength);
 			return;
 		}
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {

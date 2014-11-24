@@ -3,7 +3,6 @@ package ru.carabi.server.servlet;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.math.BigDecimal;
 import java.security.GeneralSecurityException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -113,6 +112,11 @@ public class LoadChatAttach extends HttpServlet {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Not enough parameters. Required: token, filename");
 			return;
 		}
+		int contentLength = request.getContentLength();
+		if (contentLength > Settings.maxAttachmentSize) {
+			sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "Max attachment size is: " + Settings.maxAttachmentSize + ", your is: " + contentLength);
+			return;
+		}
 		try {
 			token = CarabiFunc.decrypt(token);
 		} catch (GeneralSecurityException ex) {
@@ -169,6 +173,11 @@ public class LoadChatAttach extends HttpServlet {
 		String token = request.getParameter("token_sender");
 		if (StringUtils.isEmpty(token)) {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter token_sender required");
+			return;
+		}
+		int contentLength = request.getContentLength();
+		if (contentLength > Settings.maxAttachmentSize) {
+			sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "Max attachment size is: " + Settings.maxAttachmentSize + ", your is: " + contentLength);
 			return;
 		}
 		String loginReceiver = request.getParameter("login_receiver");
