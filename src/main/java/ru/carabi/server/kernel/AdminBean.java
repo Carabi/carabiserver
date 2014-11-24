@@ -3,6 +3,7 @@ package ru.carabi.server.kernel;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -926,8 +927,15 @@ public class AdminBean {
 		return mainUser;
 	}
 
-	public void setShowOnlineMode(CarabiUser user, boolean showOnline) {
+	public void setShowOnlineMode(CarabiUser user, boolean showOnline) throws CarabiException {
 		user.setShowOnline(showOnline);
 		em.merge(user);
+		try {
+			JsonObjectBuilder event = Json.createObjectBuilder();
+			event.add("showOnline", showOnline);
+			eventer.fireEvent("", user.getLogin(), CarabiEventType.toggleOnlineDisplay.getCode(), event.build().toString());
+		} catch (IOException ex) {
+			Logger.getLogger(AdminBean.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 }
