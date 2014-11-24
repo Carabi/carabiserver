@@ -934,6 +934,10 @@ public class AdminBean {
 			JsonObjectBuilder event = Json.createObjectBuilder();
 			event.add("showOnline", showOnline);
 			eventer.fireEvent("", user.getLogin(), CarabiEventType.toggleOnlineDisplay.getCode(), event.build().toString());
+			event = Json.createObjectBuilder();
+			event.add("login", user.getLogin());
+			event.add("online", showOnline);
+			eventer.fireEvent("", "", CarabiEventType.userOnlineEvent.getCode(), event.build().toString());
 		} catch (IOException ex) {
 			Logger.getLogger(AdminBean.class.getName()).log(Level.SEVERE, null, ex);
 		}
