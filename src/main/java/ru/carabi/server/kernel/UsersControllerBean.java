@@ -74,7 +74,6 @@ public class UsersControllerBean {
 		}
 		logon.setToken(token);
 		final DateFormat dateFormat = DateFormat.getInstance();
-		logger.log(Level.FINE, "addUser, lastActive: {0}", dateFormat.format(logon.getLastActive()));
 		logon.setConnectionsGate(connectionsGate);
 		logon = updateLastActive(logon);
 		activeUsers.put(token, logon);

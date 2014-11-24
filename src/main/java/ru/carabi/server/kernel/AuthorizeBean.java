@@ -127,7 +127,6 @@ public class AuthorizeBean {
 		userLogon.setSchema(schema);
 		userLogon.setConnection(connection);
 		userLogon.setAppServer(Settings.getCurrentServer());
-		userLogon.updateLastActive();
 		return userLogon;
 	}
 	

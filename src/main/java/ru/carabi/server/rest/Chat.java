@@ -10,13 +10,13 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.Path;
 import javax.enterprise.context.RequestScoped;
 import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.RegisterException;
-import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.kernel.AdminBean;
@@ -111,4 +111,38 @@ Content-Length: 68
 			return ex.getMessage();
 		}
 	}
+	
+	@GET
+	public String getChatMessage(
+			@PathParam("action") String action,
+			@QueryParam("token") String token,
+			@DefaultValue("") @QueryParam("login") String login,
+			@DefaultValue("") @QueryParam("loginSender") String loginSender,
+			@DefaultValue("") @QueryParam("loginReceiver") String loginReceiver,
+			String messageText
+		) {
+		try(UserLogon logon = uc.tokenAuthorize(token, false)) {
+			if ("getUnreadMessagesCount".equals(action)) {
+				if (logon.isPermanent()) {
+					UserLogon targetLogon = new UserLogon();
+					targetLogon.setUser(admin.findUser(login));
+					targetLogon = uc.addUser(targetLogon);
+					Long unreadMessagesCount = chatBean.getUnreadMessagesCount(targetLogon);
+					uc.removeUser(targetLogon.getToken(), true);
+					return "" + unreadMessagesCount;
+				} else {
+					return "" + chatBean.getUnreadMessagesCount(logon);
+				}
+			} else {
+				throw new RestException("unknown action", Response.Status.NOT_FOUND);
+			}
+		} catch (RegisterException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new RestException("unknown user or token", Response.Status.UNAUTHORIZED);
+		} catch (CarabiException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			return ex.getMessage();
+		}
+	}
+
 }

@@ -347,7 +347,6 @@ public class GuestBean {
 			logon.setAppServer(Settings.getCurrentServer());
 			logon.setRequireSession(false);
 			//Запоминаем пользователя
-			logon.updateLastActive();
 			logon = uc.addUser(logon);
 			token.value = logon.getToken();
 			logger.log(Level.INFO, "Пользователю выдан токен: {0}", token.value);
