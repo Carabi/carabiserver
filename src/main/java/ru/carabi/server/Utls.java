@@ -42,7 +42,7 @@ import ru.carabi.server.kernel.oracle.QueryParameter;
 @Named(value = "utls")
 @Dependent
 public class Utls {
-
+	
 	public static String dumpParameters(List<QueryParameter> parameters) {
 		StringBuilder result = new StringBuilder();
 		result.append("[");
@@ -233,7 +233,7 @@ public class Utls {
 	 * @param keyName ключ &mdash; имя поля, по которому строить индекс
 	 * @return карта: ключ &mdash; содержимое поля keyName, элементы &mdash; массивы с соответствующими строками таблицы
 	 */
-	public Map<Object, ArrayList<LinkedHashMap<String, ?>>> createIndex(ArrayList<LinkedHashMap<String, ?>> table, String keyName) {
+	public static Map<Object, ArrayList<LinkedHashMap<String, ?>>> createIndex(ArrayList<LinkedHashMap<String, ?>> table, String keyName) {
 		Map<Object, ArrayList<LinkedHashMap<String, ?>>>index = new HashMap<>();
 		for (LinkedHashMap<String, ?> element: table) {
 			Object key = element.get(keyName);
@@ -242,7 +242,7 @@ public class Utls {
 				indexed = new ArrayList<>();
 			}
 			indexed.add(element);
-			index.put("", indexed);
+			index.put(key, indexed);
 		}
 		return index;
 	}
@@ -269,6 +269,7 @@ public class Utls {
 	
 	public static JsonArrayBuilder tableToJson(List<LinkedHashMap<String, ?>> table) {
 		JsonArrayBuilder jsonArray = Json.createArrayBuilder();
+		if (table == null) return jsonArray;
 		for (LinkedHashMap<String, ?> row: table) {
 			jsonArray.add(mapToJson(row));
 		}
