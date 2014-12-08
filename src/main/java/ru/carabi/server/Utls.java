@@ -16,6 +16,7 @@ import java.sql.Wrapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,18 +67,6 @@ public class Utls {
 		return result.toString();
 	}
 	
-	/**
-	 *
-	 * @param main
-	 * @param def
-	 */
-	public static String showNotEmpty(String main, String def) {
-		if (main == null || main.equals("")) {
-			return def;
-		}
-		return main;
-	}
-
 	/**
 	 * Выборка всех записей со всеми полями из SQL-запроса
 	 * @param resultSet Выполненный SQL-запрос
@@ -236,6 +225,26 @@ public class Utls {
 			result.add(rowOutput);
 		}
 		return result.build();
+	}
+	
+	/**
+	 * Создание индекса таблицы по полю.
+	 * @param table таблица (массив ассоциативных массивов)
+	 * @param keyName ключ &mdash; имя поля, по которому строить индекс
+	 * @return карта: ключ &mdash; содержимое поля keyName, элементы &mdash; массивы с соответствующими строками таблицы
+	 */
+	public Map<Object, ArrayList<LinkedHashMap<String, ?>>> createIndex(ArrayList<LinkedHashMap<String, ?>> table, String keyName) {
+		Map<Object, ArrayList<LinkedHashMap<String, ?>>>index = new HashMap<>();
+		for (LinkedHashMap<String, ?> element: table) {
+			Object key = element.get(keyName);
+			ArrayList<LinkedHashMap<String, ?>> indexed = index.get(key);
+			if (indexed == null) {
+				indexed = new ArrayList<>();
+			}
+			indexed.add(element);
+			index.put("", indexed);
+		}
+		return index;
 	}
 	
 	public static JsonObjectBuilder mapToJson(Map<String, ?> mapObject, String[] putToList) {
