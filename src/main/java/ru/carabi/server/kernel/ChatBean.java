@@ -376,11 +376,15 @@ public class ChatBean {
 		return getUnreadMessagesSenders_Internal(client, false);
 	}
 	
+	public String getUnreadMessagesSendersDetailed(UserLogon client) throws CarabiException {
+		return getUnreadMessagesSenders_Internal(client, true);
+	}
+	
 	private String getUnreadMessagesSenders_Internal(UserLogon client, boolean addLastMessages) throws CarabiException {
 		//При необходимости переходим на сервер клиента
 		CarabiAppServer targetServer = client.getUser().getMainServer();
 		if (!Settings.getCurrentServer().equals(targetServer)) {
-			return callGetUnreadMessagesSendersSoap(targetServer, client.getToken());
+			return callGetUnreadMessagesSendersDetailedSoap(targetServer, client.getToken());
 		}
 		Query getUnreadMessagesSenders = emChat.createNamedQuery("getUnreadMessagesSenders", Object[].class);
 		getUnreadMessagesSenders.setParameter("user", client.getUser().getId());
@@ -1081,6 +1085,19 @@ public class ChatBean {
 		try {
 			ChatService chatServicePort = getChatServicePort(targetServer);
 			return chatServicePort.getUnreadMessagesSenders(clientToken);
+		} catch (MalformedURLException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);
+		} catch (CarabiException_Exception ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new CarabiException(ex);
+		}
+	}
+	
+	private String callGetUnreadMessagesSendersDetailedSoap(CarabiAppServer targetServer, String clientToken) throws CarabiException {
+		try {
+			ChatService chatServicePort = getChatServicePort(targetServer);
+			return chatServicePort.getUnreadMessagesSendersDetailed(clientToken);
 		} catch (MalformedURLException ex) {
 			logger.log(Level.SEVERE, null, ex);
 			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);

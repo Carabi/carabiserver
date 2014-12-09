@@ -190,6 +190,22 @@ public class ChatService {
 	}
 	
 	/**
+	 * Получение количества непрочитанных сообщений от разных пользователей.
+	 * @param token токен пользователя
+	 * @return JSON-структура вида {"пользователь":m, "пользователь2":n}
+	 * @throws CarabiException 
+	 */
+	@WebMethod(operationName = "getUnreadMessagesSendersDetailed")
+	public String getUnreadMessagesSendersDetailed(@WebParam(name = "token") String token) throws CarabiException {
+		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+			return chatBean.getUnreadMessagesSendersDetailed(logon);
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
+	
+	/**
 	 * Прочитать письмо. Возвращает текст сообщения (входящего или отправленного).
 	 * Если если read==true, помечает его прочитанным (только для входящих сообщений,
 	 * см. {@link #markRead(java.lang.String, java.lang.Long, boolean)})
