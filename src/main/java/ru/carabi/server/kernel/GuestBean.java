@@ -428,4 +428,8 @@ public class GuestBean {
 		em.flush();
 		return user;
 	}
+	
+	public String about() {
+		return "{\"name\":\"Carabi Application Server\", \"branch\":\"free\", \"version\":\"" + Settings.projectVersion + "\"}";
+	}
 }
