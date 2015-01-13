@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,6 +34,11 @@ import ru.carabi.server.kernel.ImagesBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
 import ru.carabi.server.rest.RestException;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.FileUploadException;
 
 /**
  * Загрузка и выгрузка аватаров.
@@ -192,17 +199,43 @@ public class LoadAvatar extends HttpServlet {
 		String filenameUser = new String(DatatypeConverter.parseBase64Binary(filenameInput), "UTF-8");
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
 			FileStreamer streamer = new FileStreamer(filenameUser, wrapFileStorage());
-			ServletInputStream inputStream = request.getInputStream();
-			Utls.proxyStreams(inputStream, streamer.getOutputStream());
-			Long fileId = streamer.getFileId();
-			response.getOutputStream().println(fileId);
+			InputStream inputStream;
+			boolean isMultipartContent = ServletFileUpload.isMultipartContent(request);
+			if (isMultipartContent) {
+				FileItemFactory factory = new DiskFileItemFactory();
+				ServletFileUpload upload = new ServletFileUpload(factory);
+				List<FileItem> fields = upload.parseRequest(request);
+				Iterator<FileItem> it = fields.iterator();
+				if (!it.hasNext()) {
+					//No fields found;
+					return;
+				}
+				while (it.hasNext()) {
+					FileItem fileItem = it.next();
+					boolean isFormField = fileItem.isFormField();
+					if (!isFormField) {
+						inputStream = fileItem.getInputStream();
+						uploadAvatar(inputStream, streamer, response);
+						return;
+					}
+				}
+			} else {
+				inputStream = request.getInputStream();
+				uploadAvatar(inputStream, streamer, response);
+			}
 		} catch (RegisterException e) {
 			sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Unknown token");
-		} catch (CarabiException e) {
+		} catch (CarabiException | FileUploadException e) {
 			logger.log(Level.SEVERE, null, e);
 		}
 	}
-
+	
+	private void uploadAvatar(InputStream inputStream, FileStreamer streamer, HttpServletResponse response) throws IOException {
+		Utls.proxyStreams(inputStream, streamer.getOutputStream());
+		Long fileId = streamer.getFileId();
+		response.getOutputStream().println(fileId);
+	}
+	
 	private FileStorage wrapFileStorage() {
 		return new FileStorage() {
 			@Override
@@ -232,22 +265,64 @@ public class LoadAvatar extends HttpServlet {
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		//валидация параметров и заголовков
-		String token = request.getParameter("token");
-		if (StringUtils.isEmpty(token)) {
-			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter token required");
-			return;
-		}
+		String login = null, token = null;
+		InputStream inputStream = null;
 		int contentLength = request.getContentLength();
 		if (contentLength > Settings.maxAvatarSize) {
 			sendError(response, HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE, "Max avatar size is: " + Settings.maxAvatarSize + ", your is: " + contentLength);
 			return;
 		}
+		boolean isMultipartContent = ServletFileUpload.isMultipartContent(request);
+		if (isMultipartContent) {
+			FileItemFactory factory = new DiskFileItemFactory();
+			ServletFileUpload upload = new ServletFileUpload(factory);
+			List<FileItem> fields;
+			try {
+				fields = upload.parseRequest(request);
+				Iterator<FileItem> it = fields.iterator();
+				if (!it.hasNext()) {
+					sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Empty request");
+					return;
+				}
+				int i = 0;
+				while (it.hasNext()) {
+					FileItem fileItem = it.next();
+					boolean isFormField = fileItem.isFormField();
+					if (!isFormField) {
+						inputStream = fileItem.getInputStream();
+					}
+					if (isFormField && "token".equals(fileItem.getFieldName())) {
+						token = fileItem.getString();
+					}
+					if (isFormField && "login".equals(fileItem.getFieldName())) {
+						login = fileItem.getString();
+					}
+				}
+				if (inputStream == null) {
+					sendError(response, HttpServletResponse.SC_BAD_REQUEST, "No input file");
+					return;
+				}
+			} catch (FileUploadException ex) {
+				Logger.getLogger(LoadAvatar.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		} else {
+			token = request.getParameter("token");
+			login = request.getParameter("login");
+			inputStream = request.getInputStream();
+		}
+		
+		if (StringUtils.isEmpty(token)) {
+			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter token required");
+			return;
+		}
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+			if (login == null) {
+				login = logon.userLogin();
+			}
 			
 			//Определяем владельца аватара
 			CarabiUser user;
 			if (logon.isPermanent()) {
-				String login = request.getParameter("login");
 				if (StringUtils.isEmpty(login)) {
 					sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter login required");
 					return;
@@ -262,7 +337,7 @@ public class LoadAvatar extends HttpServlet {
 			}
 			//Отправляем файл по назначению
 			CarabiAppServer targetServer = Settings.getMasterServer();
-			Long avatarId = handleAvatar(targetServer, user.getLogin(), request, CarabiFunc.encrypt(token));
+			Long avatarId = handleAvatar(targetServer, user.getLogin(), request, inputStream, CarabiFunc.encrypt(token));
 			response.getWriter().print(0);
 		} catch (RegisterException e) {
 			sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Unknown token");
@@ -290,12 +365,13 @@ public class LoadAvatar extends HttpServlet {
 			CarabiAppServer targetServer,
 			String filename,
 			HttpServletRequest request,
+			InputStream inputStream,
 			String token
 	) throws IOException {
 		//подготовка потока
 		try (FileStreamer avatarStreamer = FileStreamer.makeFileStreamer(targetServer, filename, null, token, request, urlPattern, wrapFileStorage())) {
 			//Перекачивание
-			Utls.proxyStreams(request.getInputStream(), avatarStreamer.getOutputStream());
+			Utls.proxyStreams(inputStream, avatarStreamer.getOutputStream());
 			//Получение ID
 			return avatarStreamer.getFileId();
 		}//avatarStreamer.close()
