@@ -975,8 +975,11 @@ public class ChatBean {
 			boolean stillOnline = false;
 			for (CarabiAppServer server: servers) {
 				try {
-					String userOnlineJson = eventer.eventerSingleRequestResponse(server, "[\"" + logon.getUser().getLogin() + "\"]", new Holder<>((short)15), true);
-					logger.info("online from " + server.getComputer() + ": " + userOnlineJson);
+					String userOnlineJson = eventer.eventerSingleRequestResponse(server, "[\"" + logon.getUser().getLogin() + "\"]", new Holder<>(CarabiEventType.userOnlineQuery.getCode()), true);
+					logger.log(Level.INFO, "online from {0}: {1}", new Object[]{server.getComputer(), userOnlineJson});
+					if (userOnlineJson == null) {
+						userOnlineJson = "{\"" + logon.getUser().getLogin() + "\":false}";
+					}
 					JsonReader reader = Json.createReader(new StringReader(userOnlineJson));
 					JsonObject userOnline = reader.readObject();
 					if (userOnline.getBoolean(logon.getUser().getLogin())) {

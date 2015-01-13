@@ -19,6 +19,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.xml.ws.Holder;
+import ru.carabi.libs.CarabiEventType;
 import ru.carabi.libs.CarabiFunc;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.Settings;
@@ -85,7 +86,7 @@ public class EventerBean {
 				for (CarabiAppServer server: servers) {
 					logger.log(Level.FINE, "send to server {0}", server.getSysname());
 					try {
-						eventerSingleRequestResponse(server, eventPackage, new Holder<>((short)8), false);
+						eventerSingleRequestResponse(server, eventPackage, new Holder<>(CarabiEventType.fireEvent.getCode()), false);
 					} catch (IOException ex) {
 						Logger.getLogger(EventerBean.class.getName()).log(Level.SEVERE, null, ex);
 					}
@@ -171,17 +172,14 @@ public class EventerBean {
 		try (Socket eventerSocket = new Socket(computer, targetServer.getEventerPort())) {
 			eventerSocket.setKeepAlive(true);
 			eventerSocket.setSoTimeout(10000);
-			logger.log(Level.FINE, "created new Socket({0}, {1})", new Object[]{targetServer.getComputer(), targetServer.getEventerPort()});
+			logger.log(Level.FINE, "created new Socket({0} ({1}), {2})", new Object[]{targetServer.getComputer(), computer, targetServer.getEventerPort()});
 			shortBuffer = java.nio.ByteBuffer.allocate(2);
 			shortBuffer.putShort(code.value);
 			try (OutputStream outputStream = eventerSocket.getOutputStream()) {
 				outputStream.write(shortBuffer.array());
 				outputStream.write(eventPackage);
-				short zero = 0;
 				shortBuffer.clear();
-				shortBuffer.putShort(zero);
-				outputStream.write(shortBuffer.array());
-				shortBuffer.clear();
+				outputStream.write(0);
 				outputStream.flush();
 				if (waitResponse) {
 					InputStream inputStream = eventerSocket.getInputStream();
@@ -199,8 +197,11 @@ public class EventerBean {
 				} else {
 					return null;
 				}
+			} catch (IOException e) {
+				logger.log(Level.SEVERE, "Error on eventerSingleRequestResponse to " + computer + ":" + targetServer.getEventerPort(), e);
 			}
 		}
+		return null;
 	}
 	
 }
