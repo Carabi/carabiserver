@@ -7,14 +7,12 @@ import javax.ejb.EJB;
 import javax.jws.WebMethod;
 import javax.jws.WebParam;
 import javax.jws.WebService;
-import org.json.JSONException;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
-import static ru.carabi.server.soap.ChatService.logger;
 
 /**
  * Сервис для управления сервером и основными данными в служебной БД
@@ -77,7 +75,7 @@ public class AdminService {
 	 * @throws CarabiException - ошибка обращения к базе данных
 	 */
 	@WebMethod(operationName = "getUsersList")
-	public String getUsersList(@WebParam(name = "token") String token) throws JSONException, CarabiException {
+	public String getUsersList(@WebParam(name = "token") String token) throws CarabiException {
 		UserLogon logon = usersController.tokenControl(token);
 		return admin.getUsersList(logon);
 	}
@@ -125,7 +123,7 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "getUser")
 	public String getUser(@WebParam(name = "token") String token, @WebParam(name = "id") Long id) 
-			throws JSONException, CarabiException 
+			throws CarabiException
 	{
 		usersController.tokenControl(token);
 		return admin.getUser(id);
@@ -163,7 +161,7 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "saveUser")
 	public Long saveUser(@WebParam(name = "token") String token, @WebParam(name = "strUser") String strUser) 
-			throws CarabiException, JSONException 
+			throws CarabiException
 	{
 		usersController.tokenControl(token);
 		return admin.saveUser(strUser);
@@ -181,7 +179,7 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "deleteUser")
 	public void deleteUser(@WebParam(name = "token") String token, @WebParam(name = "id") Long id) 
-			throws CarabiException, JSONException 
+			throws CarabiException
 	{
 		usersController.tokenControl(token);
 		admin.deleteUser(id);
@@ -209,7 +207,7 @@ public class AdminService {
 	 * @throws CarabiException - ошибка обращения к базе данных
 	 */	
 	@WebMethod(operationName = "getSchemasList")
-	public String getSchemasList(@WebParam(name = "token") String token) throws JSONException, CarabiException {
+	public String getSchemasList(@WebParam(name = "token") String token) throws CarabiException {
 		usersController.tokenControl(token);
 		return admin.getSchemasList();
 	}
@@ -230,7 +228,7 @@ public class AdminService {
 	 */	
 	@WebMethod(operationName = "getSchema")
 	public String getSchema(@WebParam(name = "token") String token, @WebParam(name = "id") Integer id) 
-			throws JSONException, CarabiException 
+			throws CarabiException
 	{
 		usersController.tokenControl(token);
 		return admin.getSchema(id);
@@ -253,7 +251,7 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "saveSchema")
 	public Integer saveSchema(@WebParam(name = "token") String token, @WebParam(name = "strSchema") String strSchema) 
-			throws CarabiException, JSONException 
+			throws CarabiException
 	{
 		usersController.tokenControl(token);
 		return admin.saveSchema(strSchema);
@@ -296,7 +294,7 @@ public class AdminService {
 	 * @throws CarabiException - ошибка обращения к базе данных
 	 */
 	@WebMethod(operationName = "getCategoriesList")
-	public String getCategoriesList(@WebParam(name = "token") String token) throws JSONException, CarabiException {
+	public String getCategoriesList(@WebParam(name = "token") String token) throws CarabiException {
 		usersController.tokenControl(token);
 		return admin.getCategoriesList();
 	}
@@ -356,7 +354,7 @@ public class AdminService {
 	 */	
 	@WebMethod(operationName = "getQuery")
 	public String getQuery(@WebParam(name = "token") String token, @WebParam(name = "id") Long id) 
-			throws JSONException, CarabiException 
+			throws CarabiException
 	{
 		usersController.tokenControl(token);
 		return admin.getQuery(id);
@@ -377,7 +375,7 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "saveQuery")
 	public Long saveQuery(@WebParam(name = "token") String token, @WebParam(name = "strQuery") String strQuery) 
-			throws CarabiException, JSONException 
+			throws CarabiException
 	{
 		usersController.tokenControl(token);
 		return admin.saveQuery(strQuery);
@@ -396,7 +394,7 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "deleteQuery")
 	public void deleteQuery(@WebParam(name = "token") String token, @WebParam(name = "id") Long id) 
-			throws CarabiException, JSONException 
+			throws CarabiException
 	{
 		usersController.tokenControl(token);
 		admin.deleteQuery(id);

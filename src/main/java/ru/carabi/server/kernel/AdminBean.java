@@ -30,8 +30,6 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrBuilder;
-import org.json.JSONException;
-import org.json.JSONObject;
 import ru.carabi.libs.CarabiEventType;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.Settings;
@@ -392,7 +390,7 @@ public class AdminBean {
 		}		
 	}		
 	
-	public String getSchemasList() throws JSONException {
+	public String getSchemasList() {
 		// gets databases from our derbi db
 		final TypedQuery query = em.createQuery(
 				"select CS from ConnectionSchema CS order by CS.name", 
@@ -410,31 +408,35 @@ public class AdminBean {
 		//					   ]}
 		//                     ...
 		//  ]}
-		final Collection<JSONObject> jsonSchemas = 
-				new ArrayList<>(resultList.size());
+		final JsonArrayBuilder jsonSchemas = Json.createArrayBuilder();
 		final Iterator<ConnectionSchema> schemasIterator = resultList.iterator();
 		while (schemasIterator.hasNext()) {
 			final ConnectionSchema schema = schemasIterator.next();
-			JSONObject jsonSchemaDetails = new JSONObject();
-			jsonSchemaDetails.put("id", schema.getId());
-			jsonSchemaDetails.put("name", schema.getName());
-			jsonSchemaDetails.put("sysName", schema.getSysname());
-			jsonSchemaDetails.put("jndiName", schema.getJNDI());
+			JsonObjectBuilder jsonSchemaDetails = createJsonSchema(schema);
 			
-			final JSONObject jsonSchema = new JSONObject();
-			jsonSchema.put("connectionSchema", jsonSchemaDetails);
+			final JsonObjectBuilder jsonSchema = Json.createObjectBuilder();
+			jsonSchema.add("connectionSchema", jsonSchemaDetails);
 			jsonSchemas.add(jsonSchema);
 		}
 
 		// handles empty list case - just add root object "carabiusers"
-		final JSONObject result = new JSONObject();
-		result.put("connectionSchemes", jsonSchemas);
+		final JsonObjectBuilder result = Json.createObjectBuilder();
+		result.add("connectionSchemes", jsonSchemas);
 		
 		// returns results
-		return result.toString();
+		return result.build().toString();
 	}	
 
-	public String getSchema(Integer id) throws CarabiException, JSONException {
+	private JsonObjectBuilder createJsonSchema(final ConnectionSchema schema) {
+		JsonObjectBuilder jsonSchemaDetails = Json.createObjectBuilder();
+		jsonSchemaDetails.add("id", schema.getId());
+		Utls.addJsonObject(jsonSchemaDetails, "name", schema.getName());
+		Utls.addJsonObject(jsonSchemaDetails, "sysName", schema.getSysname());
+		Utls.addJsonObject(jsonSchemaDetails, "jndiName", schema.getJNDI());
+		return jsonSchemaDetails;
+	}
+
+	public String getSchema(Integer id) throws CarabiException {
 		final ConnectionSchema schema = em.find(ConnectionSchema.class, id);
 		if (null == schema) {
 			CarabiException e = new CarabiException("Cхема подключения не "
@@ -444,22 +446,17 @@ public class AdminBean {
 		}
 		
 		// fill in user fields
-		final JSONObject jsonSchema = new JSONObject();
-		jsonSchema.put("id", schema.getId());
-		jsonSchema.put("name", schema.getName());
-		jsonSchema.put("sysName", schema.getSysname());
-		jsonSchema.put("jndiName", schema.getJNDI());
+		final JsonObjectBuilder jsonSchema = createJsonSchema(schema);
 		
 		// returns results
 		return jsonSchema.toString();
 	}	
 	
-	public Integer saveSchema(String strSchema) 
-			throws CarabiException, JSONException 
-	{
+	public Integer saveSchema(String strSchema) throws CarabiException {
 		// parse url string
 		final String nonUrlStrSchema = strSchema.replace("&quot;", "\"");
-		final JSONObject jsonSchema = new JSONObject(nonUrlStrSchema);
+		final JsonReader jsonSchemaReader = Json.createReader(new StringReader(nonUrlStrSchema));
+		final JsonObject jsonSchema = jsonSchemaReader.readObject();
 		
 		// создание или получение схемы 
 		ConnectionSchema schema;
