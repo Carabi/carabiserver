@@ -51,6 +51,7 @@ public class UsersControllerBean {
 	
 	@EJB private ConnectionsGateBean connectionsGate;
 	@EJB private CursorFetcherBean cursorFetcher;
+	@EJB private MonitorBean monitor;
 	@EJB private Cache cache;
 	
 	@PostConstruct
@@ -73,7 +74,6 @@ public class UsersControllerBean {
 			logger.warning("tokenCollision");
 		}
 		logon.setToken(token);
-		final DateFormat dateFormat = DateFormat.getInstance();
 		logon.setConnectionsGate(connectionsGate);
 		logon = updateLastActive(logon);
 		activeUsers.put(token, logon);
@@ -237,11 +237,13 @@ public class UsersControllerBean {
 	
 	@TransactionAttribute
 	private UserLogon updateLastActive(UserLogon logon) {
-		em.joinTransaction();
 		logon.updateLastActive();
-		logon = em.merge(logon);
-		em.merge(logon.getUser());
-		em.flush();
+		if (monitor.getDerbyLockcount() == 0) {
+			em.joinTransaction();
+			logon = em.merge(logon);
+			em.merge(logon.getUser());
+			em.flush();
+		}
 		return logon;
 	}
 	/**
