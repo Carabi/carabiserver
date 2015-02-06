@@ -5,6 +5,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 
 /**
@@ -13,6 +14,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name="USER_STATUS")
+@NamedQuery(name = "getUserStatus", query = "select US from UserStatus US where US.sysname = :sysname")
 public class UserStatus {
 
 	@Id

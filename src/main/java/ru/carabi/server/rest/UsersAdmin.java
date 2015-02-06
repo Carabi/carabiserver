@@ -9,6 +9,7 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -139,5 +140,27 @@ public class UsersAdmin {
 				.add("role", role)
 				.add("phones", phones);
 		return addUserJson(token, userData.build(), schemaName);
+	}
+	
+	@DELETE
+	@Produces("text/plain")
+	public String markBanned(
+			@QueryParam("token") String token,
+			@QueryParam("login") String login,
+			@DefaultValue("banned") @QueryParam("status") String status,
+			@PathParam("schema") String schemaName
+	) {
+		UserLogon administrator = usersController.getUserLogon(token);
+		if (administrator == null) {
+			return "Unknown token: " + token;
+		}
+		try {
+			admin.setUserStatus(login, status);
+			return login + "banned";
+		} catch (CarabiException ex) {
+			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
+			return ex.getMessage();
+		}
+		
 	}
 }

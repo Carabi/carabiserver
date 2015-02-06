@@ -45,6 +45,7 @@ import ru.carabi.server.entities.QueryEntity;
 import ru.carabi.server.entities.QueryParameterEntity;
 import ru.carabi.server.entities.UserRelation;
 import ru.carabi.server.entities.UserRelationType;
+import ru.carabi.server.entities.UserStatus;
 
 @Stateless
 /**
@@ -747,6 +748,12 @@ public class AdminBean {
 		}		
 	}
 	
+	/**
+	 * Поиск пользователя по логину
+	 * @param login логин
+	 * @return найденный пользователь
+	 * @throws CarabiException если пользователь не найден
+	 */
 	public CarabiUser findUser(String login) throws CarabiException {
 		try {
 			TypedQuery<CarabiUser> activeUser = em.createNamedQuery("getUserInfo", CarabiUser.class);
@@ -937,6 +944,20 @@ public class AdminBean {
 			eventer.fireEvent("", "", CarabiEventType.userOnlineEvent.getCode(), event.build().toString());
 		} catch (IOException ex) {
 			Logger.getLogger(AdminBean.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
+
+	public void setUserStatus(String login, String statusSysname) throws CarabiException {
+		CarabiUser user = findUser(login);
+		try {
+			TypedQuery<UserStatus> getUserStatus = em.createNamedQuery("getUserStatus", UserStatus.class);
+			getUserStatus.setParameter("sysname", statusSysname);
+			UserStatus status = getUserStatus.getSingleResult();
+			user.setStatus(status);
+			em.merge(user);
+			em.flush();
+		} catch (NoResultException e) {
+			throw new CarabiException("status " + statusSysname + " not found");
 		}
 	}
 }
