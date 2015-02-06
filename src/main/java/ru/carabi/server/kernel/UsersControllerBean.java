@@ -75,7 +75,7 @@ public class UsersControllerBean {
 		}
 		logon.setToken(token);
 		logon.setConnectionsGate(connectionsGate);
-		logon = updateLastActive(logon);
+		logon = updateLastActive(logon, true);
 		activeUsers.put(token, logon);
 		if (logon.getSchema() != null) {
 			logger.log(Level.FINEST, "put {0} to activeUsers in Add", token);
@@ -230,15 +230,15 @@ public class UsersControllerBean {
 			if (!logon.isPermanent()) {
 				logon.setAppServer(Settings.getCurrentServer());
 			}
-			logon = updateLastActive(logon);
+			logon = updateLastActive(logon, false);
 		}
 		return logon;
 	}
 	
 	@TransactionAttribute
-	private UserLogon updateLastActive(UserLogon logon) {
+	private UserLogon updateLastActive(UserLogon logon, boolean logonIsNew) {
 		logon.updateLastActive();
-		if (monitor.getDerbyLockcount() == 0) {
+		if (logonIsNew || monitor.getDerbyLockcount() == 0) {
 			em.joinTransaction();
 			logon = em.merge(logon);
 			em.merge(logon.getUser());
