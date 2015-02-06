@@ -19,6 +19,7 @@
     <class>ru.carabi.server.entities.UserRelationType</class>
     <class>ru.carabi.server.entities.Phone</class>
     <class>ru.carabi.server.entities.PhoneType</class>
+    <class>ru.carabi.server.entities.UserStatus</class>
     <exclude-unlisted-classes>true</exclude-unlisted-classes>
     <shared-cache-mode>NONE</shared-cache-mode>
     <properties>

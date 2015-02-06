@@ -490,10 +490,10 @@ public class ChatBean {
 		//Выбираем пользователей
 		TypedQuery<CarabiUser> getUsersList;
 		if (search != null && !search.isEmpty()) {
-			getUsersList = emKernel.createNamedQuery("getUsersListSearch", CarabiUser.class);
+			getUsersList = emKernel.createNamedQuery("getActiveUsersListSearch", CarabiUser.class);
 			getUsersList.setParameter("search", "%" + search.toUpperCase() + "%");
 		} else {
-			getUsersList = emKernel.createNamedQuery("getAllUsersList", CarabiUser.class);
+			getUsersList = emKernel.createNamedQuery("getActiveUsersList", CarabiUser.class);
 		}
 		List<CarabiUser> usersList = getUsersList.getResultList();
 		return printUsersForOutput(client, usersList, null, false).toString();

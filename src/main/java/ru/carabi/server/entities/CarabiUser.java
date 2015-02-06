@@ -36,6 +36,8 @@ import javax.persistence.Temporal;
 		query = "select U from CarabiUser U where U.login = :login"),
 	@NamedQuery(name="getAllUsersList",
 		query = "select U from CarabiUser U order by U.firstname, U.middlename, U.lastname"),
+	@NamedQuery(name="getActiveUsersList",
+		query = "select U from CarabiUser U where U.status.sysname = 'active' order by U.firstname, U.middlename, U.lastname"),
 	@NamedQuery(name="getSelectedUsersList",
 		query = "select U from CarabiUser U where U.id in :idlist"),// order by U.firstname, U.middlename, U.lastname
 	@NamedQuery(name="getUsersListSearch",
@@ -46,6 +48,12 @@ import javax.persistence.Temporal;
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getSelectedUsersListSearch",
 		query = "select U from CarabiUser U where U.id in :idlist and (" +
+				"upper(U.login) like :search or upper(U.firstname) like :search " + 
+				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
+				"or upper(U.role) like :search or upper(U.department) like :search )" + 
+				"order by U.firstname, U.middlename, U.lastname "),
+	@NamedQuery(name="getActiveUsersListSearch",
+		query = "select U from CarabiUser U where U.status.sysname = 'active' and (" +
 				"upper(U.login) like :search or upper(U.firstname) like :search " + 
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
 				"or upper(U.role) like :search or upper(U.department) like :search )" + 
@@ -105,6 +113,10 @@ public class CarabiUser implements Serializable {
 	
 	@Column(name="SHOW_ONLINE")
 	private int showOnlineInt;
+	
+	@ManyToOne
+	@JoinColumn(name="STATUS_ID")
+	private UserStatus status;
 	
 	public Long getId() {
 		return id;
@@ -196,7 +208,7 @@ public class CarabiUser implements Serializable {
 	
 	public void addAllowedSchema(ConnectionSchema allowedSchema) {
 		if (allowedSchemas == null) {
-			allowedSchemas = new HashSet<ConnectionSchema>();
+			allowedSchemas = new HashSet<>();
 		}
 		allowedSchemas.add(allowedSchema);
 	}
@@ -255,6 +267,14 @@ public class CarabiUser implements Serializable {
 	
 	public void setShowOnline(boolean showOnline) {
 		this.showOnlineInt = showOnline ? 1 : 0;
+	}
+	
+	public UserStatus getStatus() {
+		return status;
+	}
+	
+	public void setStatus(UserStatus status) {
+		this.status = status;
 	}
 	
 	@Override
