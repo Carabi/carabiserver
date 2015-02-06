@@ -226,7 +226,7 @@ public class UsersControllerBean {
 			logger.log(Level.INFO, msg);
 			throw new RegisterException(RegisterException.MessageCode.NO_TOKEN);
 		} else {
-			logger.info("tokenAuthorize, lastActive in base: " + DateFormat.getInstance().format(logon.getLastActive()));
+			logger.log(Level.FINE, "tokenAuthorize, lastActive in base: {0}", DateFormat.getInstance().format(logon.getLastActive()));
 			if (!logon.isPermanent()) {
 				logon.setAppServer(Settings.getCurrentServer());
 			}
