@@ -156,7 +156,7 @@ public class UsersAdmin {
 		}
 		try {
 			admin.setUserStatus(login, status);
-			return login + "banned";
+			return login + " " + status;
 		} catch (CarabiException ex) {
 			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
 			return ex.getMessage();
