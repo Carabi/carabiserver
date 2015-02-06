@@ -180,7 +180,7 @@ public class ChatBean {
 	private CarabiAppServer getTargetUserServer(CarabiUser user) {
 		CarabiAppServer userServer = user.getMainServer();
 		if (userServer == null) {
-			userServer = Settings.getMasterServer();
+			userServer = Settings.getCurrentServer();
 			user.setMainServer(userServer);
 			user = emKernel.merge(user);
 			emKernel.flush();
@@ -199,7 +199,7 @@ public class ChatBean {
 		logger.info(messagesList);
 		//Функция должна выполняться на сервере владельца.
 		final CarabiUser receiver = receiverLogon.getUser();
-		CarabiAppServer targetServer = receiver.getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(receiver);
 		final CarabiAppServer currentServer = Settings.getCurrentServer();
 		List<Long> messageIdList = parseMessagesIdList(messagesList);
 		if (!currentServer.equals(targetServer)) {
@@ -280,10 +280,9 @@ public class ChatBean {
 		}
 	}
 	
-
 	public int markReadPrevios(UserLogon receiverLogon, CarabiUser sender, String date) throws CarabiException {
 		final CarabiUser receiver = receiverLogon.getUser();
-		CarabiAppServer targetServer = receiver.getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(receiver);
 		final CarabiAppServer currentServer = Settings.getCurrentServer();
 		if (!currentServer.equals(targetServer)) {
 			return callMarkReadPreviosSoap(targetServer, receiverLogon.getToken(), sender.getLogin(), date);
@@ -317,7 +316,7 @@ public class ChatBean {
 	 */
 	public void markSentReceived(CarabiUser sender, CarabiUser receiver, String messagesList) throws CarabiException {
 		//При необходимости переходим на сервер отправителя
-		CarabiAppServer targetServer = sender.getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(sender);
 		if (!Settings.getCurrentServer().equals(targetServer)) {
 			callMarkSentReceivedSoap(targetServer, sender.getLogin(), receiver.getLogin(), messagesList);
 			return;
@@ -362,7 +361,7 @@ public class ChatBean {
 	
 	public Long getUnreadMessagesCount(UserLogon client) throws CarabiException {
 		//При необходимости переходим на сервер клиента
-		CarabiAppServer targetServer = client.getUser().getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(client.getUser());
 		if (!Settings.getCurrentServer().equals(targetServer)) {
 			return callGetUnreadMessagesCountSoap(targetServer, client.getToken());
 		}
@@ -382,7 +381,7 @@ public class ChatBean {
 	
 	private String getUnreadMessagesSenders_Internal(UserLogon client, boolean addLastMessages) throws CarabiException {
 		//При необходимости переходим на сервер клиента
-		CarabiAppServer targetServer = client.getUser().getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(client.getUser());
 		if (!Settings.getCurrentServer().equals(targetServer)) {
 			return callGetUnreadMessagesSendersDetailedSoap(targetServer, client.getToken());
 		}
@@ -424,7 +423,7 @@ public class ChatBean {
 	
 	public String getMessage(UserLogon client, Long messageId, boolean read) throws CarabiException {
 		//При необходимости переходим на сервер клиента
-		CarabiAppServer targetServer = client.getUser().getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(client.getUser());
 		if (!Settings.getCurrentServer().equals(targetServer)) {
 			return callGetMessageSoap(targetServer, client.getToken(), messageId, read);
 		}
@@ -446,7 +445,7 @@ public class ChatBean {
 	
 	public String getMessageDetails(UserLogon client, Long messageId, boolean read, int crop) throws CarabiException {
 		//При необходимости переходим на сервер клиента
-		CarabiAppServer targetServer = client.getUser().getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(client.getUser());
 		if (!Settings.getCurrentServer().equals(targetServer)) {
 			return callGetMessageDetailsSoap(targetServer, client.getToken(), messageId, read, crop);
 		}
@@ -570,7 +569,7 @@ public class ChatBean {
 	
 	public String getLastInterlocutors(UserLogon client, int size, String afterDateStr, String search) throws CarabiException {
 		//При необходимости переходим на сервер клиента
-		CarabiAppServer targetServer = client.getUser().getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(client.getUser());
 		if (!Settings.getCurrentServer().equals(targetServer)) {
 			return callGetLastInterlocutorsSoap(targetServer, client.getToken(), size, afterDateStr, search);
 		}
@@ -879,7 +878,7 @@ public class ChatBean {
 	
 	public int deleteMessages(UserLogon client, String messagesList) throws CarabiException {
 		//При необходимости переходим на сервер клиента
-		CarabiAppServer targetServer = client.getUser().getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(client.getUser());
 		if (!Settings.getCurrentServer().equals(targetServer)) {
 			return callDeleteMessagesSoap(targetServer, client.getToken(), messagesList);
 		}
@@ -926,7 +925,7 @@ public class ChatBean {
 	 */
 	public FileOnServer getMessageAttachement(UserLogon client, Long messageId) throws CarabiException {
 		//При необходимости переходим на сервер клиента
-		CarabiAppServer targetServer = client.getUser().getMainServer();
+		CarabiAppServer targetServer = getTargetUserServer(client.getUser());
 		if (!Settings.getCurrentServer().equals(targetServer)) {
 			return callGetMessageAttachementSoap(targetServer, client.getToken(), messageId);
 		}
