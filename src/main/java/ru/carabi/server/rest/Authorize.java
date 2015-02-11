@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Resource;
 import javax.ejb.EJB;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
@@ -23,12 +22,10 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.QueryParam;
 import javax.xml.ws.Holder;
-import javax.xml.ws.WebServiceContext;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.ConnectionSchema;
 import ru.carabi.server.UserLogon;
-import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.GuestBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.kernel.EventerBean;
@@ -42,8 +39,6 @@ import ru.carabi.server.kernel.EventerBean;
 @RequestScoped
 public class Authorize {
 
-	@EJB
-	private AdminBean admin;
 	@EJB
 	private GuestBean guest;
 	@EJB
@@ -81,7 +76,7 @@ public class Authorize {
 		try {
 			CarabiUser user;
 			try {
-				user = admin.findUser(login);
+				user = usersController.findUser(login);
 			} catch (CarabiException ex) {
 				Logger.getLogger(Authorize.class.getName()).log(Level.INFO, "No user {0} in Derby, create!", login);
 				user = new CarabiUser();

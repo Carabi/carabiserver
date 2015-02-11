@@ -20,7 +20,6 @@ import javax.xml.ws.Holder;
 import javax.xml.ws.WebServiceContext;
 import javax.xml.ws.handler.MessageContext;
 import ru.carabi.server.CarabiException;
-import ru.carabi.server.CarabiOracleMessage;
 import ru.carabi.server.RegisterException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
@@ -297,5 +296,28 @@ public class GuestService {
 		String serverIpPort = currentServer.getComputer()+ ":" + currentServer.getGlassfishPort();
 		connectionProperties.setProperty("serverContext", serverIpPort + req.getContextPath());
 		return connectionProperties;
+	}
+	
+	/**
+	 * Возвращает код для восстановления пароля пользователю с данным email.
+	 * Ищет пользователя с логином, совпадающим со введённым email.
+	 * Если таких нет -- с указанным полем email, равным указанному.
+	 * Если таких нет или больше одного -- ошибка.
+	 * @param email адрес пользователя, пароль которого надо восстановить.
+	 * @throws ru.carabi.server.CarabiException Если не удалось отправить письмо (ненайденный пользователь игнорируется)
+	 */
+	@WebMethod(operationName = "sendPasswordRecoverCode")
+	public void sendPasswordRecoverCode(@WebParam(name = "email") String email) throws CarabiException {
+		guest.sendPasswordRecoverCode(email);
+	}
+	
+	
+	@WebMethod(operationName = "recoverPassword")
+	public void recoverPassword(
+			@WebParam(name = "email") String email,
+			@WebParam(name = "code") String code,
+			@WebParam(name = "password") String password
+		) {
+		guest.recoverPassword(email, code, password);
 	}
 }

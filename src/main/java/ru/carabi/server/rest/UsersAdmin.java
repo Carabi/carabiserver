@@ -90,7 +90,7 @@ public class UsersAdmin {
 		boolean userIsNew = userID == -1;
 		if (!userIsNew) {
 			try {
-				CarabiUser user = admin.findUser(login);
+				CarabiUser user = usersController.findUser(login);
 				if (!user.getDefaultSchema().getId().equals(schemaID) && !user.getAllowedSchemas().contains(connectionSchema)) {
 					return "user " + login + " already registered with another database";
 				}

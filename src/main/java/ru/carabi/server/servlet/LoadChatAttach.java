@@ -30,7 +30,6 @@ import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.ChatMessage;
 import ru.carabi.server.entities.FileOnServer;
-import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.ChatBean;
 import ru.carabi.server.kernel.FileStorage;
 import ru.carabi.server.kernel.UsersControllerBean;
@@ -56,7 +55,6 @@ public class LoadChatAttach extends HttpServlet {
 
 	@EJB private UsersControllerBean uc;
 	@EJB private ChatBean chatBean;
-	@EJB private AdminBean admin;
 
 	/**
 	 * Обработка метода GET. Возвращает вложение из чата.
@@ -207,7 +205,7 @@ public class LoadChatAttach extends HttpServlet {
 		try (UserLogon logonSender = uc.tokenAuthorize(token, false)) {
 			
 			//Определяем сервера
-			CarabiUser receiver = admin.findUser(loginReceiver);
+			CarabiUser receiver = uc.findUser(loginReceiver);
 			CarabiUser sender = logonSender.getUser();
 			CarabiAppServer receiverServer = receiver.getMainServer();
 			CarabiAppServer senderServer = sender.getMainServer();

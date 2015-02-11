@@ -19,8 +19,11 @@ import javax.ejb.Timer;
 import javax.ejb.TransactionAttribute;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.NoResultException;
+import javax.persistence.NonUniqueResultException;
 import javax.persistence.PersistenceUnit;
 import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
@@ -29,6 +32,7 @@ import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiAppServer;
+import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.kernel.oracle.CursorFetcherBean;
 import ru.carabi.server.logging.CarabiLogging;
 
@@ -287,7 +291,54 @@ public class UsersControllerBean {
 		}
 		return result;
 	}
-
+	
+	
+	/**
+	 * Поиск пользователя по логину
+	 * @param login логин
+	 * @return найденный пользователь
+	 * @throws CarabiException если пользователь не найден
+	 */
+	public CarabiUser findUser(String login) throws CarabiException {
+		try {
+			TypedQuery<CarabiUser> activeUser = em.createNamedQuery("getUserInfo", CarabiUser.class);
+			activeUser.setParameter("login", login);
+			CarabiUser user = activeUser.getSingleResult();
+			return user;
+		} catch (NoResultException ex) {
+			final CarabiException e = new CarabiException("No user with login " 
+					+ login);
+			logger.log(Level.WARNING, "" , e);
+			throw e;
+		}
+	}
+	
+	/**
+	 * Поиск пользователя по email
+	 * @param email email
+	 * @return найденный пользователь
+	 * @throws CarabiException если пользователь не найден или найдено несколько
+	 */
+	public CarabiUser getUserByEmail(String email) throws CarabiException {
+		CarabiUser user;
+		try { //Пробуем найти пользователя с логином, равным указанному email
+			TypedQuery<CarabiUser> activeUser = em.createNamedQuery("getUserInfo", CarabiUser.class);
+			activeUser.setParameter("login", email);
+			user = activeUser.getSingleResult();
+		} catch (NoResultException ex) {// если не нашли -- ищем по полю email
+			try {
+				TypedQuery<CarabiUser> activeUser = em.createNamedQuery("getUserInfoByEmail", CarabiUser.class);
+				activeUser.setParameter("email", email);
+				user = activeUser.getSingleResult();
+			} catch (NoResultException e) {
+				throw new CarabiException("User with email " + email + " not found");
+			} catch (NonUniqueResultException e) {
+				throw new CarabiException("More than one users with email " + email);
+			}
+		}
+		return user;
+	}
+	
 	public void close() {
 		ArrayList<String> usersTokens = new ArrayList(activeUsers.keySet());
 		for (String userToken: usersTokens) {

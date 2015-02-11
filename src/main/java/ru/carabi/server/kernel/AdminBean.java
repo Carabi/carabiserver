@@ -65,6 +65,7 @@ public class AdminBean {
 	
 	private @EJB ConnectionsGateBean cg;
 	private @EJB EventerBean eventer;
+	private @EJB UsersControllerBean uc;
 	/**
 	 * Получение ID пользователя Carabi.
 	 * @param login логин пользователя
@@ -95,7 +96,7 @@ public class AdminBean {
 		                    +" caller params: {0}", 
 		                new Object[]{login});  
 		close();
-		final CarabiUser user = findUser(login);
+		final CarabiUser user = uc.findUser(login);
 		final Collection<ConnectionSchema> allowedSchemas = user.getAllowedSchemas();
 		List<String> schemasList = new ArrayList<String>(allowedSchemas.size());
 		for (ConnectionSchema allowedSchema: allowedSchemas) {
@@ -107,7 +108,7 @@ public class AdminBean {
 	}
 	
 	public String getMainSchema(String login) throws CarabiException {
-		final CarabiUser user = findUser(login);
+		final CarabiUser user = uc.findUser(login);
 		final ConnectionSchema defaultSchema = user.getDefaultSchema();
 		if (defaultSchema != null) {
 			return defaultSchema.getSysname();
@@ -117,7 +118,7 @@ public class AdminBean {
 	}
 	
 	public void setMainSchema(String login, String schemaAlias) throws CarabiException {
-		CarabiUser user = findUser(login);
+		CarabiUser user = uc.findUser(login);
 		final ConnectionSchema mainSchema = cg.getConnectionSchemaByAlias(schemaAlias);
 		user.setDefaultSchema(mainSchema);
 		em.merge(user);
@@ -747,26 +748,6 @@ public class AdminBean {
 			throw e;
 		}		
 	}
-	
-	/**
-	 * Поиск пользователя по логину
-	 * @param login логин
-	 * @return найденный пользователь
-	 * @throws CarabiException если пользователь не найден
-	 */
-	public CarabiUser findUser(String login) throws CarabiException {
-		try {
-			TypedQuery<CarabiUser> activeUser = em.createNamedQuery("getUserInfo", CarabiUser.class);
-			activeUser.setParameter("login", login);
-			CarabiUser user = activeUser.getSingleResult();
-			return user;
-		} catch (NoResultException ex) {
-			final CarabiException e = new CarabiException("No user with login " 
-					+ login);
-			logger.log(Level.WARNING, "" , e);
-			throw e;
-		}
-	}
 		
 	private void close() {
 		em.flush();
@@ -774,7 +755,7 @@ public class AdminBean {
 	}
 	
 	public FileOnServer createUserAvatar(String login) throws CarabiException {
-		CarabiUser user = findUser(login);
+		CarabiUser user = uc.findUser(login);
 		FileOnServer avatar = user.getAvatar();
 		if (avatar != null) { //Удалить старый аватар
 			user.setAvatar(null);
@@ -874,7 +855,7 @@ public class AdminBean {
 		}
 		List<CarabiUser> relatedUsersList = new ArrayList<>(relatedUsersLoginList.size());
 		for (String relatedUserLogin: relatedUsersLoginList) {
-			CarabiUser relatedUser = findUser(relatedUserLogin);
+			CarabiUser relatedUser = uc.findUser(relatedUserLogin);
 			relatedUsersList.add(relatedUser);
 		}
 		return relatedUsersList;
@@ -926,7 +907,7 @@ public class AdminBean {
 			if (!logon.isPermanent()) {
 				throw new CarabiException("You can not edit another user");
 			}
-			mainUser= findUser(userLogin);
+			mainUser= uc.findUser(userLogin);
 		}
 		return mainUser;
 	}
@@ -948,7 +929,7 @@ public class AdminBean {
 	}
 
 	public void setUserStatus(String login, String statusSysname) throws CarabiException {
-		CarabiUser user = findUser(login);
+		CarabiUser user = uc.findUser(login);
 		try {
 			TypedQuery<UserStatus> getUserStatus = em.createNamedQuery("getUserStatus", UserStatus.class);
 			getUserStatus.setParameter("sysname", statusSysname);

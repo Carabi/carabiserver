@@ -88,7 +88,7 @@ public class LoadAvatar extends HttpServlet {
 			}
 			CarabiUser findUser = null;
 			try {
-				findUser = admin.findUser(login);
+				findUser = uc.findUser(login);
 			} catch (CarabiException e) {
 				sendError(response, HttpServletResponse.SC_NOT_FOUND, "user not found");
 				return;
@@ -327,7 +327,7 @@ public class LoadAvatar extends HttpServlet {
 					sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter login required");
 					return;
 				}
-				user = admin.findUser(login);
+				user = uc.findUser(login);
 			} else {
 				user = logon.getUser();
 			}

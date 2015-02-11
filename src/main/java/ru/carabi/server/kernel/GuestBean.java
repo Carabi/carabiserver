@@ -1,5 +1,14 @@
 package ru.carabi.server.kernel;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.net.HttpURLConnection;
+import java.net.Socket;
+import java.net.URL;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -20,13 +29,16 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.xml.ws.Holder;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.ConnectionSchema;
 import ru.carabi.server.RegisterException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
+import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiAppServer;
+import ru.carabi.server.entities.PersonalTemporaryCode;
 import ru.carabi.server.entities.UserServerEnter;
 import ru.carabi.server.kernel.oracle.QueryParameter;
 import ru.carabi.server.kernel.oracle.SqlQueryBean;
@@ -431,5 +443,85 @@ public class GuestBean {
 	
 	public String about() {
 		return "{\"name\":\"Carabi Application Server\", \"branch\":\"free\", \"version\":\"" + Settings.projectVersion + "\"}";
+	}
+	
+	/**
+	 * Отправляет по почте код для восстановления пароля пользователю с данным email.
+	 * Ищет пользователя с логином, совпадающим со введённым email.
+	 * Если таких нет -- с указанным полем email, равным указанному.
+	 * Если таких нет или больше одного -- ошибка.
+	 * @param email адрес пользователя, пароль которого надо восстановить.
+	 */
+	public void sendPasswordRecoverCode(String email) throws CarabiException {
+		CarabiUser user;
+		try {
+			user = uc.getUserByEmail(email);
+		} catch (Exception e){
+			return;
+		}
+		//генерируем код восстановления, не совпадающий с существующими
+		String code = RandomStringUtils.randomAlphanumeric(Settings.TOKEN_LENGTH);
+		while (em.find(PersonalTemporaryCode.class, code) != null) {
+			code = RandomStringUtils.randomAlphanumeric(Settings.TOKEN_LENGTH);
+			logger.warning("codeCollision");
+		}
+		//Создаём обект со сгенерированным кодом, обрабатываемым пользователем и сроком 1 день
+		PersonalTemporaryCode personalTemporaryCode = new PersonalTemporaryCode();
+		personalTemporaryCode.setCode(code);
+		personalTemporaryCode.setCodeType("password_recover");
+		personalTemporaryCode.setTimestamp(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24));
+		personalTemporaryCode.setUser(user);
+		personalTemporaryCode = em.merge(personalTemporaryCode);
+		em.flush();
+		try {
+			//Отправляем письмо через PHP Backend
+			String data = "mail=" + email + "&code=" + code;
+			data = data.replaceAll("@", "%40");
+			try (Socket socket = new Socket("127.0.0.1", 3210)) {
+				OutputStream outputStream = socket.getOutputStream();
+				PrintStream printStream = new PrintStream(outputStream);
+				String head = "POST /index.php HTTP/1.1\r\n" +
+						"Host: appl.cara.bi\r\n" +
+						"Connection: close\r\n" +
+						"Content-type: application/x-www-form-urlencoded\r\n" +
+						"Content-Length: " + data.length() + "\r\n";
+				printStream.print(head);
+				printStream.print("\r\n");
+				printStream.println(data);
+				InputStream inputStream = socket.getInputStream();
+				Utls.skipHttpHeaders(inputStream);
+				BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+				String result = bufferedReader.readLine();
+				if (!"OK".equals(result)) {
+					logger.warning(result);
+					throw new CarabiException(result);
+				}
+			}
+		} catch (IOException ex) {
+			Logger.getLogger(GuestBean.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
+	
+	/**
+	 * Изменение пароля по коду восстановления.
+	 * Ищет пользователя с указанными email и кодом восстановления, если нашли -- ставит указанный пароль
+	 * @param email
+	 * @param code
+	 * @param password
+	 */
+	public void recoverPassword(String email, String code, String password) {
+		CarabiUser user;
+		try {
+			user = uc.getUserByEmail(email);
+		} catch (Exception e){
+			return;
+		}
+		PersonalTemporaryCode personalTemporaryCode = em.find(PersonalTemporaryCode.class, code);
+		if (personalTemporaryCode != null && user.equals(personalTemporaryCode.getUser())) {
+			String passwordChipher = DigestUtils.md5Hex(user.getLogin().toUpperCase() + password);
+			user.setPassword(passwordChipher.toUpperCase());
+			em.merge(user);
+			em.flush();
+		}
 	}
 }

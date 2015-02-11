@@ -17,7 +17,6 @@ import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.FileOnServer;
-import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.ChatBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -39,7 +38,6 @@ public class ChatService {
 	@EJB private ChatBean chatBean;
 
 	@EJB private UsersControllerBean uc;
-	@EJB private AdminBean admin;
 	/**
 	 * Отправка сообщения получателю. Функция находит основной сервер получателя,
 	 * вызывает {@link ChatService#forwardMessage(java.lang.String, java.lang.String, java.lang.String, java.lang.String)}
@@ -78,7 +76,7 @@ public class ChatService {
 		if (administrator == null || !administrator.isPermanent()) {
 			throw new CarabiException("unknown tokenServer");
 		}
-		CarabiUser sender = admin.findUser(loginSender);
+		CarabiUser sender = uc.findUser(loginSender);
 		return sendMessage(loginReceiver, sender, messageText);
 	}
 	
@@ -88,7 +86,7 @@ public class ChatService {
 			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText);
 			return StringUtils.join(sentMessagesId, ";");
 		} else {
-			CarabiUser receiver = admin.findUser(loginReceiver);
+			CarabiUser receiver = uc.findUser(loginReceiver);
 			return chatBean.sendMessage(sender, receiver, messageText, null, null).toString();
 		}
 	}
@@ -118,8 +116,8 @@ public class ChatService {
 			@WebParam(name = "attachmentId") Long attachmentId
 		) throws CarabiException {
 		checkSoftwareToken(softwareToken);
-		CarabiUser sender = admin.findUser(loginSender);
-		CarabiUser receiver = admin.findUser(loginReceiver);
+		CarabiUser sender = uc.findUser(loginSender);
+		CarabiUser receiver = uc.findUser(loginReceiver);
 		return chatBean.forwardMessage(sender, receiver, messageText, attachmentId);
 	}
 	
@@ -151,9 +149,9 @@ public class ChatService {
 			@WebParam(name = "attachmentId") Long attachmentId
 		) throws CarabiException {
 		checkSoftwareToken(softwareToken);
-		CarabiUser owner = admin.findUser(loginOwner);
-		CarabiUser sender = admin.findUser(loginSender);
-		CarabiUser receiver = admin.findUser(loginReceiver);
+		CarabiUser owner = uc.findUser(loginOwner);
+		CarabiUser sender = uc.findUser(loginSender);
+		CarabiUser receiver = uc.findUser(loginReceiver);
 		return chatBean.putMessage(owner, sender, receiver, receivedMessageId, receivedMessageServerId, messageText, attachmentId);
 	}
 	
@@ -299,7 +297,7 @@ public class ChatService {
 			@WebParam(name = "timestamp") String timestamp
 		) throws CarabiException {
 		try (UserLogon receiverLogon = uc.tokenAuthorize(token, false)) {
-			CarabiUser sender = admin.findUser(loginSender);
+			CarabiUser sender = uc.findUser(loginSender);
 			return chatBean.markReadPrevios(receiverLogon, sender, timestamp);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -325,8 +323,8 @@ public class ChatService {
 			@WebParam(name = "messagesList") String messagesList
 		) throws CarabiException {
 		checkSoftwareToken(softwareToken);
-		CarabiUser sender = admin.findUser(loginSender);
-		CarabiUser receiver = admin.findUser(loginReceiver);
+		CarabiUser sender = uc.findUser(loginSender);
+		CarabiUser receiver = uc.findUser(loginReceiver);
 		chatBean.markSentReceived(sender, receiver, messagesList);
 		return true;
 	}
@@ -434,7 +432,7 @@ public class ChatService {
 			@WebParam(name = "crop") int crop
 		) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
-			return chatBean.getDialog(logon, admin.findUser(interlocutor), afterDate, search, crop);
+			return chatBean.getDialog(logon, uc.findUser(interlocutor), afterDate, search, crop);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;

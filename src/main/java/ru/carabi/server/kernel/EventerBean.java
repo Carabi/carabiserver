@@ -39,8 +39,6 @@ public class EventerBean {
 	
 	@EJB private UsersControllerBean usersController;
 	
-	@EJB private AdminBean admin;
-	
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	EntityManager em;
 	
@@ -107,7 +105,7 @@ public class EventerBean {
 		if (login == null || login.equals("")) {
 			getSevers = em.createNamedQuery("getAllServers", CarabiAppServer.class);
 		} else {
-			CarabiUser user = admin.findUser(login);
+			CarabiUser user = usersController.findUser(login);
 			getSevers = em.createNamedQuery("getAllUserSevers", CarabiAppServer.class);
 			getSevers.setParameter("user", user);
 			GregorianCalendar calendar = new GregorianCalendar();

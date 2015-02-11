@@ -19,7 +19,6 @@ import ru.carabi.server.CarabiException;
 import ru.carabi.server.RegisterException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
-import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.ChatBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -54,7 +53,6 @@ public class Chat {
 	
 	@EJB private ChatBean chatBean;
 	@EJB private UsersControllerBean uc;
-	@EJB private AdminBean admin;
 	private static final Logger logger = CarabiLogging.getLogger(Chat.class);
 	
 	/**
@@ -97,7 +95,7 @@ Content-Length: 68
 				if (administrator == null || !administrator.isPermanent()) {
 					throw new RestException("unknown token", Response.Status.UNAUTHORIZED);
 				}
-				CarabiUser sender = admin.findUser(loginSender);
+				CarabiUser sender = uc.findUser(loginSender);
 				Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText);
 				return StringUtils.join(sentMessagesId, ";");
 			} else {
@@ -125,7 +123,7 @@ Content-Length: 68
 			if ("getUnreadMessagesCount".equals(action)) {
 				if (logon.isPermanent()) {
 					UserLogon targetLogon = new UserLogon();
-					targetLogon.setUser(admin.findUser(login));
+					targetLogon.setUser(uc.findUser(login));
 					targetLogon = uc.addUser(targetLogon);
 					Long unreadMessagesCount = chatBean.getUnreadMessagesCount(targetLogon);
 					uc.removeUser(targetLogon.getToken(), true);

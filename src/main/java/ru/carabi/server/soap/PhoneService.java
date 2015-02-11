@@ -22,7 +22,6 @@ import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.Phone;
-import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
 
@@ -35,7 +34,6 @@ public class PhoneService {
 	Logger logger = CarabiLogging.getLogger(PhoneService.class);
 	
 	@EJB private UsersControllerBean uc;
-	@EJB private AdminBean admin;
 	
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManager em;
@@ -65,7 +63,7 @@ public class PhoneService {
 			if (StringUtils.isEmpty(login)) {
 				user = logon.getUser();
 			} else {
-				user= admin.findUser(login);
+				user= uc.findUser(login);
 				if (user == null) {
 					throw new CarabiException("user " + login + " not found");
 				}

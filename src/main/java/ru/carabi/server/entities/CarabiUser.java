@@ -32,8 +32,12 @@ import javax.persistence.Temporal;
 @NamedQueries({
 	@NamedQuery(name="findUser",
 		query = "select U.id from CarabiUser U where U.login = :login"),
+	@NamedQuery(name="findUserByEmail",
+		query = "select U.id from CarabiUser U where U.email = :email"),
 	@NamedQuery(name="getUserInfo",
 		query = "select U from CarabiUser U where U.login = :login"),
+	@NamedQuery(name="getUserInfoByEmail",
+		query = "select U from CarabiUser U where U.email = :email"),
 	@NamedQuery(name="getAllUsersList",
 		query = "select U from CarabiUser U order by U.firstname, U.middlename, U.lastname"),
 	@NamedQuery(name="getActiveUsersList",

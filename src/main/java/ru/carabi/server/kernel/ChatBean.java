@@ -67,7 +67,7 @@ import ru.carabi.stub.ChatService_Service;
 public class ChatBean {
 	private static final Logger logger = CarabiLogging.getLogger(ChatBean.class);
 	
-	@EJB AdminBean admin;
+	@EJB UsersControllerBean uc;
 	
 	@EJB EventerBean eventer;
 	
@@ -562,7 +562,7 @@ public class ChatBean {
 	
 	public String getContact(UserLogon client, String login) throws CarabiException {
 		List<CarabiUser> usersList = new ArrayList<>(1);
-		usersList.add(admin.findUser(login));
+		usersList.add(uc.findUser(login));
 		JsonObject userForOutput = printUsersForOutput(client, usersList, null, true);
 		return Utls.redim(userForOutput).toString();
 	}
@@ -1222,7 +1222,7 @@ public class ChatBean {
 		Long[] sentMessagesId = new Long[receiversArray.length];
 		int i = 0;
 		for (String login: receiversArray) {
-			CarabiUser receiver = admin.findUser(login);
+			CarabiUser receiver = uc.findUser(login);
 			sentMessagesId[i] = sendMessage(sender, receiver, messageText, null, null);
 			i++;
 		}

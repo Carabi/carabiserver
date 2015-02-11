@@ -153,6 +153,14 @@ create table USER_AT_SERVER_ENTER (
 	('kop', 'Александр', 'Дмитриевич', 'Копилов', 1),
 ;*/
 
+create table PERSONAL_TEMPORARY_CODE (
+	TEMPORARY_CODE varchar(128) primary key,
+	USER_ID bigint references CARABI_USER(USER_ID) on delete cascade,
+	EXPIRATION_DATE timestamp,
+	CODE_TYPE varchar(128)
+);
+create index TEMPORARY_CODE_TYPE on PERSONAL_TEMPORARY_CODE(CODE_TYPE);
+
 /**
  *Схемы, к которым клиент имеет право подключаться
  */
