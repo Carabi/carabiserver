@@ -65,12 +65,14 @@ public class AdminService {
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
 	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
-	 * @return json-строка вида
+	 * @return json-строка вида:
+	 * <pre>
 	 *	   creates json object of the following form 
 	 *	   { "carabiusers": [ 
 	 * 	                      { "carabiuser",  { "id": "" }, { "name", ""} }, 
 	 *	  					  ...
 	 *	   ]}
+	 * </pre>
 	 * @throws JSONException - ошибка составления объекта json (внутренняя ошибка)
 	 * @throws CarabiException - ошибка обращения к базе данных
 	 */
@@ -96,6 +98,7 @@ public class AdminService {
 	 *				"lastName":"Борцов",
 	 *				"defaultSchemaId":127,
 	 *				"login":"bortsov",
+	 *				"password":"123",
 	 *				"firstName":"Михаил",
 	 *				"connectionSchemas":[
 	 *					{"connectionSchema":{
@@ -113,8 +116,20 @@ public class AdminService {
 	 *						"jndi":"jdbc/newndv"
 	 *					}},
 	 *					...
-	 *				],
-	 *				"password":"123"
+	 *				]
+	 *				"phones":[
+	 *					{"phone":{
+	 *						"id":18,
+	 *						"phoneType":1,
+	 *						"countryCode":,
+	 *						"regionCode":,
+	 *						"mainNumber":1236547,
+	 *						"suffix":,
+	 *						"schemaId":1,
+	 *						"orderNumber":3
+	 *					}},
+	 *					...
+	 *				]
 	 *			}
 	 *		}"
 	 * </pre>
@@ -187,13 +202,14 @@ public class AdminService {
 	
 	/**
 	 * Получение списка всех схем подключений системы
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param token "Токен", идентификатор регистрации в системе (выполненной через сервер приложений).
 	 * См. 
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
 	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
-	 * @return json-строка вида
-	 * creates json object of the following form 
+	 * @return json-строка вида:
+	 * creates json object with the following structure:
+	 * <pre>
 	 *  { "connectionSchemes": [ 
 	 *                     { "connectionSchema", 
 	 *						     { "id": "" }, 
@@ -203,8 +219,8 @@ public class AdminService {
 	 *					   }
 	 *                     ...
 	 *  ]}
-	 * @throws JSONException - ошибка составления объекта json (внутренняя ошибка)
-	 * @throws CarabiException - ошибка обращения к базе данных
+	 * </pre>
+	 * @throws CarabiException - ошибка проверки токена, или обращения к базе данных
 	 */	
 	@WebMethod(operationName = "getSchemasList")
 	public String getSchemasList(@WebParam(name = "token") String token) throws CarabiException {
@@ -442,5 +458,33 @@ public class AdminService {
 			logger.log(Level.SEVERE, "", e);
 			throw e;
 		}
+	}
+
+	/**
+	 * Получение списка всех типов телефонов.
+	 * @param token "Токен", идентификатор регистрации в системе (выполненной через сервер приложений).
+	 * См.
+	 * {@link ru.carabi.server.soap.GuestService},
+	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
+	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @return json-строка вида:
+	 * <pre>
+	 *  { "phoneTypes": [
+	 *                     { "phoneType",
+	 *						     { "id": "" },
+	 *							 { "name", ""},
+	 *							 { "sysName", ""},
+	 *					   }
+	 *                     ...
+	 *  ]}
+	 * </pre>
+	 * @throws CarabiException - ошибка проверки токена, или обращения к базе данных
+	 */
+	@WebMethod(operationName = "getPhoneTypes")
+	public String getPhoneTypes(@WebParam(name = "token") String token) throws CarabiException {
+		// check permissions
+		usersController.tokenControl(token);
+		// read derby
+		return admin.getPhoneTypes();
 	}
 }

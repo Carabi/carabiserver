@@ -3,7 +3,6 @@ package ru.carabi.server.kernel;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -98,7 +97,7 @@ public class AdminBean {
 		close();
 		final CarabiUser user = uc.findUser(login);
 		final Collection<ConnectionSchema> allowedSchemas = user.getAllowedSchemas();
-		List<String> schemasList = new ArrayList<String>(allowedSchemas.size());
+		List<String> schemasList = new ArrayList<>(allowedSchemas.size());
 		for (ConnectionSchema allowedSchema: allowedSchemas) {
 			logger.log(Level.INFO, "{0} allowed {1} ({2}, {3})", new Object[]{login, allowedSchema.getName(), allowedSchema.getSysname(), allowedSchema.getJNDI()});
 			schemasList.add(allowedSchema.getSysname());
@@ -190,11 +189,12 @@ public class AdminBean {
 		Utls.addJsonObject(jsonUserDetails, "password", carabiUser.getPassword());
 		Utls.addJsonObject(jsonUserDetails, "defaultSchemaId", (null == carabiUser.getDefaultSchema()) ? "" : carabiUser.getDefaultSchema().getId());
 		
-		//fill in schemas list with regard to whether a schema is allowed or not
+		// fill in schemas list with regard to whether a schema is allowed or not
+		// 1. read from derby
 		final TypedQuery<ConnectionSchema> query = em.createNamedQuery("fullSelectAllSchemas", ConnectionSchema.class);
 		final List<ConnectionSchema> connectionSchemas = query.getResultList();
 		close();
-		
+		// 2. make json
 		final JsonArrayBuilder jsonConnectionSchemas = Json.createArrayBuilder();
 		for (ConnectionSchema connectionSchema: connectionSchemas) {
 			// see if the current is allowed for user
@@ -224,11 +224,39 @@ public class AdminBean {
 			
 			jsonConnectionSchemas.add(jsonConnectionSchema);
 		}
-		
-		final JsonObjectBuilder jsonUser = Json.createObjectBuilder();
 		jsonUserDetails.add("connectionSchemas", jsonConnectionSchemas);
-		jsonUser.add("carabiuser", jsonUserDetails);
+
+		// add the list of user phones to jsonUserDetails
+		final TypedQuery<Phone> phonesQuery = em.createNamedQuery("selectUserPhones", Phone.class);
+		phonesQuery.setParameter("ownerId", id);
+		final List<Phone> phones = phonesQuery.getResultList();
+		close();
+		final JsonArrayBuilder jsonPhones = Json.createArrayBuilder();
+		for (Phone phone: phones) {
+			final JsonObjectBuilder jsonPhoneDetails = Json.createObjectBuilder();
+
+			// add all fileds, but ownerId, which is the parameter of this method (so caller already has it)
+			jsonPhoneDetails.add("id", phone.getId());
+			Utls.addJsonObject(jsonPhoneDetails, "phoneType",
+					null == phone.getPhoneType() ? null : phone.getPhoneType().getId());
+			Utls.addJsonObject(jsonPhoneDetails, "countryCode", phone.getCountryCode());
+			Utls.addJsonObject(jsonPhoneDetails, "regionCode", phone.getRegionCode());
+			Utls.addJsonObject(jsonPhoneDetails, "mainNumber", phone.getMainNumber());
+			Utls.addJsonObject(jsonPhoneDetails, "suffix", phone.getSuffix());
+			Utls.addJsonObject(jsonPhoneDetails, "schemaId",
+					null == phone.getSipSchema() ? null : phone.getSipSchema().getId());
+			Utls.addJsonObject(jsonPhoneDetails, "orderNumber", phone.getOrdernumber());
+
+			// pack all phone details (write to jsonPhone and add it to jsonPhones)
+			final JsonObjectBuilder jsonPhone = Json.createObjectBuilder();
+			jsonPhone.add("phone", jsonPhoneDetails);
+			jsonPhones.add(jsonPhone);
+		}
+		jsonUserDetails.add("phones", jsonPhones);
 		
+		// build a response string out of json and return it as the result
+		final JsonObjectBuilder jsonUser = Json.createObjectBuilder();
+		jsonUser.add("carabiuser", jsonUserDetails);
 		return jsonUser.build().toString();
 	}
 	
@@ -393,7 +421,7 @@ public class AdminBean {
 	}		
 	
 	public String getSchemasList() {
-		// gets databases from our derbi db
+		// gets databases from our derby
 		final TypedQuery query = em.createQuery(
 				"select CS from ConnectionSchema CS order by CS.name", 
 				ConnectionSchema.class);
@@ -454,6 +482,7 @@ public class AdminBean {
 		return jsonSchema.toString();
 	}	
 	
+	@SuppressWarnings("IncompatibleEquals")
 	public Integer saveSchema(String strSchema) throws CarabiException {
 		// parse url string
 		final String nonUrlStrSchema = strSchema.replace("&quot;", "\"");
@@ -940,5 +969,22 @@ public class AdminBean {
 		} catch (NoResultException e) {
 			throw new CarabiException("status " + statusSysname + " not found");
 		}
+	}
+
+	public String getPhoneTypes() throws CarabiException {
+		// read derby
+		final TypedQuery<PhoneType> query = em.createNamedQuery("selectAllPhoneTypes", PhoneType.class);// select PT from PhoneType PT
+		final List<PhoneType> phoneTypes = query.getResultList();
+		close();
+		// build json
+		JsonArrayBuilder phoneTypesJson = Json.createArrayBuilder();
+		for (PhoneType phoneType: phoneTypes) {
+			JsonObjectBuilder phoneTypeJson = Json.createObjectBuilder();
+			Utls.addJsonNumber(phoneTypeJson, "id", phoneType.getId());
+			Utls.addJsonObject(phoneTypeJson, "name", phoneType.getName());
+			Utls.addJsonObject(phoneTypeJson, "sysName", phoneType.getSysname());
+			phoneTypesJson.add(phoneTypeJson);
+		}
+		return phoneTypesJson.build().toString();
 	}
 }

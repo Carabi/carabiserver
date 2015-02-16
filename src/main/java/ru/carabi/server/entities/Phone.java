@@ -1,6 +1,5 @@
 package ru.carabi.server.entities;
 
-import com.ctc.wstx.util.StringUtil;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -12,7 +11,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
-import javax.persistence.OneToMany;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.logging.CarabiLogging;
@@ -24,6 +23,8 @@ import ru.carabi.server.logging.CarabiLogging;
 @Entity
 @Table(name="PHONE")
 @NamedQueries ({
+	@NamedQuery(name="selectUserPhones",
+		query="select p from Phone p where p.owner.id = :ownerId")
 })
 public class Phone implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -97,6 +98,7 @@ public class Phone implements Serializable {
 		}
 	}
 	
+	@Override
 	public String toString() {
 		return countryCode + "^" + regionCode + "^" + mainNumber + "^" + suffix;
 	}

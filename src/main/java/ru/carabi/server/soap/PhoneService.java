@@ -16,12 +16,14 @@ import javax.jws.WebMethod;
 import javax.jws.WebParam;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.Phone;
+import ru.carabi.server.entities.PhoneType;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
 
@@ -31,13 +33,58 @@ import ru.carabi.server.logging.CarabiLogging;
  */
 @WebService(serviceName = "PhoneService")
 public class PhoneService {
-	Logger logger = CarabiLogging.getLogger(PhoneService.class);
+	private static final Logger logger = CarabiLogging.getLogger(PhoneService.class);
 	
 	@EJB private UsersControllerBean uc;
 	
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManager em;
 	
+	private void close() {
+		em.flush();
+		em.clear();
+	}
+
+	/**
+	 * Получение списка всех типов телефонов.
+	 * @param token "Токен", идентификатор регистрации в системе (выполненной через сервер приложений).
+	 * См.
+	 * {@link ru.carabi.server.soap.GuestService},
+	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
+	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @return json-строка вида:
+	 * <pre>
+	 *  [
+	 *		{
+	 *			"id": "...",
+	 *			"name", "...",
+	 *			"sysName", "...",
+	 *		},
+	 *      ...
+	 *  ]
+	 * </pre>
+	 * @throws CarabiException - ошибка проверки токена, или обращения к базе данных
+	 */
+	@WebMethod(operationName = "getPhoneTypes")
+	public String getPhoneTypes(@WebParam(name = "token") String token) throws CarabiException {
+		// check permissions
+		uc.tokenControl(token);
+		// read derby
+		final TypedQuery<PhoneType> query = em.createNamedQuery("selectAllPhoneTypes", PhoneType.class);// select PT from PhoneType PT
+		final List<PhoneType> phoneTypes = query.getResultList();
+		close();
+		// build json
+		JsonArrayBuilder phoneTypesJson = Json.createArrayBuilder();
+		for (PhoneType phoneType: phoneTypes) {
+			JsonObjectBuilder phoneTypeJson = Json.createObjectBuilder();
+			Utls.addJsonNumber(phoneTypeJson, "id", phoneType.getId());
+			Utls.addJsonObject(phoneTypeJson, "name", phoneType.getName());
+			Utls.addJsonObject(phoneTypeJson, "sysName", phoneType.getSysname());
+			phoneTypesJson.add(phoneTypeJson);
+		}
+		return phoneTypesJson.build().toString();
+	}
+
 	/**
 	 * Получить все телефоны пользователя.
 	 * Возвращает все телефоны, свои или другого пользователя.

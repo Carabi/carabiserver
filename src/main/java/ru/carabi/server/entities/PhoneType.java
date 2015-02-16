@@ -17,9 +17,8 @@ import javax.persistence.Table;
 @Entity
 @Table(name="PHONE_TYPE")
 @NamedQueries ({
-@NamedQuery(name = "findPhoneType",
-	query = "select PT from PhoneType PT where PT.name = :name or PT.sysname = :name"
-)
+	@NamedQuery(name = "findPhoneType",	query = "select PT from PhoneType PT where PT.name = :name or PT.sysname = :name"),
+	@NamedQuery(name = "selectAllPhoneTypes", query = "select PT from PhoneType PT")
 })
 public class PhoneType implements Serializable {
 	private static final long serialVersionUID = 1L;
