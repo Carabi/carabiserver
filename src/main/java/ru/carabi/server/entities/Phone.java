@@ -13,7 +13,6 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
-import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
@@ -68,33 +67,37 @@ public class Phone implements Serializable {
 		for (String s: split) {
 			logger.log(Level.INFO, s);
 		}
-		try {
-			switch (split.length) {
-				case 4:
-					countryCode = Integer.valueOf(split[0]);
-					regionCode = Integer.valueOf(split[1]);
-					mainNumber = Integer.valueOf(split[2]);
-					if (!StringUtils.isEmpty(split[3])) {
-						suffix = Integer.valueOf(split[3]);
-					}
-				break;
-				case 3:
-					countryCode = Integer.valueOf(split[0]);
-					regionCode = Integer.valueOf(split[1]);
-					mainNumber = Integer.valueOf(split[2]);
-				break;
-				case 2:
-					regionCode = Integer.valueOf(split[0]);
-					mainNumber = Integer.valueOf(split[1]);
-				break;
-				case 1:
-					mainNumber = Integer.valueOf(split[0]);
-				break;
-				default:
-					throw new IllegalArgumentException("too many segments");
-			}
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Can not parse segment as number", e);
+		switch (split.length) {
+			case 4:
+				countryCode = "".equals(split[0]) ? null : Integer.valueOf(split[0]);
+				regionCode = "".equals(split[1]) ? null : Integer.valueOf(split[1]);
+				mainNumber = "".equals(split[2]) ? null : Long.valueOf(split[2]);
+				suffix = "".equals(split[3]) ? null : Integer.valueOf(split[3]);
+			break;
+			case 3:
+				countryCode = "".equals(split[0]) ? null : Integer.valueOf(split[0]);
+				regionCode = "".equals(split[1]) ? null : Integer.valueOf(split[1]);
+				mainNumber = "".equals(split[2]) ? null : Long.valueOf(split[2]);
+				suffix = null;
+			break;
+			case 2:
+				countryCode = null;
+				regionCode = "".equals(split[0]) ? null : Integer.valueOf(split[0]);
+				mainNumber = "".equals(split[1]) ? null : Long.valueOf(split[1]);
+				suffix = null;
+			break;
+			case 1:
+				countryCode = null;
+				regionCode = null;
+				mainNumber = "".equals(split[0]) ? null : Long.valueOf(split[0]);
+				suffix = null;
+			break;
+			case 0:
+				logger.log(Level.WARNING, "0 segments in phone number numbers. Column 'MAIN_NUMBER' won't accept a NULL value.");
+				throw new IllegalArgumentException("0 segments in phone number numbers. Column 'MAIN_NUMBER' won't accept a NULL value.");
+			default:
+				logger.log(Level.WARNING, "too many segments in phone number numbers. maximum is four: country code, region code, main number and suffix");
+				throw new IllegalArgumentException("too many segments in phone number numbers. maximum is four: country code, region code, main number and suffix");
 		}
 	}
 	

@@ -284,7 +284,7 @@ public class AdminBean {
 		JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
 		final JsonObject userDetails = jsonReader.readObject();
 		
-		// создание или получение пользователя
+		// create or fetch user
 		CarabiUser user;
 		if (!userDetails.containsKey("id") || "".equals(Utls.getNativeJsonString(userDetails,"id"))) {
 			user = new CarabiUser();
@@ -302,7 +302,7 @@ public class AdminBean {
 			user = em.find(CarabiUser.class, userId);
 		}
 				
-		// обновление значений полей пользователя
+		// update main user fields
 		user.setFirstname(userDetails.getString("firstName"));
 		user.setMiddlename(userDetails.getString("middleName"));
 		user.setLastname(userDetails.getString("lastName"));
@@ -311,48 +311,63 @@ public class AdminBean {
 		user.setDepartment(userDetails.getString("department"));
 		user.setRole(userDetails.getString("role"));
 		
-		//обновление телефонов
-		String[] phones;
-		if (!StringUtils.isEmpty(userDetails.getString("phones"))) {
-			if (user.getPhonesList() != null) {
-				for (Phone phone: user.getPhonesList()) {//удаляем старые телефоны, если на входе есть новые
-					em.remove(phone);
-				}
+		// update phones
+		if (user.getPhonesList() != null) {
+			for (Phone phone: user.getPhonesList()) {//удаляем старые телефоны, если на входе есть новые
+				em.remove(phone);
 			}
-			phones = userDetails.getString("phones").split("\\|\\|");
-			ArrayList<Phone> phonesList = new ArrayList<>(phones.length);
-			int i = 1;
-			for (String phoneStr: phones) {
-				String[] phoneElements = phoneStr.split("\\|");
-				Phone phone = new Phone();
-				if (phoneElements.length > 0) {
-					phone.parse(phoneElements[0]);
-				}
-				PhoneType phoneType = null;
-				if (phoneElements.length > 1) {
-					String phoneTypeName = phoneElements[1];
-					TypedQuery<PhoneType> findPhoneType = em.createNamedQuery("findPhoneType", PhoneType.class);
-					findPhoneType.setParameter("name", phoneTypeName);
-					List<PhoneType> resultList = findPhoneType.getResultList();
-					if (resultList.isEmpty()) {
-						phoneType = new PhoneType();
-						phoneType.setName(phoneTypeName);
-						phoneType.setSysname(phoneTypeName);
-					} else {
-						phoneType = resultList.get(0);
-					}
-					if (phoneType.getSysname().equals("SIP")) {
-						phone.setSipSchema(user.getDefaultSchema());
-					}
-				}
-				phone.setPhoneType(phoneType);
-				phone.setOrdernumber(i);
-				i++;
-				phone.setOwner(user);
-				phonesList.add(phone);
-			}
-			user.setPhonesList(phonesList);
+			close(); // fix for error: non persisted object in a relationship marked for cascade persist.
+					 // releasing a user object before updating its list of phones.
 		}
+		String[] phones = {};
+		if(!("".equals(userDetails.getString("phones")))) { // if phones string is empty, just use empty phones list
+			phones = userDetails.getString("phones").replace("||||", "| | ||").replace("^||", "^| |").replace("|||", "| ||").split("\\|\\|");
+				// using replace to handle the cases when "" is set for phone schema, phone type or both of them. interpret " " as NULL below.
+				// there is an important assumption made that we have trailing "^" at the end of all numbers (so the client-side must set it even
+				// if suffix is empty)
+		}
+		ArrayList<Phone> phonesList = new ArrayList<>(phones.length);
+		int phoneOrderNumber = 1;
+		for (String phoneStr: phones) {
+			String[] phoneElements = phoneStr.split("\\|");
+			Phone phone = new Phone();
+			if (phoneElements.length > 0) {
+				phone.parse(phoneElements[0]);
+			}
+			PhoneType phoneType = null;
+			if (phoneElements.length > 1 && !" ".equals(phoneElements[1])) {
+				final String phoneTypeName = phoneElements[1];
+				final TypedQuery<PhoneType> findPhoneType = em.createNamedQuery("findPhoneType", PhoneType.class);
+				findPhoneType.setParameter("name", phoneTypeName);
+				final List<PhoneType> resultList = findPhoneType.getResultList();
+				if (resultList.isEmpty()) {
+					phoneType = new PhoneType();
+					phoneType.setName(phoneTypeName);
+					phoneType.setSysname(phoneTypeName);
+				} else {
+					phoneType = resultList.get(0);
+				}
+				if (phoneType.getSysname().equals("SIP")) {
+					phone.setSipSchema(user.getDefaultSchema());
+				}
+			}
+			if (phoneElements.length > 2) {
+				if (!("".equals(phoneElements[2]) || " ".equals(phoneElements[2]))) {
+					final ConnectionSchema phoneSchema = em.find(ConnectionSchema.class, Integer.parseInt(phoneElements[2]));
+					phone.setSipSchema(phoneSchema);
+				} else {
+					phone.setSipSchema(null);
+				}
+			}
+			phone.setPhoneType(phoneType);
+			phone.setOrdernumber(phoneOrderNumber);
+			phoneOrderNumber++;
+			phone.setOwner(user);
+			phonesList.add(phone);
+		}
+		user.setPhonesList(phonesList);
+		
+		// updates schemas
 		if (updateSchemas) {
 			// схема по умолчанию
 			if (!userDetails.containsKey("defaultSchemaId")) {
