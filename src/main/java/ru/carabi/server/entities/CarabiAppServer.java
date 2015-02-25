@@ -42,8 +42,10 @@ public class CarabiAppServer implements Serializable {
 	@Column(name="EVENTER_PORT")
 	private int eventerPort;
 	private String description;
-	@Column(name="IS_MASTER ")
+	@Column(name="IS_MASTER")
 	private int isMasterInt;
+	@Column(name="IS_ENABLED")
+	private int isEnabledInt;
 	
 	public Integer getId() {
 		return id;
@@ -145,6 +147,22 @@ public class CarabiAppServer implements Serializable {
 		this.isMasterInt = isMaster ? 1 : 0;
 	}
 	
+	public int getIsEnabledInt() {
+		return isEnabledInt;
+	}
+
+	public void setIsEnabledInt(int isEnabledInt) {
+		this.isEnabledInt = isEnabledInt;
+	}
+
+	public boolean isEnabled() {
+		return isEnabledInt > 0;
+	}
+
+	public void setIsEnabled(boolean isEnabled) {
+		this.isEnabledInt = isEnabled ? 1 : 0;
+	}
+
 	@Override
 	public String toString() {
 		return name + " (" + sysname + "): http://" + computer + ":" + glassfishPort + "/" + contextroot + "\n\n" + description;

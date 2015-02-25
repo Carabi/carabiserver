@@ -43,7 +43,8 @@ create table APPSERVER (
 	GLASSFISH_PORT integer default 8080,
 	EVENTER_PORT integer default 9234,
 	DESCRIPTION varchar(32000), --Описание, если требуется
-	IS_MASTER integer default 0
+	IS_MASTER integer default 0,
+	IS_ENABLED integer default 1
 );
 create index APPSERVER_IS_MASTER on APPSERVER(IS_MASTER);
 /*

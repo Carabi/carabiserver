@@ -82,6 +82,9 @@ public class EventerBean {
 			@Override
 			public void run() {
 				for (CarabiAppServer server: servers) {
+					if (!server.isEnabled()) {
+						continue;
+					}
 					logger.log(Level.FINE, "send to server {0}", server.getSysname());
 					try {
 						eventerSingleRequestResponse(server, eventPackage, new Holder<>(CarabiEventType.fireEvent.getCode()), false);
