@@ -15,8 +15,14 @@ public class MonitorBean {
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	EntityManager em;
 	
-	public int getDerbyLockcount() {
-		Query locksCountQuery = em.createNativeQuery("select count(*) from SYSCS_DIAG.LOCK_TABLE");
+	public int getKernelDBLockcount() {
+		String sql = "SELECT count(*)\n" +
+			"FROM pg_locks AS locks \n" +
+			"	LEFT JOIN pg_database AS base ON locks.database= base.oid \n" +
+			"	LEFT JOIN pg_class AS classes ON locks.relation = classes.oid\n" +
+			"where locks.database is not null and base.oid is not null\n" +
+			"	and relname not like 'pg_%'";
+		Query locksCountQuery = em.createNativeQuery(sql);
 		Object result = locksCountQuery.getSingleResult();
 		return ((Number)result).intValue();
 	}

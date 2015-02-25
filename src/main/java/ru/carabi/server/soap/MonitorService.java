@@ -24,12 +24,12 @@ public class MonitorService {
 	}
 	
 	/**
-	 * Получение числа блокировок в Derby.
+	 * Получение числа блокировок в ядровой базе.
 	 * И просто проверка, что он доступен.
 	 * @return количество блокировок в Derby
 	 */
-	@WebMethod(operationName = "getDerbyLockcount")
+	@WebMethod(operationName = "getKernelDBLockcount")
 	public int getDerbyLockcount() {
-		return monitor.getDerbyLockcount();
+		return monitor.getKernelDBLockcount();
 	}
 }

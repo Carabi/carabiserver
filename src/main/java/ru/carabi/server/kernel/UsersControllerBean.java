@@ -243,7 +243,7 @@ public class UsersControllerBean {
 	@TransactionAttribute
 	private UserLogon updateLastActive(UserLogon logon, boolean logonIsNew) {
 		logon.updateLastActive();
-		if (logonIsNew || monitor.getDerbyLockcount() == 0) {
+		if (logonIsNew || monitor.getKernelDBLockcount() == 0) {
 			em.joinTransaction();
 			logon = em.merge(logon);
 			em.merge(logon.getUser());
