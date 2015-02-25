@@ -475,7 +475,7 @@ public class GuestBean {
 		em.flush();
 		try {
 			//Отправляем письмо через PHP Backend
-			String data = "mail=" + email + "&code=" + code;
+			String data = "mail=" + email + "&type=recovery&code=" + code;
 			data = data.replaceAll("@", "%40");
 			try (Socket socket = new Socket("127.0.0.1", 3210)) {
 				OutputStream outputStream = socket.getOutputStream();
@@ -484,7 +484,7 @@ public class GuestBean {
 						"Host: appl.cara.bi\r\n" +
 						"Connection: close\r\n" +
 						"Content-type: application/x-www-form-urlencoded\r\n" +
-						"Content-Length: " + data.length() + "\r\n";
+						"Content-Length: " + data.getBytes("UTF-8").length + "\r\n";
 				printStream.print(head);
 				printStream.print("\r\n");
 				printStream.println(data);
