@@ -714,7 +714,7 @@ public class ChatBean {
 			Utls.addJsonObject(userJson, user.getLastname());
 			Utls.addJsonObject(userJson, user.getEmail());
 			Utls.addJsonObject(userJson, user.getDepartment());
-			Utls.addJsonObject(userJson, user.getRole());
+			Utls.addJsonObject(userJson, user.getCarabiRole());
 			if (user.getDefaultSchema() != null) {
 				Utls.addJsonObject(userJson, user.getDefaultSchema().getName());//SCHEMA_NAME
 				Utls.addJsonObject(userJson, user.getDefaultSchema().getDescription());//SCHEMA_DESCRIPTION

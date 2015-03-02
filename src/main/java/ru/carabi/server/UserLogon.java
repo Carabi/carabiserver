@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.ejb.EJB;
 import javax.naming.NamingException;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -82,6 +83,10 @@ public class UserLogon implements Serializable, AutoCloseable {
 	private Connection connection;
 	@Transient
 	private ConnectionsGateBean connectionsGate;
+	
+	@Transient
+	@EJB
+	private UsersControllerBean usersController;
 	
 	@Column(name="IP_ADDR_GREY")
 	private String greyIpAddr;
@@ -310,7 +315,24 @@ public class UserLogon implements Serializable, AutoCloseable {
 			throw e;
 		}
 	}
-
+	
+	/**
+	 * Проверка, имеет ли текущий пользователь указанное право.
+	 * Принцип действия:
+	 * <ul>
+	 * <li>1 Если разрешение или запрет указано непосредственно для пользователя (таблица USER_HAS_PERMISSION) -- вернуть его.
+	 * <li>2 Если нет, то искать по группам:
+	 * <li>2.1 Если хотя бы в одной группе указано разрешение и ни в одной не указан запрет -- вернуть разрешение
+	 * <li>2.2 Если хотя бы в одной группе указан запрет и ни в одной не указано разрешение -- вернуть запрет
+	 * <li>3 Иначе (нет данных или противоречие) -- вернуть настройку для права по умолчанию.
+	 * </ul>
+	 * @param permission
+	 * @return 
+	 */
+	public boolean havePermission(String permission) throws CarabiException {
+		return usersController.userHavePermission(this, permission);
+	}
+	
 	public void closeAllConnections() throws SQLException {
 		if (connection != null) {
 			try {
@@ -474,7 +496,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 		}
 	}
 	/**
-	 * Получение ID сессии в Oracle.
+	 * Получение ID пользователя в Oracle.
 	 */
 	private int selectUserID() throws SQLException, CarabiException {
 		String sql = "SELECT documents.GET_USER_ID from dual";

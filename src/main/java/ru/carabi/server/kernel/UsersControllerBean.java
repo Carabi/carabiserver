@@ -33,6 +33,7 @@ import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
+import ru.carabi.server.entities.UserRole;
 import ru.carabi.server.kernel.oracle.CursorFetcherBean;
 import ru.carabi.server.logging.CarabiLogging;
 
@@ -344,5 +345,85 @@ public class UsersControllerBean {
 		for (String userToken: usersTokens) {
 			removeUser(userToken, false);
 		}
+	}
+	
+	/**
+	 * Проверка, имеет ли текущий пользователь указанное право.
+	 */
+	public boolean userHavePermission(UserLogon logon, String permission) throws CarabiException {
+		final CarabiUser user = logon.getUser();
+		return userHavePermission(user, permission);
+	}
+	
+	public boolean userHavePermission(String login, String permission) throws CarabiException {
+		final CarabiUser user = findUser(login);
+		return userHavePermission(user, permission);
+	}
+	
+	/**
+	 * Проверка, имеет ли данный пользователь указанное право.
+	 * Принцип действия:
+	 * <ul>
+	 * <li>1 Если разрешение или запрет указано непосредственно для пользователя (таблица USER_HAS_PERMISSION) -- вернуть его.
+	 * <li>2 Если нет, то искать по группам:
+	 * <li>2.1 Если хотя бы в одной группе указано разрешение и ни в одной не указан запрет -- вернуть разрешение
+	 * <li>2.2 Если хотя бы в одной группе указан запрет и ни в одной не указано разрешение -- вернуть запрет
+	 * <li>3 Иначе (нет данных или противоречие) -- вернуть настройку для права по умолчанию.
+	 * </ul>
+	 * @param user пользователь
+	 * @param permission кодовое название права
+	 * @return имеет ли данный пользователь указанное право
+	 */
+	public boolean userHavePermission(CarabiUser user, String permission) throws CarabiException {
+		//проверка, что запрашиваемое право существует в системе
+		String sql = "select ALLOWED_BY_DEFAULT from CARABI.USER_PERMISSION where SYSNAME = ?";
+		Query query = em.createNativeQuery(sql);
+		query.setParameter(1, permission);
+		List resultList = query.getResultList();
+		if (resultList.isEmpty()) {
+			throw new CarabiException("Permission " + permission + " not found");
+		}
+		Number permissionAllowedByDefault = (Number) resultList.get(0);
+		//проверка права конкретно для пользователя
+		sql = "select USER_HAS_PERMISSION.PERMISSION_INHIBITED from USER_PERMISSION inner join USER_HAS_PERMISSION on USER_PERMISSION.PERMISSION_ID = USER_HAS_PERMISSION.PERMISSION_ID\n" +
+		"where USER_HAS_PERMISSION.USER_ID = ? and USER_PERMISSION.SYSNAME = ?";
+		query = em.createNativeQuery(sql);
+		query.setParameter(1, user.getId());
+		query.setParameter(2, permission);
+		resultList = query.getResultList();
+		if (!resultList.isEmpty()) { //Выборка может содержать 0 строк (разрешения или запрета нет) или 1 (есть).
+			Number permissionInhibited = (Number) resultList.get(0);
+			return permissionInhibited.intValue() == 0;
+		}
+		//Ищем по ролям
+		List<Boolean> rolesPermissions = new ArrayList<>();
+		for (UserRole role: user.getRoles()) {
+			sql = "select PERMISSION_INHIBITED from ROLE_HAS_PERMISSION inner join USER_PERMISSION on ROLE_HAS_PERMISSION.PERMISSION_ID = USER_PERMISSION.PERMISSION_ID\n" +
+			"where ROLE_HAS_PERMISSION.ROLE_ID = ? and USER_PERMISSION.SYSNAME = ?";
+			query = em.createNativeQuery(sql);
+			query.setParameter(1, role.getId());
+			query.setParameter(2, permission);
+			resultList = query.getResultList();
+			if (!resultList.isEmpty()) {
+				Number permissionInhibited = (Number) resultList.get(0);
+				rolesPermissions.add(permissionInhibited.intValue() == 0);
+			}
+		}
+		//проверям, что в ролях указано только разрешение или только запрет
+		if (!rolesPermissions.isEmpty()) {
+			boolean firstRolePermission = rolesPermissions.get(0);
+			boolean returnRolePermission = true;
+			for (boolean rolesPermission: rolesPermissions) {
+				if (rolesPermission != firstRolePermission) {
+					returnRolePermission = false;
+					break;
+				}
+			}
+			if (returnRolePermission) {
+				return firstRolePermission;
+			}
+		}
+		//в ролях нет данных или противоречие -- берём умолчание из права
+		return permissionAllowedByDefault.intValue() > 0;
 	}
 }

@@ -21,6 +21,7 @@
     <class>ru.carabi.server.entities.PhoneType</class>
     <class>ru.carabi.server.entities.UserStatus</class>
     <class>ru.carabi.server.entities.PersonalTemporaryCode</class>
+    <class>ru.carabi.server.entities.UserRole</class>
     <exclude-unlisted-classes>true</exclude-unlisted-classes>
     <shared-cache-mode>NONE</shared-cache-mode>
     <properties>

@@ -48,19 +48,19 @@ import javax.persistence.Temporal;
 		query = "select U from CarabiUser U " +
 				"where upper(U.login) like :search or upper(U.firstname) like :search " + 
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
-				"or upper(U.role) like :search or upper(U.department) like :search " + 
+				"or upper(U.carabiRole) like :search or upper(U.department) like :search " + 
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getSelectedUsersListSearch",
 		query = "select U from CarabiUser U where U.id in :idlist and (" +
 				"upper(U.login) like :search or upper(U.firstname) like :search " + 
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
-				"or upper(U.role) like :search or upper(U.department) like :search )" + 
+				"or upper(U.carabiRole) like :search or upper(U.department) like :search )" + 
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getActiveUsersListSearch",
 		query = "select U from CarabiUser U where U.status.sysname = 'active' and (" +
 				"upper(U.login) like :search or upper(U.firstname) like :search " + 
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
-				"or upper(U.role) like :search or upper(U.department) like :search )" + 
+				"or upper(U.carabiRole) like :search or upper(U.department) like :search )" + 
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getRelatedUsersList",
 		query = "select UR.relatedUser from UserRelation UR where UR.mainUser = :user")
@@ -79,7 +79,8 @@ public class CarabiUser implements Serializable {
 	private String middlename;
 	private String lastname;
 	private String email;
-	private String role;
+	@Column(name="ROLE")
+	private String carabiRole;
 	private String department;
 	
 	@ManyToOne
@@ -95,6 +96,16 @@ public class CarabiUser implements Serializable {
 			@JoinColumn(name="SCHEMA_ID", referencedColumnName="SCHEMA_ID")
 	)
 	private Collection<ConnectionSchema> allowedSchemas;
+	
+	@ManyToMany
+	@JoinTable(
+		name="USER_HAS_ROLE",
+		joinColumns=
+			@JoinColumn(name="USER_ID", referencedColumnName="USER_ID"),
+		inverseJoinColumns=
+			@JoinColumn(name="ROLE_ID", referencedColumnName="ROLE_ID")
+	)
+	private Collection<UserRole> roles;
 	
 	@ManyToOne
 	@JoinColumn(name="MAIN_SERVER_ID")
@@ -178,12 +189,12 @@ public class CarabiUser implements Serializable {
 		this.email = email;
 	}
 	
-	public String getRole() {
-		return role;
+	public String getCarabiRole() {
+		return carabiRole;
 	}
 	
-	public void setRole(String role) {
-		this.role = role;
+	public void setCarabiRole(String carabiRole) {
+		this.carabiRole = carabiRole;
 	}
 	
 	public String getDepartment() {
@@ -215,6 +226,28 @@ public class CarabiUser implements Serializable {
 			allowedSchemas = new HashSet<>();
 		}
 		allowedSchemas.add(allowedSchema);
+	}
+	
+	public Collection<UserRole> getRoles() {
+		return roles;
+	}
+	
+	public void setRoles(Collection<UserRole> roles) {
+		this.roles = roles;
+	}
+	
+	public void addRole(UserRole role) {
+		if (roles == null) {
+			roles = new HashSet<>();
+		}
+		roles.add(role);
+	}
+	
+	public void removeRole(UserRole role) {
+		if (roles == null) {
+			return;
+		}
+		roles.remove(role);
 	}
 	
 	public CarabiAppServer getMainServer() {
