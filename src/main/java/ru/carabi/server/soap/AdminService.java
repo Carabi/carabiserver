@@ -23,7 +23,7 @@ import ru.carabi.server.logging.CarabiLogging;
 public class AdminService {
 	@EJB private UsersControllerBean usersController;
 	@EJB private AdminBean admin;
-	Logger logger = CarabiLogging.getLogger(AdminService.class);
+	private static final Logger logger = CarabiLogging.getLogger(AdminService.class);
 	/**
 	 * Получение списка схем, доступных пользователю.
 	 * @param login логин
@@ -73,7 +73,6 @@ public class AdminService {
 	 *	  					  ...
 	 *	   ]}
 	 * </pre>
-	 * @throws JSONException - ошибка составления объекта json (внутренняя ошибка)
 	 * @throws CarabiException - ошибка обращения к базе данных
 	 */
 	@WebMethod(operationName = "getUsersList")
@@ -133,7 +132,7 @@ public class AdminService {
 	 *			}
 	 *		}"
 	 * </pre>
-	 * @throws JSONException - ошибка составления объекта json (внутренняя ошибка)
+	 * @param id - идентификатор пользователя
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */
 	@WebMethod(operationName = "getUser")
@@ -170,8 +169,6 @@ public class AdminService {
 	 *		 }"
 	 * </pre>
 	 * @return id сохраненной записи
-	 * @throws JSONException - ошибка преобрабования входных данных 
-	 *		(неверные входные данные браузера или php-обработчика) 
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */
 	@WebMethod(operationName = "saveUser")
@@ -236,10 +233,11 @@ public class AdminService {
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
 	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param id - идентификатор схемы
 	 * @return json-строка вида:
+	 * <pre>
 	 *		{"id":" ", "name":" ", "sysName":" ", "jndiName": " "}
-	 * @throws JSONException - ошибка преобрабования входных данных 
-	 *		(неверные входные данные браузера или php-обработчика) 
+	 * </pre>
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */	
 	@WebMethod(operationName = "getSchema")
@@ -258,11 +256,11 @@ public class AdminService {
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
 	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
 	 * @param strSchema - json-строка вида:
+	 * <pre>
 	 *		{"id":" ", "name":" ", "sysName":" ", "jndiName": " "}
-	 *		Если не задано значение параметра id, то создается новый объект. 
+	 * </pre>
+	 * Если не задано значение параметра id, то создается новый объект.
 	 * @return id сохраненной записи
-	 * @throws JSONException - ошибка преобрабования входных данных 
-	 *		(неверные входные данные браузера или php-обработчика) 
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */
 	@WebMethod(operationName = "saveSchema")
@@ -271,7 +269,7 @@ public class AdminService {
 	{
 		usersController.tokenControl(token);
 		return admin.saveSchema(strSchema);
-	}		
+	}
 
 	/**
 	 * Удаление схемы из БД по ID
@@ -306,7 +304,6 @@ public class AdminService {
 	 *			...
 	 *		]}"
 	 * </pre>
-	 * @throws JSONException - ошибка составления объекта json (внутренняя ошибка)
 	 * @throws CarabiException - ошибка обращения к базе данных
 	 */
 	@WebMethod(operationName = "getCategoriesList")
@@ -316,8 +313,38 @@ public class AdminService {
 	}
 	
 	/**
+	 * Добавление или изменение категории запросов.
+	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе.
+	 * @param strCategory json категория в виде:
+	 * <pre>
+	 *		{"id":" ", "name":" "}
+	 * </pre>
+	 * Если не задано значение параметра id, то создается новый объект.
+	 * @return id сохраненной категории
+	 * @throws CarabiException - серверная ошибка, ошибка обращения к базе данных
+	 */
+	@WebMethod(operationName = "saveCategory")
+	public Long saveCategory(@WebParam(name = "token") String token, @WebParam(name = "strCategory") String strCategory) throws CarabiException {
+		usersController.tokenControl(token);
+		return admin.saveCategory(strCategory);
+	}
+
+	/**
+	 * Удаление категории по id.
+	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе.
+	 * @param id - идентификатор удаляемой категории
+	 * @throws CarabiException - серверная ошибка, ошибка обращения к базе данных
+	 */
+	@WebMethod(operationName = "deleteCategory")
+	public void deleteCategory(@WebParam(name = "token") String token, @WebParam(name = "id") Integer id) throws CarabiException {
+		usersController.tokenControl(token);
+		admin.deleteCategory(id);
+	}
+
+	/**
 	 * Получение списка запросов (всех или одной категории)
 	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param categoryId необязательный параметр, идентификатор категории запросов. если задан, то выбираются только запросы из указанной категории.
 	 * См. 
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
@@ -350,6 +377,7 @@ public class AdminService {
 	/**
 	 * Получение полных данных запроса по его id
 	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param id идентификатор запроса
 	 * См. 
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
@@ -364,8 +392,6 @@ public class AdminService {
 	 *			 …
 	 *			]
 	 *		}
-	 * @throws JSONException - ошибка преобрабования входных данных 
-	 *		(неверные входные данные браузера или php-обработчика) 
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */	
 	@WebMethod(operationName = "getQuery")
@@ -383,10 +409,10 @@ public class AdminService {
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
 	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
-	 * @param strQuery - json-строка вида:
+	 * @param strQuery - json-строка запроса вида:
+	 * <pre>
+	 * </pre>
 	 * @return isSuccessful
-	 * @throws JSONException - ошибка преобрабования входных данных 
-	 *		(неверные входные данные браузера или php-обработчика) 
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */
 	@WebMethod(operationName = "saveQuery")
@@ -421,6 +447,8 @@ public class AdminService {
 	 * @param token токен текущего пользователя или администратора
 	 * @param relatedUsersList  привязываемый пользователь (логин или JSON-массив логинов)
 	 * @param mainUserLogin  редактируемый пользователь -- если задан, под токеном должен входить администратор
+	 * @param relation
+	 * @throws CarabiException
 	 */
 	@WebMethod(operationName = "addUserRelations")
 	public void addUserRelations(
@@ -443,6 +471,8 @@ public class AdminService {
 	 * @param token токен текущего пользователя или администратора
 	 * @param relatedUsersList  отвязываемый пользователь (логин или JSON-массив логинов)
 	 * @param mainUserLogin  редактируемый пользователь -- если задан, под токеном должен входить администратор
+	 * @param relation
+	 * @throws CarabiException
 	 */
 	@WebMethod(operationName = "removeUserRelations")
 	public void removeUserRelations(
@@ -482,9 +512,7 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "getPhoneTypes")
 	public String getPhoneTypes(@WebParam(name = "token") String token) throws CarabiException {
-		// check permissions
-		usersController.tokenControl(token);
-		// read derby
-		return admin.getPhoneTypes();
+		usersController.tokenControl(token);// check permissions
+		return admin.getPhoneTypes();// read from derby
 	}
 }

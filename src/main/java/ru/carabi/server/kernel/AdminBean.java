@@ -22,6 +22,7 @@ import javax.json.JsonException;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonValue;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
@@ -135,7 +136,7 @@ public class AdminBean {
 		 ]}
 	 * </code>
 	 * @param logon сессия текущего пользователя
-	 * @return Cnhjrf c Json-объектом
+	 * @return строка c Json-объектом
 	 */
 	public String getUsersList(UserLogon logon) {
 		final Query query = em.createNamedQuery("getSchemaUsersList");
@@ -279,7 +280,7 @@ public class AdminBean {
 	 * @throws CarabiException
 	 */
 	public Long saveUser(String strUser, boolean updateSchemas) throws CarabiException {
-		// parse url string
+		// parse url string and obtain json object
 		final String nonUrlNewData = strUser.replace("&quot;", "\"");
 		JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
 		final JsonObject userDetails = jsonReader.readObject();
@@ -302,7 +303,7 @@ public class AdminBean {
 			user = em.find(CarabiUser.class, userId);
 		}
 				
-		// update main user fields
+		// set simple user fields
 		user.setFirstname(userDetails.getString("firstName"));
 		user.setMiddlename(userDetails.getString("middleName"));
 		user.setLastname(userDetails.getString("lastName"));
@@ -419,20 +420,19 @@ public class AdminBean {
 	public void deleteUser(Long id) throws CarabiException {
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
-					+ "пользователя, т.к. не задан ID удаляемой записи");
+					+ "пользователя, т.к. не задан ID удаляемой записи.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}
 		
-		final Query query = em.createQuery(
-			"DELETE FROM CarabiUser cs WHERE cs.id = :id");
+		final Query query = em.createQuery("DELETE FROM CarabiUser cs WHERE cs.id = :id");
 		int deletedCount = query.setParameter("id", id).executeUpdate();
 		if (deletedCount != 1) {
-			final CarabiException e = new CarabiException("Ошибка удаления "
+			final CarabiException e = new CarabiException("Нет записи с таким id. Ошибка удаления "
 					+ "пользователя при выполнении JPA-запроса.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;			
-		}		
+		}
 	}		
 	
 	public String getSchemasList() {
@@ -494,19 +494,19 @@ public class AdminBean {
 		final JsonObjectBuilder jsonSchema = createJsonSchema(schema);
 		
 		// returns results
-		return jsonSchema.toString();
+		return jsonSchema.build().toString();
 	}	
 	
 	@SuppressWarnings("IncompatibleEquals")
 	public Integer saveSchema(String strSchema) throws CarabiException {
-		// parse url string
+		// parse url string and obtain json object
 		final String nonUrlStrSchema = strSchema.replace("&quot;", "\"");
 		final JsonReader jsonSchemaReader = Json.createReader(new StringReader(nonUrlStrSchema));
 		final JsonObject jsonSchema = jsonSchemaReader.readObject();
 		
-		// создание или получение схемы 
+		// create or fetch schema
 		ConnectionSchema schema;
-		if ("".equals(jsonSchema.get("id"))) {
+		if (!jsonSchema.containsKey("id") || "".equals(Utls.getNativeJsonString(jsonSchema,"id"))) {
 			schema = new ConnectionSchema();
 		} else {
 			int schemaId;
@@ -522,7 +522,7 @@ public class AdminBean {
 			close();
 		}
 		
-		// обновление значений полей пользователя
+		// установка полей схемы
 		schema.setName(jsonSchema.getString("name"));
 		schema.setSysname(jsonSchema.getString("sysName"));
 		schema.setJNDI(jsonSchema.getString("jndiName"));
@@ -538,16 +538,15 @@ public class AdminBean {
 	{
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
-					+ "схему подключения, т.к. не задан ID удаляемой записи");
+					+ "схему подключения, т.к. не задан ID удаляемой записи.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}
 		
-		final Query query = em.createQuery(
-			"DELETE FROM ConnectionSchema cs WHERE cs.id = :id");
+		final Query query = em.createQuery("DELETE FROM ConnectionSchema cs WHERE cs.id = :id");
 		int deletedCount = query.setParameter("id", id).executeUpdate();
 		if (deletedCount != 1) {
-			final CarabiException e = new CarabiException("Ошибка удаления "
+			final CarabiException e = new CarabiException("Нет записи с таким id. Ошибка удаления "
 					+ "схемы подключения при выполнении JPA-запроса.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;			
@@ -582,6 +581,68 @@ public class AdminBean {
 		final JsonObjectBuilder result = Json.createObjectBuilder();
 		result.add("categories", categories);
 		return result.build().toString();
+	}
+
+	public Long saveCategory(String strCategory) throws CarabiException {
+		// log the call
+		logger.log(Level.INFO, "package ru.carabi.server.kernel"
+		                      +".AdminBean.saveCategory(String strCategory)"
+		                      +" caller params: {0}", strCategory);
+
+		// parse url string and obtain json object
+		final String nonUrlStrCategory = strCategory.replace("&quot;", "\"");
+		final JsonReader jsonCategoryReader = Json.createReader(new StringReader(nonUrlStrCategory));
+		final JsonObject jsonCategory = jsonCategoryReader.readObject();
+
+		// create or fetch category
+		QueryCategory queryCategory;
+		if (!jsonCategory.containsKey("id") ||
+			jsonCategory.get("id").getValueType().equals(JsonValue.ValueType.NULL) ||
+			"".equals(Utls.getNativeJsonString(jsonCategory,"id")))
+		{
+			queryCategory = new QueryCategory();
+		} else {
+			long queryCategoryId;
+			try {
+				queryCategoryId = Long.decode(jsonCategory.getString("id"));
+			} catch (NumberFormatException nfe) {
+				final CarabiException e = new CarabiException(
+						"Неверный формат ID. Ожидется: java.lang.Integer", nfe);
+				logger.log(Level.WARNING, "" , e);
+				throw e;
+			}
+			queryCategory = em.find(QueryCategory.class, queryCategoryId);
+			close();
+		}
+
+		// установка полей схемы
+		queryCategory.setName(jsonCategory.getString("name"));
+		queryCategory.setDescription(jsonCategory.getString("name")); // note: in the current implementation category name== category decription.
+			// this is because the description field in becoming obsolete, as we are not using it in the interfaces.
+
+		// save user data
+		queryCategory = em.merge(queryCategory);
+		close();
+
+		return queryCategory.getId();
+	}
+
+	public void deleteCategory(Integer id) throws CarabiException {
+		if (null == id) {
+			final CarabiException e = new CarabiException("Невозможно удалить "
+					+ "категорию запросов, т.к. не задан ID удаляемой записи.");
+			logger.log(Level.WARNING, "" , e);
+			throw e;
+		}
+
+		final Query query = em.createQuery("DELETE FROM QueryCategory qc WHERE qc.id = :id");
+		int deletedCount = query.setParameter("id", id).executeUpdate();
+		if (deletedCount != 1) {
+			final CarabiException e = new CarabiException("Нет записи с таким id. Ошибка удаления "
+					+ "категории запросов при выполнении JPA-запроса.");
+			logger.log(Level.WARNING, "" , e);
+			throw e;
+		}
 	}
 
 	public String getQueriesList(int categoryId) throws CarabiException {
@@ -676,16 +737,17 @@ public class AdminBean {
 	}
 	
 	public Long saveQuery(String strQuery) throws CarabiException {
+		// log the call
 		logger.log(Level.INFO, "package ru.carabi.server.kernel"
 		                      +".AdminBean.saveQuery(String strQuery)"
 		                      +" caller params: {0}", strQuery);
 
-		// parse url string
+		// parse url string and obtain json object
 		final String nonUrlStrQuery = strQuery.replace("&quot;", "\"");
 		JsonReader queryReader = Json.createReader(new StringReader(nonUrlStrQuery));
 		final JsonObject jsonQuery = queryReader.readObject();
 		
-		// получение или создание запроса
+		// create or fetch query
 		QueryEntity queryEntity;
 		if (!jsonQuery.containsKey("id")) {
 			queryEntity = new QueryEntity();
@@ -729,7 +791,7 @@ public class AdminBean {
 		}
 		final QueryCategory category = em.find(QueryCategory.class, categoryId);
 		
-		// обновление полей запроса
+		// установка полей запроса
 		queryEntity.setCategory(category);
 		queryEntity.setName(jsonQuery.getString("name"));
 		queryEntity.setIsExecutable(jsonQuery.getInt("isExecutable"));
@@ -777,16 +839,15 @@ public class AdminBean {
 	public void deleteQuery(Long id) throws CarabiException {
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
-					+ "хранимый запрос, т.к. не задан ID удаляемой записи");
+					+ "хранимый запрос, т.к. не задан ID удаляемой записи.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}
 		
-		final Query query = em.createQuery(
-			"DELETE FROM QueryEntity q WHERE q.id = :id");
+		final Query query = em.createQuery("DELETE FROM QueryEntity q WHERE q.id = :id");
 		int deletedCount = query.setParameter("id", id).executeUpdate();
  		if (deletedCount != 1) {
-			final CarabiException e = new CarabiException("Ошибка удаления "
+			final CarabiException e = new CarabiException("Нет записи с таким id. Ошибка удаления "
 					+ "хранимого запроса при выполнении JPA-запроса.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;
