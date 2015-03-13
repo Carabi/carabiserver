@@ -102,9 +102,9 @@ public class ChatBean {
 		Long sentMessageId;
 		//Аналогично для отправителя, если сообщение дошло получателю
 		if (Settings.getCurrentServer().equals(senderServer)) {
-			sentMessageId = putMessage(sender, sender, receiver, recievedMessageId, receiver.getMainServer().getId(), messageText, senderAttachmentId);
+			sentMessageId = putMessage(sender, sender, receiver, recievedMessageId, sender.getMainServer().getId(), messageText, senderAttachmentId);
 		} else {
-			sentMessageId = callPutMessageSoap(senderServer, sender, sender, receiver, recievedMessageId, receiver.getMainServer().getId(), messageText, senderAttachmentId);
+			sentMessageId = callPutMessageSoap(senderServer, sender, sender, receiver, recievedMessageId, sender.getMainServer().getId(), messageText, senderAttachmentId);
 		}
 		return sentMessageId;
 	}
