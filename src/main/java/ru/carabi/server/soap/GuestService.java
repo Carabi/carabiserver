@@ -312,12 +312,20 @@ public class GuestService {
 	}
 	
 	
+	/**
+	 * Изменение пароля по коду восстановления.
+	 * Ищет пользователя с указанными email и кодом восстановления, если нашли -- ставит указанный пароль
+	 * @param email
+	 * @param code
+	 * @param password
+	 * @return удалось ли восстановить пароль
+	 */
 	@WebMethod(operationName = "recoverPassword")
-	public void recoverPassword(
+	public boolean recoverPassword(
 			@WebParam(name = "email") String email,
 			@WebParam(name = "code") String code,
 			@WebParam(name = "password") String password
 		) {
-		guest.recoverPassword(email, code, password);
+		return guest.recoverPassword(email, code, password);
 	}
 }

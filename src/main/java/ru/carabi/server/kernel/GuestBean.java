@@ -508,20 +508,25 @@ public class GuestBean {
 	 * @param email
 	 * @param code
 	 * @param password
+	 * @return удалось ли восстановить пароль
 	 */
-	public void recoverPassword(String email, String code, String password) {
+	public boolean recoverPassword(String email, String code, String password) {
 		CarabiUser user;
 		try {
 			user = uc.getUserByEmail(email);
 		} catch (Exception e){
-			return;
+			return false;
 		}
 		PersonalTemporaryCode personalTemporaryCode = em.find(PersonalTemporaryCode.class, code);
 		if (personalTemporaryCode != null && user.equals(personalTemporaryCode.getUser())) {
 			String passwordChipher = DigestUtils.md5Hex(user.getLogin().toUpperCase() + password);
 			user.setPassword(passwordChipher.toUpperCase());
 			em.merge(user);
+			em.remove(personalTemporaryCode);
 			em.flush();
+			return true;
+		} else {
+			return false;
 		}
 	}
 }
