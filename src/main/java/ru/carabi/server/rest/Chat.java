@@ -17,6 +17,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.RegisterException;
+import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.kernel.ChatBean;
@@ -124,9 +125,16 @@ Content-Length: 68
 				if (logon.isPermanent()) {
 					UserLogon targetLogon = new UserLogon();
 					targetLogon.setUser(uc.findUser(login));
+					targetLogon.setAppServer(Settings.getCurrentServer());
 					targetLogon = uc.addUser(targetLogon);
-					Long unreadMessagesCount = chatBean.getUnreadMessagesCount(targetLogon);
-					uc.removeUser(targetLogon.getToken(), true);
+					Long unreadMessagesCount;
+					try {
+						unreadMessagesCount = chatBean.getUnreadMessagesCount(targetLogon);
+					} catch (Exception e){
+						return e.getMessage();
+					} finally {
+						uc.removeUser(targetLogon.getToken(), true);
+					}
 					return "" + unreadMessagesCount;
 				} else {
 					return "" + chatBean.getUnreadMessagesCount(logon);
