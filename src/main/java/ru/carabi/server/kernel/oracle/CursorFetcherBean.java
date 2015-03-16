@@ -33,13 +33,13 @@ public class CursorFetcherBean {
 	 * Поиск открытой прокрутки.
 	 * Находит прокрутку, открытую заданным пользователем, имеющую
 	 * заданный номер и находящуюся на заданной позиции.
-	 * @param user пользователь.
+	 * @param logon Сессия пользователя.
 	 * @param queryTag номер запроса у пользователя.
 	 * @param startPos текущая позиция в прокрутке.
 	 * @return Прокрутка, соответствующая параметрам. null, если таковой нет.
 	 */
-	public Fetch searchOpenedFetch(UserLogon user, int queryTag, int startPos) {
-		String token = user.getToken();
+	public Fetch searchOpenedFetch(UserLogon logon, int queryTag, int startPos) {
+		String token = logon.getToken();
 		Map<Integer, Fetch> userFetches = fetchesForUsers.get(token);
 		if (userFetches == null) {
 			return null;
@@ -61,12 +61,12 @@ public class CursorFetcherBean {
 	 * обращения к базе данных.
 	 * 
 	 * @param fetch сохраняемая прокрутка.
-	 * @param user пользователь, сделавший запрос.
+	 * @param logon сессия пользователя, под которой был сделан запрос.
 	 * @return номер сохранённой прокрутки (для повторного обращения).
 	 * @throws CarabiException если пользователь сохранил более {@link Settings#FETCHES_BY_USER} прокруток
 	 */
-	public synchronized int saveFetch(Fetch fetch, UserLogon user) throws CarabiException {
-		String userToken = user.getToken();
+	public synchronized int saveFetch(Fetch fetch, UserLogon logon) throws CarabiException {
+		String userToken = logon.getToken();
 		Map<Integer, Fetch> userFetches;
 		//достаём/создаём прокрутки текущего пользователя
 		int tag; //номер сохраняемой прокрутки
@@ -80,7 +80,7 @@ public class CursorFetcherBean {
 		}
 		//Если пользователь израсходовал лимит -- ошибка
 		if (userFetches.size() + 1 > Settings.FETCHES_BY_USER) {
-			throw new CarabiException("User " + user.userLogin() + " saved too many opened fetches.", Settings.OPENED_FETCHES_LIMIT_ERROR);
+			throw new CarabiException("User " + logon.userLogin() + " saved too many opened fetches.", Settings.OPENED_FETCHES_LIMIT_ERROR);
 		}
 		//Сохраняем прокрутку в пользовательской коллекции
 		userFetches.put(tag, fetch);
@@ -100,7 +100,7 @@ public class CursorFetcherBean {
 	/**
 	 * Перемещение по прокрутке.
 	 * Выборка порции данных из прокрутки, созданной SQL или XML-запросом.
-	 * @param user Пользователь, открывший прокрутку
+	 * @param logon сессия пользователя, под которой открыта прокрутка
 	 * @param queryTag Номер прокрутки у пользователя
 	 * @param startPos
 	 * @param fetchCount число считываемых записей
@@ -108,14 +108,14 @@ public class CursorFetcherBean {
 	 * @param endpos Позиция в прокрутке после выборки
 	 * @return Количество возвращённых записей
 	 */
-	public int fetchNext(UserLogon user,
+	public int fetchNext(UserLogon logon,
 			int queryTag,
 			int startPos,
 			int fetchCount,
 			Holder<ArrayList<ArrayList<?>>> list,
 			Holder<Integer> endpos
 		) throws SQLException {
-		Fetch fetch = searchOpenedFetch(user, queryTag, startPos);
+		Fetch fetch = searchOpenedFetch(logon, queryTag, startPos);
 		if (fetch == null) {
 			return Settings.SQL_EOF;
 		}
@@ -123,7 +123,7 @@ public class CursorFetcherBean {
 		int size = list.value.size();
 		endpos.value = startPos + size;
 		if (size < fetchCount) {
-			closeFetch(user, queryTag);
+			closeFetch(logon, queryTag);
 		}
 		return size;
 	}
@@ -134,12 +134,12 @@ public class CursorFetcherBean {
 	 * Прокрутку следует закрыть вручную, если не были выкачаны все данные.
 	 * При полном выкачивании закрытие происходит автоматически.
 	 * 
-	 * @param user пользователь, сделавший запрос.
+	 * @param logon сессия пользователя, под которой был сделан запрос.
 	 * @param queryTag номер сохранённой прокрутки.
 	 * @throws SQLException 
 	 */
-	public void closeFetch(UserLogon user, int queryTag)  throws SQLException {
-		String userToken = user.getToken();
+	public void closeFetch(UserLogon logon, int queryTag)  throws SQLException {
+		String userToken = logon.getToken();
 		if (!fetchesForUsers.containsKey(userToken)) {
 			return;
 		}
@@ -162,11 +162,11 @@ public class CursorFetcherBean {
 
 	/**
 	 * Закрытие всех пользовательских прокруток.
-	 * @param user пользователь, закончивший работу.
+	 * @param logon закрываемая сессия
 	 * @throws SQLException 
 	 */
-	public void closeAllFetches(UserLogon user) throws SQLException {
-		String userToken = user.getToken();
+	public void closeAllFetches(UserLogon logon) throws SQLException {
+		String userToken = logon.getToken();
 		if (!fetchesForUsers.containsKey(userToken)) {
 			return;
 		}
@@ -182,5 +182,4 @@ public class CursorFetcherBean {
 		}
 		fetchesForUsers.remove(userToken);
 	}
-
 }

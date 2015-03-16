@@ -25,11 +25,11 @@ public class MonitorService {
 	
 	/**
 	 * Получение числа блокировок в ядровой базе.
-	 * И просто проверка, что он доступен.
-	 * @return количество блокировок в Derby
+	 * И просто проверка, что она доступна.
+	 * @return количество блокировок в ядровой базе
 	 */
 	@WebMethod(operationName = "getKernelDBLockcount")
-	public int getDerbyLockcount() {
+	public int getKernelDBLockcount() {
 		return monitor.getKernelDBLockcount();
 	}
 }

@@ -28,7 +28,7 @@ public class AuthorizeBean {
 	private ConnectionsGateBean connectionsGate;
 	private HashMap<String, ?> userInfo = null;
 	private CarabiUser currentUser;
-	private UserLogon userLogon;
+	private UserLogon logon;
 
 	public Connection getConnection() {
 		return connection;
@@ -41,7 +41,7 @@ public class AuthorizeBean {
 	
 	/**
 	 * Поиск пользователя в Oracle.
-	 * Сохранение данных о нём, которые не хранятся в Derby/
+	 * Сохранение данных о нём, которые не хранятся в ядровой базе
 	 * @param user пользователь
 	 * @return найден ли пользователь
 	 */
@@ -120,14 +120,14 @@ public class AuthorizeBean {
 	 * @return Авторизовавшийся пользователь
 	 */
 	public UserLogon createUserLogon() {
-		userLogon = new UserLogon();
-		userLogon.setId(-1);
-		userLogon.setUser(currentUser);
-		userLogon.setDisplay(currentUser.getLastname());
-		userLogon.setSchema(schema);
-		userLogon.setConnection(connection);
-		userLogon.setAppServer(Settings.getCurrentServer());
-		return userLogon;
+		logon = new UserLogon();
+		logon.setId(-1);
+		logon.setUser(currentUser);
+		logon.setDisplay(currentUser.getLastname());
+		logon.setSchema(schema);
+		logon.setConnection(connection);
+		logon.setAppServer(Settings.getCurrentServer());
+		return logon;
 	}
 	
 	/**
@@ -138,12 +138,12 @@ public class AuthorizeBean {
 	 * @return String Токен авторизации
 	 */
 	public String authorizeUser (boolean requireSession) throws SQLException {
-		userLogon.setRequireSession(requireSession);
-		userLogon = usersController.addUser(userLogon);
+		logon.setRequireSession(requireSession);
+		logon = usersController.addUser(logon);
 		if (!requireSession) {
-			userLogon.closeAllConnections();
+			logon.closeAllConnections();
 		}
-		return userLogon.getToken();
+		return logon.getToken();
 	}
 	
 	/**
@@ -170,7 +170,7 @@ public class AuthorizeBean {
 	 */
 	@Remove
 	public void remove() {
-		userLogon = null;
+		logon = null;
 		userInfo = null;
 		connection = null;
 	}

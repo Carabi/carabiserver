@@ -126,7 +126,7 @@ public class AdminBean {
 	}
 	
 	/**
-	 * Возвращает список доступных пользователей из Derby.
+	 * Возвращает список доступных пользователей из ядровой базы.
 	 * Берутся пользователи, имеющие доступ к базе, с которой работает текущий пользователь.
 	 * Результат возвращается в JSON в формате 
 	 * <code>
@@ -191,7 +191,7 @@ public class AdminBean {
 		Utls.addJsonObject(jsonUserDetails, "defaultSchemaId", (null == carabiUser.getDefaultSchema()) ? "" : carabiUser.getDefaultSchema().getId());
 		
 		// fill in schemas list with regard to whether a schema is allowed or not
-		// 1. read from derby
+		// 1. read from kernel db
 		final TypedQuery<ConnectionSchema> query = em.createNamedQuery("fullSelectAllSchemas", ConnectionSchema.class);
 		final List<ConnectionSchema> connectionSchemas = query.getResultList();
 		close();
@@ -436,7 +436,7 @@ public class AdminBean {
 	}		
 	
 	public String getSchemasList() {
-		// gets databases from our derby
+		// gets oracle databases from kernel db
 		final TypedQuery query = em.createQuery(
 				"select CS from ConnectionSchema CS order by CS.name", 
 				ConnectionSchema.class);
@@ -646,7 +646,6 @@ public class AdminBean {
 	}
 
 	public String getQueriesList(int categoryId) throws CarabiException {
-		// gets databases from our derbi db
 		TypedQuery query;
 		if (categoryId >= 0) {
 			query = em.createNamedQuery("selectCategoryQueries", QueryEntity.class);
@@ -1048,7 +1047,7 @@ public class AdminBean {
 	}
 
 	public String getPhoneTypes() throws CarabiException {
-		// read derby
+		// read kernel db
 		final TypedQuery<PhoneType> query = em.createNamedQuery("selectAllPhoneTypes", PhoneType.class);// select PT from PhoneType PT
 		final List<PhoneType> phoneTypes = query.getResultList();
 		close();

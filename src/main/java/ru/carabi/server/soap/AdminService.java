@@ -513,6 +513,6 @@ public class AdminService {
 	@WebMethod(operationName = "getPhoneTypes")
 	public String getPhoneTypes(@WebParam(name = "token") String token) throws CarabiException {
 		usersController.tokenControl(token);// check permissions
-		return admin.getPhoneTypes();// read from derby
+		return admin.getPhoneTypes();// read from kernel db
 	}
 }

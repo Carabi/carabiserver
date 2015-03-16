@@ -30,11 +30,6 @@ public class ApplicationConfig extends Application {
 	 * If required, comment out calling this method in getClasses().
 	 */
 	private void addRestResourceClasses(Set<Class<?>> resources) {
-		resources.add(ru.carabi.server.rest.Authorize.class);
-		resources.add(ru.carabi.server.rest.Chat.class);
-		resources.add(ru.carabi.server.rest.FireEvent.class);
-		resources.add(ru.carabi.server.rest.UsersAdmin.class);
-		resources.add(ru.carabi.server.rest.UsersRelation.class);
 	}
 	
 }

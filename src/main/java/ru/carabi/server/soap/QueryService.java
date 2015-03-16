@@ -107,13 +107,10 @@ public class QueryService {
 			Level.FINE,
 			" fetchNext token={0}, startPos={1}, fetchCount={2}, queryTag={3}, listJson={4}, endpos={5}", 
 			new Object[] {token, startPos, fetchCount, queryTag}
-			);
-
-		UserLogon user;
-		user = usersController.tokenAuthorize(token);
+		);
 		Holder<ArrayList<ArrayList<?>>> list = new Holder<>();
-		try {
-			int result = cursorFetcher.fetchNext(user, queryTag, startPos, fetchCount, list, endpos);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			int result = cursorFetcher.fetchNext(logon, queryTag, startPos, fetchCount, list, endpos);
 			listJson.value = new JSONArray(list.value).toString();
 			logger.log(Level.INFO, "fetch result = {0}", endpos.value);
 			return result;
@@ -142,9 +139,8 @@ public class QueryService {
 			@WebParam(name = "queryTag") int queryTag
 		) throws CarabiOracleError, CarabiException {
 		logger.log(Level.FINE, "closeFetch token={0}, queryTag={1}", new Object[]{token, queryTag});
-		try {
-			UserLogon user = usersController.tokenAuthorize(token);
-			cursorFetcher.closeFetch(user, queryTag);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			cursorFetcher.closeFetch(logon, queryTag);
 			return 0;
 		} catch (SQLException ex) {
 			logger.log(Level.SEVERE, null, ex);
@@ -172,8 +168,8 @@ public class QueryService {
 			);
 
 		try {
-			UserLogon user = usersController.tokenAuthorize(token);
-			cursorFetcher.closeAllFetches(user);
+			UserLogon logon = usersController.tokenAuthorize(token);
+			cursorFetcher.closeAllFetches(logon);
 			return 0;
 		} catch (SQLException ex) {
 			logger.log(Level.SEVERE, null, ex);

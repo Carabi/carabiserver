@@ -196,7 +196,7 @@ public class Settings implements ServletContextListener {
 
 	@PersistenceUnit(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManagerFactory emf;
-	private static EntityManager em;//Доступ через JPA -- только для служебной информации в Derby
+	private static EntityManager em;
 	
 	@Override
 	public void contextInitialized(ServletContextEvent event) {

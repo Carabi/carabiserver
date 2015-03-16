@@ -49,8 +49,8 @@ public class EventerBean {
 	 */
 	public String getEventerToken(String token) {
 		try {
-			UserLogon user = usersController.getUserLogon(token);
-			if (user == null) {
+			UserLogon logon = usersController.getUserLogon(token);
+			if (logon == null) {
 				return "error: unknown token: " + token;
 			}
 			return CarabiFunc.encrypt(token);

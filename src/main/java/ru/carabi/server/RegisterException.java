@@ -17,9 +17,9 @@ public class RegisterException extends CarabiException {
 
 	public boolean badLoginPassword() {
 		return MessageCode.ILLEGAL_LOGIN_OR_PASSWORD.equals(messageCode) ||
-				MessageCode.NO_LOGIN_DERBY.equals(messageCode) ||
+				MessageCode.NO_LOGIN_KERNEL.equals(messageCode) ||
 				MessageCode.NO_LOGIN_ORACLE.equals(messageCode) ||
-				MessageCode.BAD_PASSWORD_DERBY.equals(messageCode) ||
+				MessageCode.BAD_PASSWORD_KERNEL.equals(messageCode) ||
 				MessageCode.BAD_PASSWORD_ORACLE.equals(messageCode);
 	}
 	
@@ -27,9 +27,9 @@ public class RegisterException extends CarabiException {
 		INTERNAL_ERROR,
 		ORACLE_ERROR,
 		ILLEGAL_LOGIN_OR_PASSWORD,
-		NO_LOGIN_DERBY,
+		NO_LOGIN_KERNEL,
 		NO_LOGIN_ORACLE,
-		BAD_PASSWORD_DERBY,
+		BAD_PASSWORD_KERNEL,
 		BAD_PASSWORD_ORACLE,
 		NO_WEBUSER,
 		NO_SCHEMA,

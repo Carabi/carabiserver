@@ -122,7 +122,7 @@ public class GuestService {
 			logger.log(Level.SEVERE, null, ex);
 		}
 		try {
-			CarabiUser user = guest.searchUserInDerby(login);
+			CarabiUser user = guest.searchUser(login);
 			user = guest.checkCurrentServer(user);
 			return guest.registerUser(user, passwordTokenClient, getConnectionProperties(clientIp), version, vc, schemaID, info, guestSesion);
 		} catch (RegisterException e) {
@@ -158,7 +158,7 @@ public class GuestService {
 		) throws RegisterException, CarabiException {
 		logger.log(Level.INFO, "{0} is logining", login);
 		try {
-			CarabiUser user = guest.searchUserInDerby(login);
+			CarabiUser user = guest.searchUser(login);
 			user = guest.checkCurrentServer(user);
 			cg.tryConnectToOracle(-1, schemaName.value, login);
 			return guest.registerUserLight(user, passwordCipherClient, requireSession, getConnectionProperties(clientIp), schemaName, token);
@@ -187,7 +187,7 @@ public class GuestService {
 			@WebParam(name = "token", mode = WebParam.Mode.OUT) Holder<String> token
 		) throws RegisterException, CarabiException {
 		logger.log(Level.INFO, "{0} is logining", login);
-		CarabiUser user = guest.searchUserInDerby(login);
+		CarabiUser user = guest.searchUser(login);
 		user = guest.checkCurrentServer(user);
 		return guest.registerGuestUser(user, passwordCipherClient, token);
 	}
@@ -229,8 +229,8 @@ public class GuestService {
 	 */
 	@WebMethod(operationName = "getWebUserInfo")
 	public String getWebUserInfo(@WebParam(name = "token") String token) throws CarabiException {
-		try (UserLogon ul = usersController.tokenAuthorize(token)) {
-			return guest.getWebUserInfo(ul);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return guest.getWebUserInfo(logon);
 		}
 	}
 	

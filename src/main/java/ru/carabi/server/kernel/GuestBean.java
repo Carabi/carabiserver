@@ -68,20 +68,20 @@ public class GuestBean {
 	}
 
 	/**
-	 * Возвращает ИД веб-пользователя по токену.
-	 * @param ul данные выполненной аутентификации
-	 * @return ИД веб-пользователя
+	 * Возвращает ID веб-пользователя по сессии.
+	 * @param logon данные выполненной аутентификации
+	 * @return ID веб-пользователя
 	 * @throws ru.carabi.server.RegisterException если пользователь не найден
 	 */
-	public String getWebUserId(UserLogon ul) throws RegisterException
+	public String getWebUserId(UserLogon logon) throws RegisterException
 	{
 		logger.log(Level.INFO, "ru.carabi.server.kernel.GuestBean.getWebUserId called with param: UserLogon={0}", 
-				ul.toString());
+				logon.toString());
 		
 		// prepare sql request
 		String script = 
 			"begin\n" +
-			"  documents.REGISTER_USER("+String.valueOf(ul.getId())+",2);\n"+
+			"  documents.REGISTER_USER("+String.valueOf(logon.getId())+",2);\n"+
 			"  :result := appl_web_user.get_web_user_id(documents.GET_USER_ID);\n"+
 			"end;";
 		QueryParameter qp = new QueryParameter();
@@ -94,7 +94,7 @@ public class GuestBean {
 		params.value.add(qp);
 		
 		// try to read webuserId from db
-		final int execRes = sqlQueryBean.executeScript(ul, script, params, 1);
+		final int execRes = sqlQueryBean.executeScript(logon, script, params, 1);
 		if (execRes < 0) {
 			final RegisterException e = new RegisterException(RegisterException.MessageCode.ORACLE_ERROR);
 			logger.log(Level.SEVERE, "Sql поиска веб-пользователя возвратил код ошибки: "+ execRes, e);
@@ -167,18 +167,18 @@ public class GuestBean {
 		return 0;
 	}
 	
-	public String getWebUserInfo(UserLogon ul) throws CarabiException {
+	public String getWebUserInfo(UserLogon logon) throws CarabiException {
 		return String.format("{\"login\":\"%s\", \"idCarabiUser\":\"%d\", \"idWebUser\":\"%s\"}",
-			ul.userLogin(),
-			ul.getId(),
-			getWebUserId(ul)
+			logon.userLogin(),
+			logon.getId(),
+			getWebUserId(logon)
 		);
 	}
 	
 	/**
 	 * Полная авторизация пользователя. (перенесено из webservice)
 	 * Выполняется после предварительной. Создаёт долгоживущую сессию Oracle.
-	 * @param user пользователь, найденный в Derby по логину
+	 * @param user пользователь, найденный в ядровой базе по логину
 	 * @param passwordTokenClient ключ -- md5 (md5(login+password)+ (Settings.projectName + "9999" + Settings.serverName timestamp из welcome)) *[login и md5 -- в верхнем регистре]
 	 * @param connectionProperties свойства подключения клиента (для журналирования). Должны содержать ipAddrWhite, ipAddrGrey и serverContext.
 	 * @param version Номер версии
@@ -207,11 +207,11 @@ public class GuestBean {
 			}
 			logger.log(Level.INFO, messages.getString("registerStart"), login);
 			//Получаем пользователя по имени из схемы с нужным номером или названием
-			UserLogon userLogon = createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user);
+			UserLogon logon = createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user);
 			//Сверяем пароль
-			logger.log(Level.INFO, "passwordCipher: {0}", userLogon.getUser().getPassword());
+			logger.log(Level.INFO, "passwordCipher: {0}", logon.getUser().getPassword());
 			logger.log(Level.INFO, "timestamp: {0}", guestSesion.getTimeStamp());
-			String passwordTokenServer = DigestUtils.md5Hex(userLogon.getPasswordCipher() + guestSesion.getTimeStamp());
+			String passwordTokenServer = DigestUtils.md5Hex(logon.getPasswordCipher() + guestSesion.getTimeStamp());
 			logger.log(Level.INFO, "passwordTokenServer: {0}", passwordTokenServer);
 			logger.log(Level.INFO, "passwordTokenClient: {0}", passwordTokenClient);
 //			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
@@ -221,14 +221,14 @@ public class GuestBean {
 //				authorize.closeConnection();
 //				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_ORACLE);
 //			}
-			passwordTokenServer = DigestUtils.md5Hex(userLogon.getUser().getPassword() + guestSesion.getTimeStamp());
+			passwordTokenServer = DigestUtils.md5Hex(logon.getUser().getPassword() + guestSesion.getTimeStamp());
 			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
-				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_DERBY);
+				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_KERNEL);
 			}
 			//Запоминаем пользователя
-			userLogon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
-			userLogon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
-			userLogon.setServerContext(connectionProperties.getProperty("serverContext"));
+			logon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
+			logon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
+			logon.setServerContext(connectionProperties.getProperty("serverContext"));
 			String token = authorize.authorizeUser(true);
 			//Готовим информацию для возврата
 			SoapUserInfo soapUserInfo = new SoapUserInfo();//authorize.createSoapUserInfo();
@@ -287,12 +287,12 @@ public class GuestBean {
 				schemaName.value = defaultSchema.getSysname();
 				logger.log(Level.INFO, "User {0} got schema {1} as default", new Object[] {login, schemaName.value});
 			}
-			//Перед входом в Oracle сверяем пароль по Derby
+			//Перед входом в Oracle сверяем пароль по ядровой базе
 			if (!user.getPassword().equalsIgnoreCase(passwordCipherClient)) {
 				CarabiLogging.logError(messages.getString("registerRefusedDetailsPass"),
-						new Object[]{login, "Apache Derby", user.getPassword(), passwordCipherClient},
+						new Object[]{login, "carabi_kernel", user.getPassword(), passwordCipherClient},
 						null, false, Level.WARNING, null);
-				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_DERBY);
+				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_KERNEL);
 			}
 			//Получаем пользователя по имени из схемы с нужным названием
 			UserLogon logon = createUserLogon(-1, schemaName.value, user);
@@ -345,12 +345,12 @@ public class GuestBean {
 				   new Object[]{user.getLogin(), passwordCipherClient});
 		try {
 			String login = user.getLogin();
-			//сверяем пароль по Derby
+			//сверяем пароль по ядровой базе
 			if (!user.getPassword().equalsIgnoreCase(passwordCipherClient)) {
 				CarabiLogging.logError(messages.getString("registerRefusedDetailsPass"),
-						new Object[]{login, "Apache Derby", user.getPassword(), passwordCipherClient},
+						new Object[]{login, "carabi_kernel", user.getPassword(), passwordCipherClient},
 						null, false, Level.WARNING, null);
-				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_DERBY);
+				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_KERNEL);
 			}
 			//Создаём сессию
 			UserLogon logon = new UserLogon();
@@ -394,18 +394,24 @@ public class GuestBean {
 		return authorize.createUserLogon();
 	}
 	
-	public CarabiUser searchUserInDerby(String login) throws RegisterException {
+	/**
+	 * Поиск пользователя в ядровой базе.
+	 * @param login логин
+	 * @return найденный пользователь
+	 * @throws RegisterException пользователя с таким логином нет.
+	 */
+	public CarabiUser searchUser(String login) throws RegisterException {
 		CarabiUser user;
 		try {
-			//получаем запись о пользователе из Derby
+			//получаем запись о пользователе из ядровой базы
 			TypedQuery<CarabiUser> activeUser = em.createNamedQuery("getUserInfo", CarabiUser.class);
 			activeUser.setParameter("login", login);
 			user = activeUser.getSingleResult();
 		} catch (NoResultException ex) {
 			CarabiLogging.logError(messages.getString("registerRefusedDetailsBase"),
-					new Object[]{login, "Apache Derby"},
+					new Object[]{login, "carabi_kernel"},
 				null, false, Level.INFO, null);
-			throw new RegisterException(RegisterException.MessageCode.NO_LOGIN_DERBY);
+			throw new RegisterException(RegisterException.MessageCode.NO_LOGIN_KERNEL);
 		}
 		return user;
 	}

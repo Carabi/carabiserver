@@ -69,7 +69,7 @@ public class PhoneService {
 	public String getPhoneTypes(@WebParam(name = "token") String token) throws CarabiException {
 		// check permissions
 		uc.tokenControl(token);
-		// read derby
+		// read db
 		final TypedQuery<PhoneType> query = em.createNamedQuery("selectAllPhoneTypes", PhoneType.class);// select PT from PhoneType PT
 		final List<PhoneType> phoneTypes = query.getResultList();
 		close();

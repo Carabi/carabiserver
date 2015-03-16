@@ -229,7 +229,7 @@ public class QueryStorageBean {
 	}
 	
 	/**
-	 * Поиск хранимого запроса в базе Derby
+	 * Поиск хранимого запроса в ядровой базе
 	 * @param queryName
 	 * @return 
 	 */
@@ -246,34 +246,34 @@ public class QueryStorageBean {
 
 	/**
 	 * Запуск хранимого select-а без параметров.
-	 * @param user текущий пользователь
+	 * @param logon текущий пользователь
 	 * @param name имя запроса
 	 * @param fetchCount шаг прокрутки выходного курсора
 	 * @return Массив строк
 	 * @throws ru.carabi.server.CarabiException Запрос не найден
 	 * @throws java.sql.SQLException Ошибка при выполнении
 	 */
-	public ArrayList<LinkedHashMap<String, ?>> runOutonlyQuery(UserLogon user, String name, int fetchCount) throws CarabiException, SQLException{
+	public ArrayList<LinkedHashMap<String, ?>> runOutonlyQuery(UserLogon logon, String name, int fetchCount) throws CarabiException, SQLException{
 		ArrayList<QueryParameter> parameters = new ArrayList<>();
-		runQuery(user, name, parameters, fetchCount);
+		runQuery(logon, name, parameters, fetchCount);
 		Map<String, ArrayList<ArrayList<?>>> result = parameters.get(0).getCursorValueRaw();
 		return Utls.redim(result);
 	}
 
 	/**
 	 * Запуск хранимого select-а с одним параметром.
-	 * @param user текущий пользователь
+	 * @param logon текущий пользователь
 	 * @param name имя запроса
 	 * @param value значение параметра
 	 * @param fetchCount шаг прокрутки выходного курсора
 	 * @return Массив строк
 	 */
-	public ArrayList<LinkedHashMap<String, ?>> runSmallQuery(UserLogon user, String name, String value, int fetchCount) throws CarabiException, SQLException{
+	public ArrayList<LinkedHashMap<String, ?>> runSmallQuery(UserLogon logon, String name, String value, int fetchCount) throws CarabiException, SQLException{
 		ArrayList<QueryParameter> parameters = new ArrayList<>(2);
 		QueryParameter documentIdParam = new QueryParameter();
 		documentIdParam.setValue(value);
 		parameters.add(documentIdParam);
-		runQuery(user, name, parameters, fetchCount);
+		runQuery(logon, name, parameters, fetchCount);
 		Map<String, ArrayList<ArrayList<?>>> result = parameters.get(1).getCursorValueRaw();
 		return Utls.redim(result);
 	}
@@ -281,16 +281,17 @@ public class QueryStorageBean {
 	/**
 	 * Запуск хранимого select-а с одним параметром, заведомо
 	 * возвращающего одну строку с одним полем.
-	 * @param user текущий пользователь
+	 * @param logon текущий пользователь
 	 * @param name имя запроса
+	 * @param value значение единственного параметра
 	 * @return Значение из первого поля первой строки
 	 */
-	public Object runSimpleQuery(UserLogon user, String name, String value) throws CarabiException, SQLException {
+	public Object runSimpleQuery(UserLogon logon, String name, String value) throws CarabiException, SQLException {
 		ArrayList<QueryParameter> parameters = new ArrayList<>(2);
 		QueryParameter documentIdParam = new QueryParameter();
 		documentIdParam.setValue(value);
 		parameters.add(documentIdParam);
-		runQuery(user, name, parameters, -1);
+		runQuery(logon, name, parameters, -1);
 		Map<String, ArrayList<ArrayList<?>>> result = parameters.get(1).getCursorValueRaw();
 		return result.get("list").get(0).get(0);
 	}

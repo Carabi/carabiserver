@@ -29,7 +29,7 @@ import ru.carabi.server.Settings;
 /**
  * Создание подключений к Oracle.
  * Производится напрямую или с использованием пула EE-сервера. Настройки берутся
- * из объекта {@link ConnectionSchema} в Derby. Может использоваться основная БД
+ * из объекта {@link ConnectionSchema} в ядровой базе. Может использоваться основная БД
  * пользователя или вабранная им по ID или псевдониму.
  * @author sasha<kopilov.ad@gmail.com>
  */
@@ -37,7 +37,7 @@ import ru.carabi.server.Settings;
 public class ConnectionsGateBean {
 	@PersistenceUnit(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManagerFactory emf;
-	private EntityManager em;//Доступ через JPA -- только для служебной информации в Derby
+	private EntityManager em;//Доступ через JPA -- только для служебной информации в ядровой базе
 	
 	@EJB ConnectorBean connector;
 	static final Logger logger = Logger.getLogger(ConnectionsGateBean.class.getName());

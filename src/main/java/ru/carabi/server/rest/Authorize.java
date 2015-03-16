@@ -78,7 +78,7 @@ public class Authorize {
 			try {
 				user = usersController.findUser(login);
 			} catch (CarabiException ex) {
-				Logger.getLogger(Authorize.class.getName()).log(Level.INFO, "No user {0} in Derby, create!", login);
+				Logger.getLogger(Authorize.class.getName()).log(Level.INFO, "No user {0} in kernel db, create!", login);
 				user = new CarabiUser();
 				user.setLogin(login);
 				user.setPassword(password);

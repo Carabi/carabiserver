@@ -28,9 +28,9 @@ import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.kernel.ConnectionsGateBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
-//11.01 16.03
+
 /**
- * Пользователь Carabi.
+ * Сессия пользователя Carabi.
  * Объект содержит данные о пользователе, сессии Oracle, авторизационный токен.
  * Может сохраняться в {@link UsersControllerBean} в течение коротких промежутков времени и в базе
  * данных в течение длительных.

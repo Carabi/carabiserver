@@ -52,7 +52,7 @@ public class UsersControllerBean {
 	
 	@PersistenceUnit(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManagerFactory emf;//использование PersistenceContext в данном случае подвело (сломались прокрутки)
-	private EntityManager em;//Доступ через JPA -- только для служебной информации в Derby
+	private EntityManager em;
 	
 	@EJB private ConnectionsGateBean connectionsGate;
 	@EJB private CursorFetcherBean cursorFetcher;
@@ -161,10 +161,10 @@ public class UsersControllerBean {
 		ArrayList<String> usersTokens = new ArrayList(activeUsers.keySet());
 		long timestamp = new Date().getTime();
 		for (String userToken: usersTokens) {
-			UserLogon user = activeUsers.get(userToken);
-			long lastActiveTimestamp = user.getLastActive().getTime();
+			UserLogon logon = activeUsers.get(userToken);
+			long lastActiveTimestamp = logon.getLastActive().getTime();
 			if (timestamp - lastActiveTimestamp > Settings.SESSION_LIFETIME * 1000) {
-				removeActiveUser(user);
+				removeActiveUser(logon);
 			}
 		}
 	}

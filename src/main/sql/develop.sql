@@ -1,10 +1,6 @@
 create schema CARABI_KERNEL;
 set SEARCH_PATH to CARABI_KERNEL;
 
---call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.connection.requireAuthentication','true');
---call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.user.carabi','password');
---call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.user.CARABI','password');
-
 CREATE VIEW dual as select 0 as dummy;
 
 /**
@@ -104,7 +100,7 @@ create table CARABI_USER (
 	DEPARTMENT varchar(1024), --подразделение
 	--Основная БД Oracle
 	DEFAULT_SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) on delete set null,
-	--основной сервер с БД Derby для чата
+	--основной сервер с БД для чата
 	MAIN_SERVER_ID integer references APPSERVER (APPSERVER_ID) on delete set null,
 	AVATAR bigint references FILE (FILE_ID), --файл с аватаром
 	LASTACTIVE timestamp, --время последней активности
@@ -251,7 +247,7 @@ create table PHONE (
  */
 create table USER_LOGON (
 	TOKEN varchar(64) primary key, --сессионный ключ
-	USER_ID bigint references CARABI_USER(USER_ID), --пользователь по общей базе (Derby)
+	USER_ID bigint references CARABI_USER(USER_ID), --пользователь по ядровой базе
 	ORACLE_USER_ID bigint, --ID пользователя в Oracle, к которому подключились
 	DISPLAY varchar(1024), --имя
 	IP_ADDR_WHITE varchar(64), --IP клиента, определённый сервером (внешний) -- для журналирования.
