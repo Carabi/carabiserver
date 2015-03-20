@@ -147,6 +147,7 @@ create table USER_PERMISSION (
 	DESCRIPTION varchar(32000),
 	ALLOWED_BY_DEFAULT integer default 0
 );
+insert into USER_PERMISSION(NAME, SYSNAME) values('Редактирование расширений чата', 'EDIT_CHAT_MESSAGE_TYPES');
 
 /**
  * Группа пользователей с одинаковыми правами
@@ -330,5 +331,16 @@ create table CARABI_PRODUCT_VERSION (
 	SINGULARITY varchar(32000), --Особенности данной версии
 	DOWNLOAD_URL varchar(1024), --Где скачать
 	IS_SIGNIFICANT_UPDATE integer not null default 0--Является важным обновлением, если не 0
+);
+
+/**
+ *Типы сообщений чата (служебные)
+ */
+create sequence extension_type_id_gen;
+create table MESSAGE_EXTENSION_TYPE (
+	EXTENSION_TYPE_ID integer primary key default nextval('extension_type_id_gen'),
+	NAME varchar(256) not null,
+	SYSNAME varchar(256) not null unique,
+	DESCRIPTION varchar(32000)
 );
 --commit;

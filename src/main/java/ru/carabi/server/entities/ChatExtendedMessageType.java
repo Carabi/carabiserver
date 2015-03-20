@@ -9,16 +9,16 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 /**
- * Роль пользователя, задающая набор прав.
- ** @author sasha<kopilov.ad@gmail.com>
+ * Тип расширенного сообщения в чате.
+ * @author sasha<kopilov.ad@gmail.com>
  */
 @Entity
-@Table(name="USER_ROLE")
-public class UserRole implements Serializable {
+@Table(name="MESSAGE_EXTENSION_TYPE")
+public class ChatExtendedMessageType implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	@Id
-	@Column(name="ROLE_ID")
+	@Column(name="EXTENSION_TYPE_ID")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
 	
@@ -69,10 +69,10 @@ public class UserRole implements Serializable {
 	@Override
 	public boolean equals(Object object) {
 		// TODO: Warning - this method won't work in the case the id fields are not set
-		if (!(object instanceof UserRole)) {
+		if (!(object instanceof ChatExtendedMessageType)) {
 			return false;
 		}
-		UserRole other = (UserRole) object;
+		ChatExtendedMessageType other = (ChatExtendedMessageType) object;
 		if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
 			return false;
 		}
@@ -81,7 +81,6 @@ public class UserRole implements Serializable {
 	
 	@Override
 	public String toString() {
-		return "ru.carabi.server.entities.UserRole[ id=" + id + " ]";
+		return "ru.carabi.server.entities.ChatExtendedMessageType[ id=" + id + " ]";
 	}
-	
 }

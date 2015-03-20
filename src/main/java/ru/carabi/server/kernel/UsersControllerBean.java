@@ -373,10 +373,11 @@ public class UsersControllerBean {
 	 * @param user пользователь
 	 * @param permission кодовое название права
 	 * @return имеет ли данный пользователь указанное право
+	 * @throws ru.carabi.server.CarabiException если такого права нет в системе
 	 */
 	public boolean userHavePermission(CarabiUser user, String permission) throws CarabiException {
 		//проверка, что запрашиваемое право существует в системе
-		String sql = "select ALLOWED_BY_DEFAULT from CARABI.USER_PERMISSION where SYSNAME = ?";
+		String sql = "select ALLOWED_BY_DEFAULT from USER_PERMISSION where SYSNAME = ?";
 		Query query = em.createNativeQuery(sql);
 		query.setParameter(1, permission);
 		List resultList = query.getResultList();

@@ -214,7 +214,7 @@ public class LoadChatAttach extends HttpServlet {
 			Holder<Long> senderAttachmentId = new Holder<>();
 			handleAttachment(receiverServer, senderServer, saveSent, filenameUser, request, CarabiFunc.encrypt(token), receiverAttachmentId, senderAttachmentId);
 			//Отправляем уведомления
-			Long id = chatBean.sendMessage(sender, receiver, comment, senderAttachmentId.value, receiverAttachmentId.value);
+			Long id = chatBean.sendMessage(sender, receiver, comment, senderAttachmentId.value, receiverAttachmentId.value, null, null);
 			JsonObjectBuilder result = Json.createObjectBuilder();
 			result.add("id", id);
 			response.getWriter().print(result.build().toString());

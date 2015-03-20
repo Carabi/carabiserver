@@ -79,6 +79,12 @@ public class ChatMessage implements Serializable {
 	@JoinColumn(name="ATTACHMENT_ID")
 	private FileOnServer attachment;
 	
+	@Column(name="EXTENSION_TYPE_ID")
+	private Integer extensionTypeId;
+	
+	@Column(name="EXTENSION_VALUE")
+	private String extensionValue;
+	
 	public Long getId() {
 		return id;
 	}
@@ -157,5 +163,21 @@ public class ChatMessage implements Serializable {
 	
 	public void setAttachment(FileOnServer attachment) {
 		this.attachment = attachment;
+	}
+	
+	public Integer getExtensionTypeId() {
+		return extensionTypeId;
+	}
+	
+	public void setExtensionTypeId(Integer extensionTypeId) {
+		this.extensionTypeId = extensionTypeId;
+	}
+	
+	public String getExtensionValue() {
+		return extensionValue;
+	}
+	
+	public void setExtensionValue(String extensionValue) {
+		this.extensionValue = extensionValue;
 	}
 }

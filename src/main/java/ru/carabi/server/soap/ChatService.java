@@ -16,6 +16,7 @@ import ru.carabi.libs.CarabiFunc;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
+import ru.carabi.server.entities.ChatExtendedMessageType;
 import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.kernel.ChatBean;
 import ru.carabi.server.kernel.UsersControllerBean;
@@ -36,12 +37,12 @@ public class ChatService {
 	private ServerSessionToken sessionToken;
 	
 	@EJB private ChatBean chatBean;
-
 	@EJB private UsersControllerBean uc;
+	
 	/**
 	 * Отправка сообщения получателю. Функция находит основной сервер получателя,
-	 * вызывает {@link ChatService#forwardMessage(java.lang.String, java.lang.String, java.lang.String, java.lang.String)}
-	 * и при успешной пересылке &mdash; {@link ChatService#putMessage(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String) }
+	 * вызывает {@link ChatService#forwardMessage(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.Long, java.lang.Integer, java.lang.String) }
+	 * и при успешной пересылке &mdash; {@link ChatService#putMessage(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.Long, java.lang.Integer, java.lang.String, java.lang.Long, java.lang.Integer, java.lang.String)}
 	 * на основном сервере отправителя.
 	 * 
 	 * @param tokenSender авторизационный токен отправителя
@@ -58,7 +59,37 @@ public class ChatService {
 		) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(tokenSender, false)){
 			CarabiUser sender = logon.getUser();
-			return sendMessage(loginReceiver, sender, messageText);
+			return sendMessage(loginReceiver, sender, messageText, null, null);
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
+	
+	/**
+	 * Отправка сообщения с расширением. Аналогично {@link #sendMessage(java.lang.String, java.lang.String, java.lang.String)}
+	 * с добавлением полей "тип расширения" и "содержимое расширения"
+	 * 
+	 * @param tokenSender авторизационный токен отправителя
+	 * @param loginReceiver логин получателя или список логинов получателей, разделённых ';'
+	 * @param messageText текст сообщения
+	 * @param extensionType кодовое имя типа расширения
+	 * @param extensionValue содержимое расширения
+	 * @return Id сообщения на стороне отправителя
+	 * @throws ru.carabi.server.CarabiException при ошибке авторизации
+	 */
+	@WebMethod(operationName = "sendExtendedMessage")
+	public String sendExtendedMessage(
+			@WebParam(name = "tokenSender") String tokenSender,
+			@WebParam(name = "loginReceiver") String loginReceiver,
+			@WebParam(name = "messageText") String messageText,
+			@WebParam(name = "extensionType") String extensionType,
+			@WebParam(name = "extensionValue") String extensionValue
+		) throws CarabiException {
+		try (UserLogon logon = uc.tokenAuthorize(tokenSender, false)){
+			CarabiUser sender = logon.getUser();
+			ChatExtendedMessageType extendedMessageType = chatBean.findOrCreateExtensionType(extensionType, logon);
+			return sendMessage(loginReceiver, sender, messageText, extendedMessageType.getId(), extensionValue);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;
@@ -77,17 +108,35 @@ public class ChatService {
 			throw new CarabiException("unknown tokenServer");
 		}
 		CarabiUser sender = uc.findUser(loginSender);
-		return sendMessage(loginReceiver, sender, messageText);
+		return sendMessage(loginReceiver, sender, messageText, null, null);
 	}
 	
-	private String sendMessage(String loginReceiver, CarabiUser sender, String messageText) throws CarabiException {
+	@WebMethod(operationName = "replicateExtendedMessage")
+	public String replicateExtendedMessage(
+			@WebParam(name = "tokenServer") String tokenServer,
+			@WebParam(name = "loginSender") String loginSender,
+			@WebParam(name = "loginReceiver") String loginReceiver,
+			@WebParam(name = "messageText") String messageText,
+			@WebParam(name = "extensionTypeId") String extensionType,
+			@WebParam(name = "extensionValue") String extensionValue
+		) throws CarabiException {
+		UserLogon administrator = uc.getUserLogon(tokenServer);
+		if (administrator == null || !administrator.isPermanent()) {
+			throw new CarabiException("unknown tokenServer");
+		}
+		CarabiUser sender = uc.findUser(loginSender);
+		ChatExtendedMessageType extendedMessageType = chatBean.findOrCreateExtensionType(extensionType, administrator);
+		return sendMessage(loginReceiver, sender, messageText, extendedMessageType.getId(), extensionValue);
+	}
+	
+	private String sendMessage(String loginReceiver, CarabiUser sender, String messageText, Integer extensionTypeId, String extensionValue) throws CarabiException {
 		if (loginReceiver.contains(";")) {
 			String[] receiversArray = loginReceiver.split(";");
-			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
 			return StringUtils.join(sentMessagesId, ";");
 		} else {
 			CarabiUser receiver = uc.findUser(loginReceiver);
-			return chatBean.sendMessage(sender, receiver, messageText, null, null).toString();
+			return chatBean.sendMessage(sender, receiver, messageText, null, null, extensionTypeId, extensionValue).toString();
 		}
 	}
 	
@@ -113,12 +162,14 @@ public class ChatService {
 			@WebParam(name = "loginSender") String loginSender,
 			@WebParam(name = "loginReceiver") String loginReceiver,
 			@WebParam(name = "messageText") String messageText,
-			@WebParam(name = "attachmentId") Long attachmentId
+			@WebParam(name = "attachmentId") Long attachmentId,
+			@WebParam(name = "extensionTypeId") Integer extensionTypeId,
+			@WebParam(name = "extensionValue") String extensionValue
 		) throws CarabiException {
 		checkSoftwareToken(softwareToken);
 		CarabiUser sender = uc.findUser(loginSender);
 		CarabiUser receiver = uc.findUser(loginReceiver);
-		return chatBean.forwardMessage(sender, receiver, messageText, attachmentId);
+		return chatBean.forwardMessage(sender, receiver, messageText, attachmentId, extensionTypeId, extensionValue);
 	}
 	
 	/**
@@ -133,6 +184,8 @@ public class ChatService {
 	 * @param receivedMessageServerId
 	 * @param messageText
 	 * @param attachmentId
+	 * @param extensionTypeId
+	 * @param extensionValue
 	 * @return Id сохранённого сообщения
 	 * @throws ru.carabi.server.CarabiException Если не удалось найти пользователя по логину или при ошибке авторизации (при многократном обращении -- возможно,
 	 * сессия была потеряна, можно вызвать {@link ChatService#prepareToForward()} повторно)
@@ -146,13 +199,15 @@ public class ChatService {
 			@WebParam(name = "receivedMessageId") Long receivedMessageId,
 			@WebParam(name = "receivedMessageServerId") Integer receivedMessageServerId,
 			@WebParam(name = "messageText") String messageText,
-			@WebParam(name = "attachmentId") Long attachmentId
+			@WebParam(name = "attachmentId") Long attachmentId,
+			@WebParam(name = "extensionTypeId") Integer extensionTypeId,
+			@WebParam(name = "extensionValue") String extensionValue
 		) throws CarabiException {
 		checkSoftwareToken(softwareToken);
 		CarabiUser owner = uc.findUser(loginOwner);
 		CarabiUser sender = uc.findUser(loginSender);
 		CarabiUser receiver = uc.findUser(loginReceiver);
-		return chatBean.putMessage(owner, sender, receiver, receivedMessageId, receivedMessageServerId, messageText, attachmentId);
+		return chatBean.putMessage(owner, sender, receiver, receivedMessageId, receivedMessageServerId, messageText, attachmentId, extensionTypeId, extensionValue);
 	}
 	
 	/**

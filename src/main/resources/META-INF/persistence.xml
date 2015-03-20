@@ -22,6 +22,7 @@
     <class>ru.carabi.server.entities.UserStatus</class>
     <class>ru.carabi.server.entities.PersonalTemporaryCode</class>
     <class>ru.carabi.server.entities.UserRole</class>
+    <class>ru.carabi.server.entities.ChatExtendedMessageType</class>
     <exclude-unlisted-classes>true</exclude-unlisted-classes>
     <shared-cache-mode>NONE</shared-cache-mode>
     <properties>

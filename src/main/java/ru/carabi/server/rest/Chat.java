@@ -20,6 +20,7 @@ import ru.carabi.server.RegisterException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
+import ru.carabi.server.entities.ChatExtendedMessageType;
 import ru.carabi.server.kernel.ChatBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -76,6 +77,8 @@ Content-Length: 68
 			@QueryParam("token") String token,
 			@DefaultValue("") @QueryParam("loginSender") String loginSender,
 			@DefaultValue("") @QueryParam("loginReceiver") String loginReceiver,
+			@DefaultValue("") @QueryParam("extensionType") String extensionType,
+			@DefaultValue("") @QueryParam("extensionValue") String extensionValue,
 			String messageText
 		) {
 		String[] receiversArray;
@@ -88,7 +91,8 @@ Content-Length: 68
 			if ("send".equals(action)) {
 				try (UserLogon logon = uc.tokenAuthorize(token, false)) {
 					CarabiUser sender = logon.getUser();
-					Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText);
+					ChatExtendedMessageType extendedMessageType = chatBean.findOrCreateExtensionType(extensionType, logon);
+					Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extendedMessageType.getId(), extensionValue);
 					return StringUtils.join(sentMessagesId, ";");
 				}
 			} else if ("replicate".equals(action)) {
@@ -97,7 +101,8 @@ Content-Length: 68
 					throw new RestException("unknown token", Response.Status.UNAUTHORIZED);
 				}
 				CarabiUser sender = uc.findUser(loginSender);
-				Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText);
+				ChatExtendedMessageType extendedMessageType = chatBean.findOrCreateExtensionType(extensionType, administrator);
+				Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extendedMessageType.getId(), extensionValue);
 				return StringUtils.join(sentMessagesId, ";");
 			} else {
 				throw new RestException("unknown action", Response.Status.NOT_FOUND);

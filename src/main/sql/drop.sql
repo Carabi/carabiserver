@@ -1,5 +1,6 @@
 set SEARCH_PATH to CARABI_KERNEL;
 
+drop table MESSAGE_EXTENSION_TYPE;
 drop table CARABI_PRODUCT_VERSION;
 drop table CARABI_PRODUCTION;
 drop table ORACLE_PARAMETER;
@@ -43,6 +44,7 @@ drop sequence query_id_gen;
 drop sequence parameter_id_gen;
 drop sequence production_id_gen;
 drop sequence product_version_id_gen;
+drop sequence extension_type_id_gen
 
 drop schema CARABI_KERNEL restrict;
 commit;
