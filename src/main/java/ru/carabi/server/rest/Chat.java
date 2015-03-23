@@ -275,8 +275,8 @@ Content-Length: xxx
 	}
 	
 	@GET
-	public String getChatMessage(
-			@PathParam("action") String action,
+	@Path(value = "getUnreadMessagesCount")
+	public String getMessagesCount(
 			@QueryParam("token") String token,
 			@DefaultValue("") @QueryParam("login") String login,
 			@DefaultValue("") @QueryParam("loginSender") String loginSender,
@@ -284,26 +284,22 @@ Content-Length: xxx
 			String messageText
 		) {
 		try(UserLogon logon = uc.tokenAuthorize(token, false)) {
-			if ("getUnreadMessagesCount".equals(action)) {
-				if (logon.isPermanent()) {
-					UserLogon targetLogon = new UserLogon();
-					targetLogon.setUser(uc.findUser(login));
-					targetLogon.setAppServer(Settings.getCurrentServer());
-					targetLogon = uc.addUser(targetLogon);
-					Long unreadMessagesCount;
-					try {
-						unreadMessagesCount = chatBean.getUnreadMessagesCount(targetLogon);
-					} catch (Exception e){
-						return e.getMessage();
-					} finally {
-						uc.removeUser(targetLogon.getToken(), true);
-					}
-					return "" + unreadMessagesCount;
-				} else {
-					return "" + chatBean.getUnreadMessagesCount(logon);
+			if (logon.isPermanent()) {
+				UserLogon targetLogon = new UserLogon();
+				targetLogon.setUser(uc.findUser(login));
+				targetLogon.setAppServer(Settings.getCurrentServer());
+				targetLogon = uc.addUser(targetLogon);
+				Long unreadMessagesCount;
+				try {
+					unreadMessagesCount = chatBean.getUnreadMessagesCount(targetLogon);
+				} catch (Exception e){
+					return e.getMessage();
+				} finally {
+					uc.removeUser(targetLogon.getToken(), true);
 				}
+				return "" + unreadMessagesCount;
 			} else {
-				throw new RestException("unknown action", Response.Status.NOT_FOUND);
+				return "" + chatBean.getUnreadMessagesCount(logon);
 			}
 		} catch (RegisterException ex) {
 			logger.log(Level.SEVERE, null, ex);
@@ -313,5 +309,4 @@ Content-Length: xxx
 			return ex.getMessage();
 		}
 	}
-
 }
