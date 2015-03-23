@@ -51,6 +51,7 @@ import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.ChatExtendedMessageType;
 import ru.carabi.server.entities.ChatMessage;
+import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.entities.UserRelation;
 import ru.carabi.server.entities.UserRelationType;
@@ -185,13 +186,17 @@ public class ChatBean {
 	}
 	
 	/**
-	 * Выдаёт целевой сервер пользователя. Если не задан &mdash; Выдаёт основной, устанавливая его пользователю.
+	 * Выдаёт основной сервер пользователя или его компании. Если не задан &mdash; Выдаёт текущий, устанавливая его пользователю.
 	 * @param user
 	 * @return 
 	 */
 	private CarabiAppServer getTargetUserServer(CarabiUser user) {
-		CarabiAppServer userServer = user.getMainServer();
+		CarabiAppServer userServer = user.getMainServer();//проверяем индивидуальные настройкинастрой
 		if (userServer == null) {
+			Department department = user.getDepartment();//если индивидуальных нет -- возвращаем настройки корпорации
+			if (department != null && department.getMainServer() != null) {
+				return department.getMainServer();
+			}//если нет настроек корпорации -- ставим основным текущий и возвращаеи
 			userServer = Settings.getCurrentServer();
 			user.setMainServer(userServer);
 			user = emKernel.merge(user);
@@ -727,7 +732,7 @@ public class ChatBean {
 			Utls.addJsonObject(userJson, user.getMiddlename());
 			Utls.addJsonObject(userJson, user.getLastname());
 			Utls.addJsonObject(userJson, user.getEmail());
-			Utls.addJsonObject(userJson, user.getDepartment());
+			Utls.addJsonObject(userJson, user.getCarabiDepartment());
 			Utls.addJsonObject(userJson, user.getCarabiRole());
 			if (user.getDefaultSchema() != null) {
 				Utls.addJsonObject(userJson, user.getDefaultSchema().getName());//SCHEMA_NAME
@@ -1297,9 +1302,12 @@ public class ChatBean {
 	 * имеет на это право ({@link UsersControllerBean#userHavePermission(ru.carabi.server.UserLogon, java.lang.String) }(logon, "EDIT_CHAT_MESSAGE_TYPES") == true)
 	 * @param extensionTypeName искомый тип расширения
 	 * @param logon текущая сессия
-	 * @return найденный или созданный тип расширения
+	 * @return найденный или созданный тип расширения, null, если на вход подан null или пустая строка
 	 */
 	public ChatExtendedMessageType findOrCreateExtensionType(String extensionTypeName, UserLogon logon) throws CarabiException {
+		if (extensionTypeName == null || "".equals(extensionTypeName)) {
+			return null;
+		}
 		Query query = emKernel.createQuery("select CMT from ChatExtendedMessageType CMT where CMT.sysname = :sysname");
 		query.setParameter("sysname", extensionTypeName);
 		try {
@@ -1314,6 +1322,15 @@ public class ChatBean {
 			extensionType = emKernel.merge(extensionType);
 			emKernel.flush();
 			return extensionType;
+		}
+	}
+
+	public Integer getExtensionTypeId(String extensionTypeName, UserLogon logon) throws CarabiException {
+		ChatExtendedMessageType extensionType = findOrCreateExtensionType(extensionTypeName, logon);
+		if (extensionType == null ) {
+			return null;
+		} else {
+			return extensionType.getId();
 		}
 	}
 }

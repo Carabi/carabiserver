@@ -20,7 +20,6 @@ import ru.carabi.server.RegisterException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
-import ru.carabi.server.entities.ChatExtendedMessageType;
 import ru.carabi.server.kernel.ChatBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -46,7 +45,7 @@ import ru.carabi.server.logging.CarabiLogging;
  * 
  * @author sasha<kopilov.ad@gmail.com>
  */
-@Path("chat/{action}")
+@Path("chat")
 @RequestScoped
 public class Chat {
 	
@@ -58,7 +57,58 @@ public class Chat {
 	private static final Logger logger = CarabiLogging.getLogger(Chat.class);
 	
 	/**
-	 * Обработка POST-зопросов (отправка и репликация).
+	 * Обработка POST-зопросов (отправка сообщения).
+	 * Пример запроса:
+	 * <pre>
+POST /carabiserver/webresources/chat/send?token=token&loginReceiver=mm HTTP/1.1
+Host: appl.cara.bi
+Connection: close
+Content-type: text/plain; charset=utf-8
+Content-Length: 66
+
+Отправляемое в Караби-чат сообщение
+	 * </pre> 
+	 * Отправляет сообщение чата получателю, передавая его в теле пакета. Сообщение уходит от имени пользователя, под
+	 * которым произведена авторизация. Можно задать расширение (см. так же 
+	 * {@link #sendChatMessageExtended(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)}/
+	 * @param token токен авторизации отправителя
+	 * @param loginReceiver логин получателя
+	 * @param extensionType тип расширения (необязательный параметр)
+	 * @param extensionValue значение расширения (необязательный параметр)
+	 * @param messageText текст сообщения (тело пакета)
+	 * @return ID отправленного сообщения
+	 */
+	@POST
+	@Path(value = "send")
+	@Consumes("text/plain")
+	public String sendChatMessage(
+			@QueryParam("token") String token,
+			@QueryParam("loginReceiver") String loginReceiver,
+			@DefaultValue("") @QueryParam("extensionType") String extensionType,
+			@DefaultValue("") @QueryParam("extensionValue") String extensionValue,
+			String messageText
+		) {
+		String[] receiversArray;
+		if (loginReceiver.contains(";")) {
+			receiversArray = loginReceiver.split(";");
+		} else {
+			receiversArray = new String[] {loginReceiver};
+		}
+		try (UserLogon logon = uc.tokenAuthorize(token, false)){
+			CarabiUser sender = logon.getUser();
+			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, logon);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
+			return StringUtils.join(sentMessagesId, ";");
+		} catch (RegisterException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new RestException("unknown user or token", Response.Status.UNAUTHORIZED);
+		} catch (CarabiException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			return ex.getMessage();
+		}
+	}
+	/**
+	 * Обработка POST-зопросов (репликация сообщения).
 	 * Пример запроса:
 	 * <pre>
 POST /carabiserver/webresources/chat/replicate?token=token&loginSender=zao&loginReceiver=mm HTTP/1.1
@@ -69,14 +119,23 @@ Content-Length: 68
 
 Реплицируемое в Караби-чат сообщение
 	 * </pre> 
+	 * Отправляет сообщение чата получателю, передавая его в теле пакета. Сообщение уходит от имени пользователя loginSender.
+	 * Можно задать расширение (см. так же {@link #replicateChatMessageExtended(java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String, java.lang.String)}/
+	 * @param token токен авторизации приложения
+	 * @param loginSender логин отправителя
+	 * @param loginReceiver логин получателя
+	 * @param extensionType тип расширения (необязательный параметр)
+	 * @param extensionValue значение расширения (необязательный параметр)
+	 * @param messageText текст сообщения (тело пакета)
+	 * @return ID отправленного сообщения
 	 */
 	@POST
+	@Path(value = "replicate")
 	@Consumes("text/plain")
-	public String addChatMessage(
-			@PathParam("action") String action,
+	public String replicateChatMessage(
 			@QueryParam("token") String token,
-			@DefaultValue("") @QueryParam("loginSender") String loginSender,
-			@DefaultValue("") @QueryParam("loginReceiver") String loginReceiver,
+			@QueryParam("loginSender") String loginSender,
+			@QueryParam("loginReceiver") String loginReceiver,
 			@DefaultValue("") @QueryParam("extensionType") String extensionType,
 			@DefaultValue("") @QueryParam("extensionValue") String extensionValue,
 			String messageText
@@ -88,25 +147,124 @@ Content-Length: 68
 			receiversArray = new String[] {loginReceiver};
 		}
 		try {
-			if ("send".equals(action)) {
-				try (UserLogon logon = uc.tokenAuthorize(token, false)) {
-					CarabiUser sender = logon.getUser();
-					ChatExtendedMessageType extendedMessageType = chatBean.findOrCreateExtensionType(extensionType, logon);
-					Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extendedMessageType.getId(), extensionValue);
-					return StringUtils.join(sentMessagesId, ";");
-				}
-			} else if ("replicate".equals(action)) {
-				UserLogon administrator = uc.getUserLogon(token);
-				if (administrator == null || !administrator.isPermanent()) {
-					throw new RestException("unknown token", Response.Status.UNAUTHORIZED);
-				}
-				CarabiUser sender = uc.findUser(loginSender);
-				ChatExtendedMessageType extendedMessageType = chatBean.findOrCreateExtensionType(extensionType, administrator);
-				Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extendedMessageType.getId(), extensionValue);
-				return StringUtils.join(sentMessagesId, ";");
-			} else {
-				throw new RestException("unknown action", Response.Status.NOT_FOUND);
+			UserLogon administrator = uc.getUserLogon(token);
+			if (administrator == null || !administrator.isPermanent()) {
+				throw new RestException("unknown token", Response.Status.UNAUTHORIZED);
 			}
+			CarabiUser sender = uc.findUser(loginSender);
+			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, administrator);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
+			return StringUtils.join(sentMessagesId, ";");
+		} catch (RegisterException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new RestException("unknown user or token", Response.Status.UNAUTHORIZED);
+		} catch (CarabiException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			return ex.getMessage();
+		}
+	}
+	
+	/**
+	 * Обработка POST-зопросов (отправка расширенного сообщения).
+	 * Пример запроса:
+	 * <pre>
+POST /carabiserver/webresources/chat/send/extended?token=token&loginSender=zao&loginReceiver=mm&extensionType=task HTTP/1.1
+Host: appl.cara.bi
+Connection: close
+Content-type: text/plain; charset=utf-8
+Content-Length: xxx
+
+содержимое расширения в формате, устанавливаемом клиентами (например, произвольный текст, base64, xml, json)
+	 * </pre>
+	 * 
+	 * Отправляет расширенное сообщение чата получателю, передавая в теле пакета содержимое расширения.
+	 * Сообщение уходит от имени пользователя, под которым произведена авторизация. Можно задать содержимое
+	 * основного текста (по умолчанию пустой).
+	 * @param token токен авторизации отправителя
+	 * @param loginReceiver логин получателя
+	 * @param extensionType тип расширения
+	 * @param messageText текст сообщения (необязательный параметр)
+	 * @param extensionValue значение расширения (тело пакета)
+	 * @return ID отправленного сообщения
+	 */
+	@POST
+	@Path(value = "send/extended")
+	@Consumes("text/plain")
+	public String sendChatMessageExtended(
+			@QueryParam("token") String token,
+			@QueryParam("loginReceiver") String loginReceiver,
+			@QueryParam("extensionType") String extensionType,
+			@DefaultValue("") @QueryParam("messageText") String messageText,
+			String extensionValue
+		) {
+		String[] receiversArray;
+		if (loginReceiver.contains(";")) {
+			receiversArray = loginReceiver.split(";");
+		} else {
+			receiversArray = new String[] {loginReceiver};
+		}
+		try (UserLogon logon = uc.tokenAuthorize(token, false)){
+			CarabiUser sender = logon.getUser();
+			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, logon);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
+			return StringUtils.join(sentMessagesId, ";");
+		} catch (RegisterException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new RestException("unknown user or token", Response.Status.UNAUTHORIZED);
+		} catch (CarabiException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			return ex.getMessage();
+		}
+	}
+	/**
+	 * Обработка POST-зопросов (репликация расширенного сообщения).
+	 * Пример запроса:
+	 * <pre>
+POST /carabiserver/webresources/chat/replicate/extended?token=token&loginSender=zao&loginReceiver=mm&extensionType=task HTTP/1.1
+Host: appl.cara.bi
+Connection: close
+Content-type: text/plain; charset=utf-8
+Content-Length: xxx
+
+содержимое расширения в формате, устанавливаемом клиентами (например, произвольный текст, base64, xml, json)
+	 * </pre> 
+	 * Отправляет расширенное сообщение чата получателю, передавая в теле пакета содержимое расширения.
+	 * Сообщение уходит от имени пользователя loginSender. Можно задать содержимое
+	 * основного текста (по умолчанию пустой).
+	 * @param token токен авторизации отправителя
+	 * @param loginReceiver логин получателя
+	 * @param loginSender логин получателя
+	 * @param extensionType тип расширения 
+	 * @param messageText текст сообщения (необязательный параметр)
+	 * @param extensionValue значение расширения (тело пакета)
+	 * @return ID отправленного сообщения
+	 */
+	@POST
+	@Path(value = "replicate/extended")
+	@Consumes("text/plain")
+	public String replicateChatMessageExtended(
+			@QueryParam("token") String token,
+			@QueryParam("loginSender") String loginSender,
+			@QueryParam("loginReceiver") String loginReceiver,
+			@QueryParam("extensionType") String extensionType,
+			@DefaultValue("") @QueryParam("messageText") String messageText,
+			String extensionValue
+		) {
+		String[] receiversArray;
+		if (loginReceiver.contains(";")) {
+			receiversArray = loginReceiver.split(";");
+		} else {
+			receiversArray = new String[] {loginReceiver};
+		}
+		try {
+			UserLogon administrator = uc.getUserLogon(token);
+			if (administrator == null || !administrator.isPermanent()) {
+				throw new RestException("unknown token", Response.Status.UNAUTHORIZED);
+			}
+			CarabiUser sender = uc.findUser(loginSender);
+			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, administrator);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
+			return StringUtils.join(sentMessagesId, ";");
 		} catch (RegisterException ex) {
 			logger.log(Level.SEVERE, null, ex);
 			throw new RestException("unknown user or token", Response.Status.UNAUTHORIZED);

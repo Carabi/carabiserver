@@ -88,8 +88,8 @@ public class ChatService {
 		) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(tokenSender, false)){
 			CarabiUser sender = logon.getUser();
-			ChatExtendedMessageType extendedMessageType = chatBean.findOrCreateExtensionType(extensionType, logon);
-			return sendMessage(loginReceiver, sender, messageText, extendedMessageType.getId(), extensionValue);
+			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, logon);
+			return sendMessage(loginReceiver, sender, messageText, extensionTypeId, extensionValue);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;
@@ -125,8 +125,8 @@ public class ChatService {
 			throw new CarabiException("unknown tokenServer");
 		}
 		CarabiUser sender = uc.findUser(loginSender);
-		ChatExtendedMessageType extendedMessageType = chatBean.findOrCreateExtensionType(extensionType, administrator);
-		return sendMessage(loginReceiver, sender, messageText, extendedMessageType.getId(), extensionValue);
+		Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, administrator);
+		return sendMessage(loginReceiver, sender, messageText, extensionTypeId, extensionValue);
 	}
 	
 	private String sendMessage(String loginReceiver, CarabiUser sender, String messageText, Integer extensionTypeId, String extensionValue) throws CarabiException {
@@ -152,6 +152,8 @@ public class ChatService {
 	 * @param loginReceiver
 	 * @param messageText
 	 * @param attachmentId
+	 * @param extensionTypeId
+	 * @param extensionValue
 	 * @return Id сообщения на стороне получателя
 	 * @throws ru.carabi.server.CarabiException Если не удалось найти пользователя по логину или при ошибке авторизации (при многократном обращении -- возможно,
 	 * сессия была потеряна, можно вызвать {@link ChatService#prepareToForward()} повторно)

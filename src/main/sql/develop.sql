@@ -84,6 +84,19 @@ insert into USER_STATUS(STATUS_ID, SYSNAME, NAME)
 values(1, 'active', 'Активный'), (2, 'banned', 'Забаненный');
 
 /**
+ * Корпорация (юр. лицо)
+ */
+create sequence corporation_id_gen;
+create table CORPORATION (
+	CORPORATION_ID integer primary key default nextval('corporation_id_gen'),
+	NAME varchar(256) not null,
+	SYSNAME varchar(256) not null unique,
+	DESCRIPTION varchar(32000),
+	--основной сервер с БД для чата
+	MAIN_SERVER_ID integer references APPSERVER (APPSERVER_ID) on delete set null
+);
+
+/**
  * Клиент компании Караби.
  * Может иметь доступ к различным базам данных, при входе в базу создаётся запись USER_LOGON
  */
@@ -96,6 +109,7 @@ create table CARABI_USER (
 	MIDDLENAME varchar(1024), --отчество
 	LASTNAME varchar(1024), --фамилия
 	EMAIL varchar(1024), --фамилия
+	CORPORATION_ID integer references CORPORATION (CORPORATION_ID) on delete set null,
 	ROLE varchar(1024), --описание роли в компании/системе
 	DEPARTMENT varchar(1024), --подразделение
 	--Основная БД Oracle
@@ -330,7 +344,8 @@ create table CARABI_PRODUCT_VERSION (
 	ISSUE_DATE date, --Дата выпуска
 	SINGULARITY varchar(32000), --Особенности данной версии
 	DOWNLOAD_URL varchar(1024), --Где скачать
-	IS_SIGNIFICANT_UPDATE integer not null default 0--Является важным обновлением, если не 0
+	IS_SIGNIFICANT_UPDATE integer not null default 0,--Является важным обновлением, если не 0
+	DESTINATED_FOR_CORPPORATION integer references CORPORATION (CORPORATION_ID) on delete cascade --компания, которой адресована данная сборка
 );
 
 /**
@@ -341,6 +356,7 @@ create table MESSAGE_EXTENSION_TYPE (
 	EXTENSION_TYPE_ID integer primary key default nextval('extension_type_id_gen'),
 	NAME varchar(256) not null,
 	SYSNAME varchar(256) not null unique,
-	DESCRIPTION varchar(32000)
+	DESCRIPTION varchar(32000),
+	CONTENT_TYPE varchar(256)
 );
 --commit;

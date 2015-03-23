@@ -48,19 +48,19 @@ import javax.persistence.Temporal;
 		query = "select U from CarabiUser U " +
 				"where upper(U.login) like :search or upper(U.firstname) like :search " + 
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
-				"or upper(U.carabiRole) like :search or upper(U.department) like :search " + 
+				"or upper(U.carabiRole) like :search or upper(U.carabiDepartment) like :search " + 
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getSelectedUsersListSearch",
 		query = "select U from CarabiUser U where U.id in :idlist and (" +
 				"upper(U.login) like :search or upper(U.firstname) like :search " + 
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
-				"or upper(U.carabiRole) like :search or upper(U.department) like :search )" + 
+				"or upper(U.carabiRole) like :search or upper(U.carabiDepartment) like :search )" + 
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getActiveUsersListSearch",
 		query = "select U from CarabiUser U where U.status.sysname = 'active' and (" +
 				"upper(U.login) like :search or upper(U.firstname) like :search " + 
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
-				"or upper(U.carabiRole) like :search or upper(U.department) like :search )" + 
+				"or upper(U.carabiRole) like :search or upper(U.carabiDepartment) like :search )" + 
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getRelatedUsersList",
 		query = "select UR.relatedUser from UserRelation UR where UR.mainUser = :user")
@@ -79,9 +79,15 @@ public class CarabiUser implements Serializable {
 	private String middlename;
 	private String lastname;
 	private String email;
+	
+	@ManyToOne
+	@JoinColumn(name="CORPORATION_ID")
+	private Department department;
+	
 	@Column(name="ROLE")
 	private String carabiRole;
-	private String department;
+	@Column(name="DEPARTMENT")
+	private String carabiDepartment;
 	
 	@ManyToOne
 	@JoinColumn(name="DEFAULT_SCHEMA_ID")
@@ -189,6 +195,14 @@ public class CarabiUser implements Serializable {
 		this.email = email;
 	}
 	
+	public Department getDepartment() {
+		return department;
+	}
+	
+	public void setDepartment(Department department) {
+		this.department = department;
+	}
+	
 	public String getCarabiRole() {
 		return carabiRole;
 	}
@@ -197,12 +211,12 @@ public class CarabiUser implements Serializable {
 		this.carabiRole = carabiRole;
 	}
 	
-	public String getDepartment() {
-		return department;
+	public String getCarabiDepartment() {
+		return carabiDepartment;
 	}
 	
-	public void setDepartment(String department) {
-		this.department = department;
+	public void setCarabiDepartment(String department) {
+		this.carabiDepartment = department;
 	}
 	
 	public ConnectionSchema getDefaultSchema() {

@@ -35,16 +35,19 @@ public class ProductionService {
 	
 	/**
 	 * Получение сведений о версиях продукта.
-	 * Выдаются подробные сведения о всех версиях одного продукта компании Караби по системному имени.
+	 * Выдаются подробные сведения о всех версиях одного продукта компании Караби по системному имени продукта и клиента.
+	 * Берутся все записи, для которых указана введённая компания, а так же 
 	 * @param token авторизационный токен
 	 * @param productName системное имя продукта
+	 * @param corporation компания, которой предназначена версия
 	 * @return массив сведений о версиях
 	 * @throws CarabiException если продукта с таким именем не существует
 	 */
 	@WebMethod(operationName = "checkVersion")
 	public List<ProductVersion> checkVersion(
 			@WebParam(name = "token") String token,
-			@WebParam(name = "productName") String productName
+			@WebParam(name = "productName") String productName,
+			@WebParam(name = "corporation") String corporation
 	) throws CarabiException {
 		usersController.tokenControl(token);
 		TypedQuery<CarabiProduct> jpaQuery = em.createNamedQuery("findCarabiProduct", CarabiProduct.class);
@@ -72,15 +75,17 @@ public class ProductionService {
 	 * Выдаются подробные сведения о последней версии одного продукта компании Караби по системному имени.
 	 * @param token авторизационный токен
 	 * @param productName системное имя продукта
+	 * @param corporation компания, которой предназначена версия
 	 * @return сведения о последней версии
 	 * @throws CarabiException если продукта с таким именем не существует
 	 */
 	@WebMethod(operationName = "checkLastVersion")
 	public ProductVersion checkLastVersion(
 			@WebParam(name = "token") String token,
-			@WebParam(name = "productName") String productName
+			@WebParam(name = "productName") String productName,
+			@WebParam(name = "corporation") String corporation
 	) throws CarabiException {
-		List<ProductVersion> checkVersion = checkVersion(token, productName);
+		List<ProductVersion> checkVersion = checkVersion(token, productName, corporation);
 		return checkVersion.get(checkVersion.size()-1);
 	}
 	

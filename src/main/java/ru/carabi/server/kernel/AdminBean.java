@@ -184,7 +184,7 @@ public class AdminBean {
 		Utls.addJsonObject(jsonUserDetails, "firstName", carabiUser.getFirstname());
 		Utls.addJsonObject(jsonUserDetails, "middleName", carabiUser.getMiddlename());
 		Utls.addJsonObject(jsonUserDetails, "lastName", carabiUser.getLastname());
-		Utls.addJsonObject(jsonUserDetails, "department", carabiUser.getDepartment());
+		Utls.addJsonObject(jsonUserDetails, "department", carabiUser.getCarabiDepartment());
 		Utls.addJsonObject(jsonUserDetails, "role", carabiUser.getCarabiRole());
 		Utls.addJsonObject(jsonUserDetails, "login", carabiUser.getLogin());
 		Utls.addJsonObject(jsonUserDetails, "password", carabiUser.getPassword());
@@ -309,7 +309,7 @@ public class AdminBean {
 		user.setLastname(userDetails.getString("lastName"));
 		user.setLogin(userDetails.getString("login"));
 		user.setPassword(userDetails.getString("password"));
-		user.setDepartment(userDetails.getString("department"));
+		user.setCarabiDepartment(userDetails.getString("department"));
 		user.setCarabiRole(userDetails.getString("role"));
 		
 		// update phones

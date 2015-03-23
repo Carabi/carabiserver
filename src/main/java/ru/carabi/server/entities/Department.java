@@ -1,24 +1,29 @@
 package ru.carabi.server.entities;
 
 import java.io.Serializable;
+import java.util.Collection;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 /**
- * Тип расширенного сообщения в чате.
+ * Юридическое лицо.
+ * Объединяет пользователей по месту работы и используемому ПО.
  * @author sasha<kopilov.ad@gmail.com>
  */
 @Entity
-@Table(name="MESSAGE_EXTENSION_TYPE")
-public class ChatExtendedMessageType implements Serializable {
+@Table(name="CORPORATION")
+public class Department implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	@Id
-	@Column(name="EXTENSION_TYPE_ID")
+	@Column(name="CORPORATION_ID")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
 	
@@ -26,8 +31,13 @@ public class ChatExtendedMessageType implements Serializable {
 	private String sysname;
 	private String description;
 	
-	@Column(name="CONTENT_TYPE")
-	private String contentType;
+	@ManyToOne
+	@JoinColumn(name="MAIN_SERVER_ID")
+	//Прикладной сервер, к которому участники будут обращаться чаще всего
+	private CarabiAppServer mainServer;
+	
+	@OneToMany(mappedBy="department")
+	private Collection<CarabiUser> members;
 	
 	public Integer getId() {
 		return id;
@@ -61,12 +71,20 @@ public class ChatExtendedMessageType implements Serializable {
 		this.description = description;
 	}
 	
-	public String getContentType() {
-		return contentType;
+	public CarabiAppServer getMainServer() {
+		return mainServer;
 	}
 	
-	public void setContentType(String contentType) {
-		this.contentType = contentType;
+	public void setMainServer(CarabiAppServer mainServer) {
+		this.mainServer = mainServer;
+	}
+	
+	public Collection<CarabiUser> getMembers() {
+		return members;
+	}
+	
+	public void setMembers(Collection<CarabiUser> members) {
+		this.members = members;
 	}
 	
 	@Override
@@ -79,10 +97,10 @@ public class ChatExtendedMessageType implements Serializable {
 	@Override
 	public boolean equals(Object object) {
 		// TODO: Warning - this method won't work in the case the id fields are not set
-		if (!(object instanceof ChatExtendedMessageType)) {
+		if (!(object instanceof Department)) {
 			return false;
 		}
-		ChatExtendedMessageType other = (ChatExtendedMessageType) object;
+		Department other = (Department) object;
 		if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
 			return false;
 		}
@@ -91,6 +109,6 @@ public class ChatExtendedMessageType implements Serializable {
 	
 	@Override
 	public String toString() {
-		return "ru.carabi.server.entities.ChatExtendedMessageType[ id=" + id + " ]";
+		return "ru.carabi.server.entities.Department[ id=" + id + " ]";
 	}
 }
