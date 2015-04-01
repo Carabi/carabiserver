@@ -247,7 +247,17 @@ public class ChatService {
 	/**
 	 * Получение количества непрочитанных сообщений от разных пользователей.
 	 * @param token токен пользователя
-	 * @return JSON-структура вида {"пользователь":m, "пользователь2":n}
+	 * @return JSON-структура вида 
+	 * <pre>
+	 *{
+	 *	"пользователь": {
+	 *		{"messages":2,"lastMessageId":10,"lastMessage":"test message"}
+	 *	},
+	 *	"пользователь2": {
+	 *		{"messages":5,"lastMessageId":17,"lastMessage":"new message"}
+	 *	}
+	 * }
+	 * </pre
 	 * @throws CarabiException 
 	 */
 	@WebMethod(operationName = "getUnreadMessagesSendersDetailed")

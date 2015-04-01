@@ -400,7 +400,11 @@ public class ChatBean {
 		//При необходимости переходим на сервер клиента
 		CarabiAppServer targetServer = getTargetUserServer(client.getUser());
 		if (!Settings.getCurrentServer().equals(targetServer)) {
-			return callGetUnreadMessagesSendersDetailedSoap(targetServer, client.getToken());
+			if (addLastMessages) {
+				return callGetUnreadMessagesSendersDetailedSoap(targetServer, client.getToken());
+			} else {
+				return callGetUnreadMessagesSendersSoap(targetServer, client.getToken());
+			}
 		}
 		Query getUnreadMessagesSenders = emChat.createNamedQuery("getUnreadMessagesSenders", Object[].class);
 		getUnreadMessagesSenders.setParameter("user", client.getUser().getId());
@@ -685,7 +689,7 @@ public class ChatBean {
 		Map<String, UserRelation> userRelations;
 		if (!usersList.isEmpty()) {//если список пользователей пустой -- доп. статистику не собираем
 			onlineUsers = getOnlineUsers();
-			final String unreadMessagesSendersJson = getUnreadMessagesSenders_Internal(client, addLastMessages);//TODO: Вызывать не эту ф-ю, а только запрос, без цикла, привязывающего логины к ID
+			final String unreadMessagesSendersJson = getUnreadMessagesSenders_Internal(client, addLastMessages);
 			unreadMessagesSenders = Json.createReader(new StringReader(unreadMessagesSendersJson)).readObject();
 			userRelations = getUserRelations(client.getUser(), usersList);
 		} else {
