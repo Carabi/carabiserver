@@ -84,11 +84,11 @@ insert into USER_STATUS(STATUS_ID, SYSNAME, NAME)
 values(1, 'active', 'Активный'), (2, 'banned', 'Забаненный');
 
 /**
- * Корпорация (юр. лицо)
+ * Подразделение сотрудников (корпорация, филиал, отдел)
  */
-create sequence corporation_id_gen;
-create table CORPORATION (
-	CORPORATION_ID integer primary key default nextval('corporation_id_gen'),
+create sequence department_id_gen;
+create table DEPARTMENT (
+	DEPARTMENT_ID integer primary key default nextval('department_id_gen'),
 	NAME varchar(256) not null,
 	SYSNAME varchar(256) not null unique,
 	DESCRIPTION varchar(32000),
@@ -109,7 +109,7 @@ create table CARABI_USER (
 	MIDDLENAME varchar(1024), --отчество
 	LASTNAME varchar(1024), --фамилия
 	EMAIL varchar(1024), --фамилия
-	CORPORATION_ID integer references CORPORATION (CORPORATION_ID) on delete set null,
+	DEPARTMENT_ID integer references DEPARTMENT (DEPARTMENT_ID) on delete set null,
 	ROLE varchar(1024), --описание роли в компании/системе
 	DEPARTMENT varchar(1024), --подразделение
 	--Основная БД Oracle
@@ -323,10 +323,10 @@ create table ORACLE_PARAMETER (
 );
 
 /**
- * Любая продукция компании Караби
+ * Пользовательское программное обеспечение и модули
  */
 create sequence production_id_gen;
-create table CARABI_PRODUCTION (
+create table SOFTWARE_PRODUCTION (
 	PRODUCTION_ID integer primary key default nextval('production_id_gen'),
 	NAME varchar(1024) not null unique, --Название продукта
 	SYSNAME varchar(1024) not null unique, --Системное наименование
@@ -337,15 +337,15 @@ create table CARABI_PRODUCTION (
  * Версии продуктов Караби
  */
 create sequence product_version_id_gen;
-create table CARABI_PRODUCT_VERSION (
+create table PRODUCT_VERSION (
 	PRODUCT_VERSION_ID bigint primary key default nextval('product_version_id_gen'),
-	PRODUCT_ID integer not null references CARABI_PRODUCTION(PRODUCTION_ID) on delete cascade, --Версия какого продукта
+	PRODUCT_ID integer not null references SOFTWARE_PRODUCTION(PRODUCTION_ID) on delete cascade, --Версия какого продукта
 	VERSION_NUMBER varchar(64) not null, --Номер версии вида '1.5.2.6'
 	ISSUE_DATE date, --Дата выпуска
 	SINGULARITY varchar(32000), --Особенности данной версии
 	DOWNLOAD_URL varchar(1024), --Где скачать
 	IS_SIGNIFICANT_UPDATE integer not null default 0,--Является важным обновлением, если не 0
-	DESTINATED_FOR_CORPPORATION integer references CORPORATION (CORPORATION_ID) on delete cascade --компания, которой адресована данная сборка
+	DESTINATED_FOR_DEPARTMENT integer references DEPARTMENT(DEPARTMENT_ID) on delete cascade --компания, которой адресована данная сборка
 );
 
 /**

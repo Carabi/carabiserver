@@ -18,12 +18,12 @@ import javax.persistence.Table;
  * @author sasha<kopilov.ad@gmail.com>
  */
 @Entity
-@Table(name="CORPORATION")
+@Table(name="DEPARTMENT")
 public class Department implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	@Id
-	@Column(name="CORPORATION_ID")
+	@Column(name="DEPARTMENT_ID")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
 	

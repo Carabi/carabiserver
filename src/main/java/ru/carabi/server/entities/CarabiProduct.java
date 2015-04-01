@@ -18,7 +18,7 @@ import javax.persistence.Table;
  * @author sasha <kopilov.ad@gmail.com>
  */
 @Entity
-@Table(name="CARABI_PRODUCTION")
+@Table(name="SOFTWARE_PRODUCTION")
 @NamedQuery(name="findCarabiProduct",
 		query="SELECT P FROM CarabiProduct P where P.sysname = :productName")
 public class CarabiProduct implements Serializable {

@@ -81,7 +81,7 @@ public class CarabiUser implements Serializable {
 	private String email;
 	
 	@ManyToOne
-	@JoinColumn(name="CORPORATION_ID")
+	@JoinColumn(name="DEPARTMENT_ID")
 	private Department department;
 	
 	@Column(name="ROLE")

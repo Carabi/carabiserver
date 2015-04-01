@@ -17,7 +17,7 @@ import javax.persistence.Temporal;
  * @author sasha<kopilov.ad@gmail.com>
  */
 @Entity
-@Table(name="CARABI_PRODUCT_VERSION")
+@Table(name="PRODUCT_VERSION")
 public class ProductVersion implements Serializable {
 	private static final long serialVersionUID = 1L;
 	@Id
