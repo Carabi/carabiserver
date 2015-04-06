@@ -92,7 +92,9 @@ create table DEPARTMENT (
 	NAME varchar(256) not null,
 	SYSNAME varchar(256) not null unique,
 	DESCRIPTION varchar(32000),
-	--основной сервер с БД для чата
+	--Основная БД Oracle
+	DEFAULT_SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) on delete set null,
+	--Основной сервер с БД для чата
 	MAIN_SERVER_ID integer references APPSERVER (APPSERVER_ID) on delete set null
 );
 
@@ -159,6 +161,7 @@ create table USER_PERMISSION (
 	NAME varchar(256) not null,
 	SYSNAME varchar(256) not null unique,
 	DESCRIPTION varchar(32000),
+	PARENT_PERMISSION integer references USER_PERMISSION (PERMISSION_ID),
 	ALLOWED_BY_DEFAULT integer default 0
 );
 insert into USER_PERMISSION(NAME, SYSNAME) values('Редактирование расширений чата', 'EDIT_CHAT_MESSAGE_TYPES');
@@ -330,7 +333,17 @@ create table SOFTWARE_PRODUCTION (
 	PRODUCTION_ID integer primary key default nextval('production_id_gen'),
 	NAME varchar(1024) not null unique, --Название продукта
 	SYSNAME varchar(1024) not null unique, --Системное наименование
-	DESCRIPTION varchar(32000) --Описание
+	DESCRIPTION varchar(32000), --Описание
+	PARENT_PRODUCTION integer references SOFTWARE_PRODUCTION(PRODUCTION_ID),
+	PERMISSION_TO_USE integer references USER_PERMISSION (PERMISSION_ID) -- право пользования продуктом
+);
+
+/**
+ * Доступность/работоспособность продукта на схеме БД
+ */
+create table PRODUCT_ON_SCHEMA (
+	PRODUCT_ID integer not null references SOFTWARE_PRODUCTION(PRODUCTION_ID) on delete cascade,
+	SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) on delete cascade
 );
 
 /**
