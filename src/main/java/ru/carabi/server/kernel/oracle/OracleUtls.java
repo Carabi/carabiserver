@@ -51,9 +51,11 @@ public class OracleUtls {
 			} else if ("VARCHAR2".equalsIgnoreCase(typeName) || "VARCHAR".equalsIgnoreCase(typeName) || "CHAR".equalsIgnoreCase(typeName)) {
 				statement.setString(ordernumber, value);
 			} else if ("NUMBER".equalsIgnoreCase(typeName)) {
-				if (value == null || value.equals("") || value.equalsIgnoreCase("null")) {
+				if (value == null || value.trim().equals("") || value.equalsIgnoreCase("null")) {
 					statement.setNull(ordernumber, typeIdByName("NUMBER"));
 				} else {
+					value = value.replaceAll(" ", "");
+					value = value.replaceFirst("\\,", ".");
 					BigDecimal bd = new BigDecimal(value);
 					statement.setNUMBER(ordernumber, new NUMBER(bd));
 				}
