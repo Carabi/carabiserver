@@ -50,7 +50,7 @@ public class ProductionService {
 			@WebParam(name = "corporation") String corporation
 	) throws CarabiException {
 		usersController.tokenControl(token);
-		TypedQuery<SoftwareProduct> jpaQuery = em.createNamedQuery("findCarabiProduct", SoftwareProduct.class);
+		TypedQuery<SoftwareProduct> jpaQuery = em.createNamedQuery("findSoftwareProduct", SoftwareProduct.class);
 		jpaQuery.setParameter("productName", productName);
 		try {
 			SoftwareProduct product = jpaQuery.getSingleResult();
