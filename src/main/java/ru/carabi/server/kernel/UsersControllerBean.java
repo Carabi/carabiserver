@@ -33,7 +33,8 @@ import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
-import ru.carabi.server.entities.UserRole;
+import ru.carabi.server.entities.Permission;
+import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.kernel.oracle.CursorFetcherBean;
 import ru.carabi.server.logging.CarabiLogging;
 
@@ -370,12 +371,16 @@ public class UsersControllerBean {
 	 * <li>2.2 Если хотя бы в одной группе указан запрет и ни в одной не указано разрешение -- вернуть запрет
 	 * <li>3 Иначе (если нет противоречия) -- вернуть настройку для права по умолчанию.
 	 * </ul>
+	 * Если выставлен флаг PERMISSIONS_TRUST в настройках -- всегда возвращается true (например, на случай незаполненной базы прав)
 	 * @param user пользователь
 	 * @param permission кодовое название права
 	 * @return имеет ли данный пользователь указанное право
 	 * @throws ru.carabi.server.CarabiException если такого права нет в системе
 	 */
 	public boolean userHavePermission(CarabiUser user, String permission) throws CarabiException {
+		if (Settings.PERMISSIONS_TRUST) {
+			return true;
+		}
 		String sql = "select * from appl_permissions.user_has_permission(?, ?)";
 		Query query = em.createNativeQuery(sql);
 		query.setParameter(1, user.getId());
@@ -383,4 +388,54 @@ public class UsersControllerBean {
 		Object result = query.getSingleResult();
 		return (Boolean) result;
 	}
+	
+	public List<Permission> getUserPermissions(UserLogon logon) {
+		String sql = "select permission_id, name, sysname, parent_permission from appl_permissions.get_user_permissions(?)";
+		Query query = em.createNativeQuery(sql);
+		query.setParameter(1, logon.getUser().getId());
+		List resultList = query.getResultList();
+		List<Permission> result = new ArrayList<>(resultList.size());
+		for (Object row: resultList) {
+			Object[] data = (Object[])row;
+			Permission permission = new Permission();
+			permission.setId((Integer) data[0]);
+			permission.setName((String) data[1]);
+			permission.setSysname((String) data[2]);
+			permission.setParentPermissionId((Integer) data[3]);
+			result.add(permission);
+		}
+		return result;
+	}
+	
+	public List<SoftwareProduct> getAvailableProduction(UserLogon logon) {
+		return getAvailableProduction(logon, null);
+	}
+	
+	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct) {
+		String sql;
+		if (StringUtils.isEmpty(currentProduct)) {
+			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?)";
+		} else {
+			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?, ?)";
+		}
+		Query query = em.createNativeQuery(sql);
+		query.setParameter(1, logon.getToken());
+		if (!StringUtils.isEmpty(currentProduct)) {
+			query.setParameter(2, currentProduct);
+		}
+		List resultList = query.getResultList();
+		List<SoftwareProduct> result = new ArrayList<>(resultList.size());
+		for (Object row: resultList) {
+			Object[] data = (Object[])row;
+			SoftwareProduct product = new SoftwareProduct();
+			product.setId((Integer) data[0]);
+			product.setName((String) data[1]);
+			product.setSysname((String) data[2]);
+			product.setHomeUrl((String) data[3]);
+			product.setParentProductId((Integer) data[4]);
+			result.add(product);
+		}
+		return result;
+	}
+	
 }

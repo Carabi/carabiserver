@@ -14,7 +14,7 @@ import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import ru.carabi.server.CarabiException;
-import ru.carabi.server.entities.CarabiProduct;
+import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.entities.ProductVersion;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -50,10 +50,10 @@ public class ProductionService {
 			@WebParam(name = "corporation") String corporation
 	) throws CarabiException {
 		usersController.tokenControl(token);
-		TypedQuery<CarabiProduct> jpaQuery = em.createNamedQuery("findCarabiProduct", CarabiProduct.class);
+		TypedQuery<SoftwareProduct> jpaQuery = em.createNamedQuery("findCarabiProduct", SoftwareProduct.class);
 		jpaQuery.setParameter("productName", productName);
 		try {
-			CarabiProduct product = jpaQuery.getSingleResult();
+			SoftwareProduct product = jpaQuery.getSingleResult();
 			List<ProductVersion> versions = product.getVersions();
 			TreeSet<ProductVersion> orderer = new TreeSet(new VersionComparator());
 			for (ProductVersion version: versions) {

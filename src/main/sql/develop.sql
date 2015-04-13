@@ -162,7 +162,7 @@ create table USER_PERMISSION (
 	SYSNAME varchar(256) not null unique,
 	DESCRIPTION varchar(32000),
 	PARENT_PERMISSION integer references USER_PERMISSION (PERMISSION_ID),
-	ALLOWED_BY_DEFAULT integer default 0
+	ALLOWED_BY_DEFAULT boolean default false
 );
 insert into USER_PERMISSION(NAME, SYSNAME) values('Редактирование расширений чата', 'EDIT_CHAT_MESSAGE_TYPES');
 
@@ -180,14 +180,14 @@ create table USER_ROLE (
 create table USER_HAS_PERMISSION (
 	USER_ID bigint not null references CARABI_USER (USER_ID) on delete cascade,
 	PERMISSION_ID integer not null references USER_PERMISSION (PERMISSION_ID),
-	PERMISSION_INHIBITED integer default 0,
+	PERMISSION_INHIBITED boolean default false,
 	primary key (USER_ID, PERMISSION_ID)
 );
 
 create table ROLE_HAS_PERMISSION (
 	ROLE_ID bigint not null references USER_ROLE (ROLE_ID) on delete cascade,
 	PERMISSION_ID integer not null references USER_PERMISSION (PERMISSION_ID),
-	PERMISSION_INHIBITED integer default 0,
+	PERMISSION_INHIBITED boolean default false,
 	primary key (ROLE_ID, PERMISSION_ID)
 );
 
@@ -335,6 +335,10 @@ create table SOFTWARE_PRODUCTION (
 	SYSNAME varchar(1024) not null unique, --Системное наименование
 	DESCRIPTION varchar(32000), --Описание
 	PARENT_PRODUCTION integer references SOFTWARE_PRODUCTION(PRODUCTION_ID),
+	HOME_URL varchar(1024),
+	SCHEMA_INDEPENDENT boolean, --работает на любых БД (или не использует БД) -- не используется фильтрация по PRODUCT_ON_SCHEMA
+	APPSERVER_INDEPENDENT boolean, --работает на любых серверах (или не использует сервер) -- не используется фильтрация по PRODUCT_ON_APPSERVER
+	VISIBLE boolean, --отображать среди доступных для непосредственного использования
 	PERMISSION_TO_USE integer references USER_PERMISSION (PERMISSION_ID) -- право пользования продуктом
 );
 
@@ -343,7 +347,17 @@ create table SOFTWARE_PRODUCTION (
  */
 create table PRODUCT_ON_SCHEMA (
 	PRODUCT_ID integer not null references SOFTWARE_PRODUCTION(PRODUCTION_ID) on delete cascade,
-	SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) on delete cascade
+	SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) on delete cascade,
+	primary key (PRODUCT_ID, SCHEMA_ID)
+);
+
+/**
+ * Доступность/работоспособность продукта на прикладном сервере
+ */
+create table PRODUCT_ON_APPSERVER (
+	PRODUCT_ID integer not null references SOFTWARE_PRODUCTION(PRODUCTION_ID) on delete cascade,
+	APPSERVER_ID integer references APPSERVER (APPSERVER_ID) on delete cascade,
+	primary key (PRODUCT_ID, SCHEMA_ID)
 );
 
 /**

@@ -19,9 +19,9 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name="SOFTWARE_PRODUCTION")
-@NamedQuery(name="findCarabiProduct",
-		query="SELECT P FROM CarabiProduct P where P.sysname = :productName")
-public class CarabiProduct implements Serializable {
+@NamedQuery(name="findSoftwareProduct",
+		query="SELECT P FROM SoftwareProduct P where P.sysname = :productName")
+public class SoftwareProduct implements Serializable {
 	private static final long serialVersionUID = 1L;
 	@Id
 	@Column(name="PRODUCTION_ID")
@@ -31,6 +31,12 @@ public class CarabiProduct implements Serializable {
 	private String name;
 	private String sysname;
 	private String description;
+	
+	@Column(name="HOME_URL")
+	private String homeUrl;
+	
+	@Column(name="PARENT_PRODUCTION")
+	private Integer parentProductId;
 	
 	@OneToMany(cascade=CascadeType.ALL, mappedBy="carabiProduct")
 	private List<ProductVersion> versions;
@@ -53,10 +59,10 @@ public class CarabiProduct implements Serializable {
 	@Override
 	public boolean equals(Object object) {
 		// TODO: Warning - this method won't work in the case the id fields are not set
-		if (!(object instanceof CarabiProduct)) {
+		if (!(object instanceof SoftwareProduct)) {
 			return false;
 		}
-		CarabiProduct other = (CarabiProduct) object;
+		SoftwareProduct other = (SoftwareProduct) object;
 		if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
 			return false;
 		}
@@ -90,6 +96,22 @@ public class CarabiProduct implements Serializable {
 	
 	public void setDescription(String description) {
 		this.description = description;
+	}
+	
+	public Integer getParentProductId() {
+		return parentProductId;
+	}
+	
+	public void setParentProductId(Integer parentProductId) {
+		this.parentProductId = parentProductId;
+	}
+	
+	public String getHomeUrl() {
+		return homeUrl;
+	}
+	
+	public void setHomeUrl(String homeUrl) {
+		this.homeUrl = homeUrl;
 	}
 	
 	public List<ProductVersion> getVersions() {

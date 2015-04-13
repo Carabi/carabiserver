@@ -5,7 +5,6 @@
     <class>ru.carabi.server.UserLogon</class>
     <class>ru.carabi.server.entities.AllowedSchema</class>
     <class>ru.carabi.server.entities.CarabiAppServer</class>
-    <class>ru.carabi.server.entities.CarabiProduct</class>
     <class>ru.carabi.server.entities.CarabiUser</class>
     <class>ru.carabi.server.entities.ConnectionSchema</class>
     <class>ru.carabi.server.entities.ProductVersion</class>
@@ -24,6 +23,7 @@
     <class>ru.carabi.server.entities.UserRole</class>
     <class>ru.carabi.server.entities.ChatExtendedMessageType</class>
     <class>ru.carabi.server.entities.Department</class>
+    <class>ru.carabi.server.entities.SoftwareProduct</class>
     <exclude-unlisted-classes>true</exclude-unlisted-classes>
     <shared-cache-mode>NONE</shared-cache-mode>
     <properties>

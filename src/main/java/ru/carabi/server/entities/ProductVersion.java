@@ -27,7 +27,7 @@ public class ProductVersion implements Serializable {
 	
 	@ManyToOne
 	@JoinColumn(name="PRODUCT_ID")
-	private CarabiProduct carabiProduct;
+	private SoftwareProduct carabiProduct;
 	
 	@Column(name="VERSION_NUMBER")
 	private String versionNumber;
@@ -77,11 +77,11 @@ public class ProductVersion implements Serializable {
 		return "ru.carabi.server.ProductVersion[ id=" + id + " ]";
 	}
 	
-	public CarabiProduct getCarabiProduct() {
+	public SoftwareProduct getCarabiProduct() {
 		return carabiProduct;
 	}
 	
-	public void setCarabiProduct(CarabiProduct carabiProduct) {
+	public void setCarabiProduct(SoftwareProduct carabiProduct) {
 		this.carabiProduct = carabiProduct;
 	}
 	

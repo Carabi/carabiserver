@@ -90,6 +90,7 @@ public class Settings implements ServletContextListener {
 	
 	public static final boolean CHECK_STORED_QUERY_BASE = Boolean.parseBoolean(settings.getString("CHECK_STORED_QUERY_BASE"));
 	
+	public static final boolean PERMISSIONS_TRUST = Boolean.parseBoolean(settings.getString("PERMISSIONS_TRUST"));
 	/**
 	 * Время в секундах, сколько должна жить пользовательская сессия в ядре
 	 * без обновления пользователем.
