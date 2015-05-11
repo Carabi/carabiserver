@@ -376,7 +376,7 @@ create table PRODUCT_VERSION (
 );
 
 /**
- *Типы сообщений чата (служебные)
+ * Типы сообщений чата (служебные)
  */
 create sequence extension_type_id_gen;
 create table MESSAGE_EXTENSION_TYPE (
@@ -386,4 +386,27 @@ create table MESSAGE_EXTENSION_TYPE (
 	DESCRIPTION varchar(32000),
 	CONTENT_TYPE varchar(256)
 );
+INSERT INTO message_extension_type ("name", sysname, description, content_type) 
+	VALUES ('Задача', 'TASK', NULL, NULL);
+INSERT INTO carabi_kernel.message_extension_type ("name", sysname, description, content_type) 
+	VALUES ('Групповой чат (многопользовательская беседа или "стена")', 'MESSAGES_GROUP', NULL, 'ID или кодовое имя группового чата, к которому относится сообщение');
+INSERT INTO carabi_kernel.message_extension_type ("name", sysname, description, content_type) 
+	VALUES ('Входящий звонок', 'CALL_IN', NULL, NULL);
+INSERT INTO carabi_kernel.message_extension_type ("name", sysname, description, content_type) 
+	VALUES ('Исходящий звонок', 'CALL_OUT', NULL, NULL);
+INSERT INTO carabi_kernel.message_extension_type ("name", sysname, description, content_type) 
+	VALUES ('Пропущенный звонок', 'CALL_SKIP', NULL, NULL);
+
+/**
+ * Группы сообщений чата: многопользовательские беседы, "стены"
+ */
+create sequence messages_group_id_gen;
+create table MESSAGES_GROUP (
+	MESSAGES_GROUP_ID integer primary key default nextval('messages_group_id_gen'),
+	NAME varchar(256) not null,
+	SYSNAME varchar(256) not null unique,
+	DESCRIPTION varchar(32000),
+	SERVER_ID integer references APPSERVER (APPSERVER_ID)
+);
+
 --commit;

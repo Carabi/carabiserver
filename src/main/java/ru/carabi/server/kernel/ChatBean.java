@@ -53,6 +53,7 @@ import ru.carabi.server.entities.ChatExtendedMessageType;
 import ru.carabi.server.entities.ChatMessage;
 import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.FileOnServer;
+import ru.carabi.server.entities.MessagesGroup;
 import ru.carabi.server.entities.UserRelation;
 import ru.carabi.server.entities.UserRelationType;
 import ru.carabi.server.kernel.oracle.CarabiDate;
@@ -1038,6 +1039,120 @@ public class ChatBean {
 		}
 	}
 	
+	public MessagesGroup findOrCreateMessagesGroup(UserLogon logon, String sysname) {
+		TypedQuery<MessagesGroup> findMessageGroup = emKernel.createNamedQuery("findMessageGroupBySysname", MessagesGroup.class);
+		findMessageGroup.setParameter("sysname", sysname);
+		List<MessagesGroup> resultList = findMessageGroup.getResultList();
+		MessagesGroup group;
+		if (resultList.isEmpty()) {
+			group = createMessagesGroup(logon, sysname, sysname, null, Settings.getCurrentServer());
+		} else {
+			group = resultList.get(0);
+		}
+		return group;
+	}
+	
+	public MessagesGroup createMessagesGroup(UserLogon logon, String name, String sysname, String description, CarabiAppServer server) {
+		MessagesGroup group = new MessagesGroup();
+		group.setName(name);
+		group.setSysname(sysname);
+		group.setDescription(description);
+		group.setServer(server);
+		return emKernel.merge(group);
+	}
+	
+	/**
+	 * Отправка сообщения в групповой чат.
+	 * @param logon сессия пользователя
+	 * @param messagesGroup группа сообщений (групповой чат)
+	 * @param messageText сообщение
+	 */
+	public void writeToMessageGroup(UserLogon logon, MessagesGroup messagesGroup, String messageText) throws CarabiException {
+		//При необходимости переходим на сервер группы
+		CarabiAppServer targetServer = messagesGroup.getServer();
+		if (!Settings.getCurrentServer().equals(targetServer)) {
+			callWriteToMessageGroupSoap(targetServer, logon.getToken(), messagesGroup.getSysname(), messageText);
+			return;
+		}
+		ChatMessage message = new ChatMessage();
+		message.setMessageText(messageText);
+		message.setSenderId(logon.getUser().getId());
+		message.setReceiverId(logon.getUser().getId());//Сам с собою веду беседу :D Штатный клиент чата этого не покажет,
+		message.setOwnerId(logon.getUser().getId());//а переделывать not null в таблице пока не будем
+		message.setSent(new Date());
+		message.setExtensionTypeId(getExtensionTypeId("MESSAGES_GROUP", logon));
+		message.setExtensionValue(messagesGroup.getSysname());
+		emChat.merge(message);
+	}
+	
+	public String readMessagesGroup(UserLogon logon, MessagesGroup messagesGroup, String afterDateStr, String search, int crop) throws CarabiException {
+		//При необходимости переходим на сервер группы
+		CarabiAppServer targetServer = messagesGroup.getServer();
+		if (!Settings.getCurrentServer().equals(targetServer)) {
+			return callReadMessagesGroupSoap(targetServer, logon.getToken(), messagesGroup.getSysname(), afterDateStr, search, crop);
+		}
+		//получаем сообщения
+		CarabiDate afterDate = parceDate(afterDateStr, "01.01.1970");
+		final Long userId = logon.getUser().getId();
+		final TypedQuery<ChatMessage> getDialog;
+		if (search != null && !search.equals("")) {
+			getDialog = emChat.createNamedQuery("searchInMessagesGroup", ChatMessage.class);
+			getDialog.setParameter("search", "%" + search.toUpperCase() + "%");
+		} else {
+			getDialog = emChat.createNamedQuery("getMessagesGroup", ChatMessage.class);
+		}
+		getDialog.setParameter("extensionTypeIsGroup", getExtensionTypeId("MESSAGES_GROUP", logon));
+		getDialog.setParameter("messagesGroupSysname", messagesGroup.getSysname());
+		
+		getDialog.setParameter("recently", afterDate);
+		List<ChatMessage> dialog = getDialog.getResultList();
+		//формируем вывод
+		JsonArrayBuilder headerColumns = Json.createArrayBuilder();
+		headerColumns.add(Utls.parametersToJson("MESSAGE_ID", "NUMBER"));
+		headerColumns.add(Utls.parametersToJson("SENDER", "VARCHAR2"));
+		headerColumns.add(Utls.parametersToJson("RECEIVER", "VARCHAR2"));
+		headerColumns.add(Utls.parametersToJson("MESSAGE_TEXT", "VARCHAR2"));
+		headerColumns.add(Utls.parametersToJson("MESSAGE_IS_FULL", "NUMBER"));
+		headerColumns.add(Utls.parametersToJson("ATTACHMENT", "NUMBER"));
+		headerColumns.add(Utls.parametersToJson("SENT", "DATE"));
+		headerColumns.add(Utls.parametersToJson("RECEIVED", "DATE"));
+		headerColumns.add(Utls.parametersToJson("EXTENSION_TYPE", "VARCHAR2"));
+		headerColumns.add(Utls.parametersToJson("EXTENSION_VALUE", "VARCHAR2"));
+		JsonObjectBuilder result = Json.createObjectBuilder();
+		result.add("columns", headerColumns);
+		JsonArrayBuilder rows = Json.createArrayBuilder();
+		Map<Long, CarabiUser> senders = new HashMap<>();//отправителей много, придётся каждого брать из базы
+		for (ChatMessage message: dialog) {
+			JsonArrayBuilder messageJson = Json.createArrayBuilder();
+			Utls.addJsonObject(messageJson, message.getId().toString());//MESSAGE_ID
+			assert message.getOwnerId().equals(userId);
+			Long senderId = message.getSenderId();
+			CarabiUser sender = senders.get(senderId);
+			if (sender == null) {
+				sender = emKernel.find(CarabiUser.class, senderId);
+				senders.put(senderId, sender);
+			}
+			Utls.addJsonObject(messageJson, sender.getLogin());//SENDER
+			Utls.addJsonObject(messageJson, logon.getUser().getLogin());//RECEIVER
+			String messageText = message.getMessageText();
+			if (crop > 0 && messageText.length() > crop) {
+				Utls.addJsonObject(messageJson, messageText.substring(0, crop));//MESSAGE_TEXT
+				messageJson.add("0");//MESSAGE_IS_FULL
+			} else {
+				Utls.addJsonObject(messageJson, messageText);//MESSAGE_TEXT
+				messageJson.add("1");//MESSAGE_IS_FULL
+			}
+			Utls.addJsonObject(messageJson, message.getAttachment() == null ? "0" : "1");//ATTACHMENT
+			Utls.addJsonObject(messageJson, CarabiDate.wrap(message.getSent()));//SENT
+			Utls.addJsonObject(messageJson, CarabiDate.wrap(message.getReceived()));//RECEIVED
+			Utls.addJsonObject(messageJson, getMessageExtensionType(message));//EXTENSION_TYPE
+			Utls.addJsonObject(messageJson, message.getExtensionValue());//EXTENSION_VALUE
+			rows.add(messageJson);
+		}
+		result.add("list", rows);
+		return result.build().toString();
+	}
+	
 	private Long callForwardMessageSoap(CarabiAppServer receiverServer, CarabiUser sender, CarabiUser receiver, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue) throws CarabiException {
 		try {
 			ChatService chatServicePort = getChatServicePort(receiverServer);
@@ -1236,6 +1351,32 @@ public class ChatBean {
 		}
 	}
 	
+	private void callWriteToMessageGroupSoap(CarabiAppServer targetServer, String token, String messagesGroupSysname, String messageText) throws CarabiException {
+		try {
+			ChatService chatServicePort = getChatServicePort(targetServer);
+			chatServicePort.writeToMessageGroup(token, messagesGroupSysname, messageText);
+		} catch (MalformedURLException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);
+		} catch (CarabiException_Exception ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new CarabiException(ex);
+		}
+	}
+	
+	private String callReadMessagesGroupSoap(CarabiAppServer targetServer, String token, String messagesGroupSysname, String afterDateStr, String search, int crop) throws CarabiException {
+		try {
+			ChatService chatServicePort = getChatServicePort(targetServer);
+			return chatServicePort.readMessagesGroup(token, messagesGroupSysname, afterDateStr, search, crop);
+		} catch (MalformedURLException ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);
+		} catch (CarabiException_Exception ex) {
+			logger.log(Level.SEVERE, null, ex);
+			throw new CarabiException(ex);
+		}
+	}
+	
 	private ChatService chatServicePort;
 	private ChatService getChatServicePort(CarabiAppServer targetServer) throws MalformedURLException {
 		if (chatServicePort != null) {
@@ -1328,7 +1469,7 @@ public class ChatBean {
 			return extensionType;
 		}
 	}
-
+	
 	public Integer getExtensionTypeId(String extensionTypeName, UserLogon logon) throws CarabiException {
 		ChatExtendedMessageType extensionType = findOrCreateExtensionType(extensionTypeName, logon);
 		if (extensionType == null ) {

@@ -16,8 +16,8 @@ import ru.carabi.libs.CarabiFunc;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
-import ru.carabi.server.entities.ChatExtendedMessageType;
 import ru.carabi.server.entities.FileOnServer;
+import ru.carabi.server.entities.MessagesGroup;
 import ru.carabi.server.kernel.ChatBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -578,6 +578,50 @@ public class ChatService {
 			throw e;
 		}
 	}
+	
+	/**
+	 * Отправка сообщения в групповой чат.
+	 * @param token токен пользователя
+	 * @param messagesGroupSysname кодовое имя группового чата
+	 * @param messageText сообщение
+	 * @throws CarabiException 
+	 */
+	@WebMethod(operationName = "writeToMessageGroup")
+	public void writeToMessageGroup(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "messagesGroupSysname") String messagesGroupSysname,
+			@WebParam(name = "messageText") String messageText) throws CarabiException {
+		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+			MessagesGroup messagesGroup = chatBean.findOrCreateMessagesGroup(logon, messagesGroupSysname);
+			chatBean.writeToMessageGroup(logon, messagesGroup, messageText);
+		}
+	}
+	
+	/**
+	 * Возвращает сообщения, написанные в групповом чате.
+	 * Аналогично {@link #getDialog(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int)},
+	 * вместо собеседника -- название группового чата.
+	 * @param token
+	 * @param messagesGroupSysname 
+	 * @param afterDate
+	 * @param search
+	 * @param crop
+	 * @return 
+	 */
+	public String readMessagesGroup(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "messagesGroupSysname") String messagesGroupSysname,
+			@WebParam(name = "afterDate") String afterDate,
+			@WebParam(name = "search") String search,
+			@WebParam(name = "crop") int crop) throws CarabiException {
+		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+			return chatBean.readMessagesGroup(logon, chatBean.findOrCreateMessagesGroup(logon, messagesGroupSysname), afterDate, search, crop);
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
+	
 	private void checkSoftwareToken(String softwareToken) throws CarabiException {
 		try {
 			String decrypt = CarabiFunc.decrypt(softwareToken);
