@@ -1039,15 +1039,15 @@ public class ChatBean {
 		}
 	}
 	
-	public MessagesGroup findOrCreateMessagesGroup(UserLogon logon, String sysname) {
+	public MessagesGroup findOrCreateMessagesGroup(UserLogon logon, String sysname, boolean createIfNotFound) {
 		TypedQuery<MessagesGroup> findMessageGroup = emKernel.createNamedQuery("findMessageGroupBySysname", MessagesGroup.class);
 		findMessageGroup.setParameter("sysname", sysname);
 		List<MessagesGroup> resultList = findMessageGroup.getResultList();
-		MessagesGroup group;
-		if (resultList.isEmpty()) {
-			group = createMessagesGroup(logon, sysname, sysname, null, Settings.getCurrentServer());
-		} else {
+		MessagesGroup group = null;
+		if (!resultList.isEmpty()) {
 			group = resultList.get(0);
+		} else if (createIfNotFound){
+			group = createMessagesGroup(logon, sysname, sysname, null, Settings.getCurrentServer());
 		}
 		return group;
 	}

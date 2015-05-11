@@ -592,7 +592,7 @@ public class ChatService {
 			@WebParam(name = "messagesGroupSysname") String messagesGroupSysname,
 			@WebParam(name = "messageText") String messageText) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
-			MessagesGroup messagesGroup = chatBean.findOrCreateMessagesGroup(logon, messagesGroupSysname);
+			MessagesGroup messagesGroup = chatBean.findOrCreateMessagesGroup(logon, messagesGroupSysname, true);
 			chatBean.writeToMessageGroup(logon, messagesGroup, messageText);
 		}
 	}
@@ -615,7 +615,11 @@ public class ChatService {
 			@WebParam(name = "search") String search,
 			@WebParam(name = "crop") int crop) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
-			return chatBean.readMessagesGroup(logon, chatBean.findOrCreateMessagesGroup(logon, messagesGroupSysname), afterDate, search, crop);
+			MessagesGroup messagesGroup = chatBean.findOrCreateMessagesGroup(logon, messagesGroupSysname, false);
+			if (messagesGroup == null) {
+				throw new CarabiException(" Messages group " + messagesGroupSysname + "not found");
+			}
+			return chatBean.readMessagesGroup(logon, messagesGroup, afterDate, search, crop);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;
