@@ -91,17 +91,21 @@ public class ChatBean {
 	 * @param receiverAttachmentId ID вложения на стороне получателя (если сообщение с вложением)
 	 * @param extensionTypeId ID типа расширения, если сообщение расширенное
 	 * @param extensionValue содержимое расширения
+	 * @param markRead сразу помечать сообщение прочитанным
 	 * @return id сообщения на стороне отправителя
 	 * @throws ru.carabi.server.CarabiException 
 	 */
-	public Long sendMessage(CarabiUser sender, CarabiUser receiver, String messageText, Long senderAttachmentId, Long receiverAttachmentId, Integer extensionTypeId, String extensionValue) throws CarabiException {
+	public Long sendMessage(CarabiUser sender, CarabiUser receiver, String messageText, Long senderAttachmentId, Long receiverAttachmentId, Integer extensionTypeId, String extensionValue, boolean markRead) throws CarabiException {
+		if (sender.equals(receiver)) { //пометки самому себе по умолчанию известны пользователю
+			markRead = true;
+		}
 		CarabiAppServer receiverServer = getTargetUserServer(receiver);
 		Long recievedMessageId;
 		//Если целевой сервер -- текущий, вызываем функцию из Bean напрямую.
 		if (Settings.getCurrentServer().equals(receiverServer)) {
-			recievedMessageId = forwardMessage(sender, receiver, messageText, receiverAttachmentId, extensionTypeId, extensionValue);
+			recievedMessageId = forwardMessage(sender, receiver, messageText, receiverAttachmentId, extensionTypeId, extensionValue, markRead);
 		} else { //иначе по SOAP
-			recievedMessageId = callForwardMessageSoap(receiverServer, sender, receiver, messageText, receiverAttachmentId, extensionTypeId, extensionValue);
+			recievedMessageId = callForwardMessageSoap(receiverServer, sender, receiver, messageText, receiverAttachmentId, extensionTypeId, extensionValue, markRead);
 		}
 		if (recievedMessageId < 0) {
 			throw new CarabiException("could not forward message");
@@ -110,9 +114,9 @@ public class ChatBean {
 		Long sentMessageId;
 		//Аналогично для отправителя, если сообщение дошло получателю
 		if (Settings.getCurrentServer().equals(senderServer)) {
-			sentMessageId = putMessage(sender, sender, receiver, recievedMessageId, sender.getMainServer().getId(), messageText, senderAttachmentId, extensionTypeId, extensionValue);
+			sentMessageId = putMessage(sender, sender, receiver, recievedMessageId, sender.getMainServer().getId(), messageText, senderAttachmentId, extensionTypeId, extensionValue, markRead);
 		} else {
-			sentMessageId = callPutMessageSoap(senderServer, sender, sender, receiver, recievedMessageId, sender.getMainServer().getId(), messageText, senderAttachmentId, extensionTypeId, extensionValue);
+			sentMessageId = callPutMessageSoap(senderServer, sender, sender, receiver, recievedMessageId, sender.getMainServer().getId(), messageText, senderAttachmentId, extensionTypeId, extensionValue, markRead);
 		}
 		return sentMessageId;
 	}
@@ -126,15 +130,18 @@ public class ChatBean {
 	 * @param receiver получатель
 	 * @param messageText текст сообщения (для вложений -- короткий комментарий, например, имя файла)
 	 * @param attachmentId id существующего вложения
+	 * @param extensionTypeId id типа расширения
+	 * @param extensionValue значение расширения
+	 * @param markRead сразу помечать сообщение прочитанным
 	 * @return ID сообщения у получателя
 	 */
-	public Long forwardMessage(CarabiUser sender, CarabiUser receiver, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue) throws CarabiException {
+	public Long forwardMessage(CarabiUser sender, CarabiUser receiver, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue, boolean markRead) throws CarabiException {
 		CarabiAppServer receiverServer = getTargetUserServer(receiver);
 		if (!Settings.getCurrentServer().equals(receiverServer)) {
 			//Если мы не на сервере получателя -- вызываем функцию по SOAP
-			return callForwardMessageSoap(receiverServer, sender, receiver, messageText, attachmentId, extensionTypeId, extensionValue);
+			return callForwardMessageSoap(receiverServer, sender, receiver, messageText, attachmentId, extensionTypeId, extensionValue, markRead);
 		}
-		Long messageId = putMessage(receiver, sender, receiver, null, null, messageText, attachmentId, extensionTypeId, extensionValue);
+		Long messageId = putMessage(receiver, sender, receiver, null, null, messageText, attachmentId, extensionTypeId, extensionValue, markRead);
 		return messageId;
 	}
 
@@ -163,10 +170,11 @@ public class ChatBean {
 	 * @param attachmentId ID вложения, если есть
 	 * @param extensionTypeId ID типа расширения, если есть
 	 * @param extensionValue содержимое расширения, если есть
+	 * @param markRead сразу помечать сообщение прочитанным
 	 * @return Id новой записи
 	 * @throws CarabiException 
 	 */
-	public Long putMessage(CarabiUser owner, CarabiUser sender, CarabiUser receiver, Long receivedMessageId, Integer receivedMessageServerId, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue) throws CarabiException {
+	public Long putMessage(CarabiUser owner, CarabiUser sender, CarabiUser receiver, Long receivedMessageId, Integer receivedMessageServerId, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue, boolean markRead) throws CarabiException {
 		ChatMessage chatMessage = new ChatMessage();
 		chatMessage.setOwnerId(owner.getId());
 		chatMessage.setSenderId(sender.getId());
@@ -180,6 +188,9 @@ public class ChatBean {
 		}
 		chatMessage.setExtensionTypeId(extensionTypeId);
 		chatMessage.setExtensionValue(extensionValue);
+		if (markRead) {
+			chatMessage.setReceived(new Date());
+		}
 		chatMessage = emChat.merge(chatMessage);
 		emChat.flush();
 		messageToEventer(sender, receiver, owner.equals(receiver), chatMessage.getId());
@@ -1153,13 +1164,13 @@ public class ChatBean {
 		return result.build().toString();
 	}
 	
-	private Long callForwardMessageSoap(CarabiAppServer receiverServer, CarabiUser sender, CarabiUser receiver, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue) throws CarabiException {
+	private Long callForwardMessageSoap(CarabiAppServer receiverServer, CarabiUser sender, CarabiUser receiver, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue, boolean markRead) throws CarabiException {
 		try {
 			ChatService chatServicePort = getChatServicePort(receiverServer);
 			String token = chatServicePort.prepareToForward();
 			token = encrypt(token);
 			setCookie((BindingProvider)chatServicePort);
-			return chatServicePort.forwardMessage(token, sender.getLogin(), receiver.getLogin(), messageText, attachmentId, extensionTypeId, extensionValue);
+			return chatServicePort.forwardMessage(token, sender.getLogin(), receiver.getLogin(), messageText, attachmentId, extensionTypeId, extensionValue, markRead);
 		} catch (MalformedURLException | GeneralSecurityException | WebServiceException ex) {
 			logger.log(Level.SEVERE, null, ex);
 			throw new CarabiException("Error on connecting to remote server: ", ex);
@@ -1169,13 +1180,13 @@ public class ChatBean {
 		}
 	}
 	
-	private Long callPutMessageSoap(CarabiAppServer targetServer, CarabiUser owner, CarabiUser sender, CarabiUser receiver, Long receivedMessageId, Integer receivedMessageServerId, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue) throws CarabiException {
+	private Long callPutMessageSoap(CarabiAppServer targetServer, CarabiUser owner, CarabiUser sender, CarabiUser receiver, Long receivedMessageId, Integer receivedMessageServerId, String messageText, Long attachmentId, Integer extensionTypeId, String extensionValue, boolean markRead) throws CarabiException {
 		try {
 			ChatService chatServicePort = getChatServicePort(targetServer);
 			String token = chatServicePort.prepareToForward();
 			token = encrypt(token);
 			setCookie((BindingProvider)chatServicePort);
-			return chatServicePort.putMessage(token, owner.getLogin(), sender.getLogin(), receiver.getLogin(), receivedMessageId, receivedMessageServerId, messageText, attachmentId, extensionTypeId, extensionValue);
+			return chatServicePort.putMessage(token, owner.getLogin(), sender.getLogin(), receiver.getLogin(), receivedMessageId, receivedMessageServerId, messageText, attachmentId, extensionTypeId, extensionValue, markRead);
 		} catch (MalformedURLException | GeneralSecurityException | WebServiceException ex) {
 			logger.log(Level.SEVERE, null, ex);
 			throw new CarabiException("Error on connecting to remote server: " + ex.getMessage(), ex);
@@ -1401,15 +1412,16 @@ public class ChatBean {
 	 * @param messageText текст сообщения
 	 * @param extensionTypeId ID типа расширения, если есть
 	 * @param extensionValue расширение, если есть
+	 * @param markRead сразу помечать сообщение прочитанным
 	 * @return массив ID отправленных сообщений
 	 * @throws CarabiException 
 	 */
-	public Long[] sendToReceivers(CarabiUser sender, String[] receiversArray, String messageText, Integer extensionTypeId, String extensionValue) throws CarabiException {
+	public Long[] sendToReceivers(CarabiUser sender, String[] receiversArray, String messageText, Integer extensionTypeId, String extensionValue, boolean markRead) throws CarabiException {
 		Long[] sentMessagesId = new Long[receiversArray.length];
 		int i = 0;
 		for (String login: receiversArray) {
 			CarabiUser receiver = uc.findUser(login);
-			sentMessagesId[i] = sendMessage(sender, receiver, messageText, null, null, extensionTypeId, extensionValue);
+			sentMessagesId[i] = sendMessage(sender, receiver, messageText, null, null, extensionTypeId, extensionValue, markRead);
 			i++;
 		}
 		return sentMessagesId;
@@ -1425,7 +1437,7 @@ public class ChatBean {
 		if (id == -1L) {//если нет -- парсинг массива
 			try {
 				JsonArray idArrayJson = Json.createReader(new StringReader(messagesIdList)).readArray();
-				idList = new ArrayList<Long>(idArrayJson.size());
+				idList = new ArrayList<>(idArrayJson.size());
 				for (Iterator<JsonValue> iterator = idArrayJson.iterator(); iterator.hasNext();) {
 					JsonValue value = iterator.next();
 					id = Long.parseLong(value.toString());

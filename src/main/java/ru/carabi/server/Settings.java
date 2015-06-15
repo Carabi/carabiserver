@@ -135,7 +135,7 @@ public class Settings implements ServletContextListener {
 //==========================================
 	//Взято из Delphi
 	public static final String serverName = "CarabiServer";
-	public static final String projectName = "ItmoKOT";
+	public static final String projectName = "MarketPRO";
 	public static final String projectVersion = settings.getString("PROJECT_VERSION");
 
 	public static final int SQL_ERROR = -201;

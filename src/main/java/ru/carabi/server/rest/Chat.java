@@ -5,7 +5,6 @@ import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Path;
 import javax.enterprise.context.RequestScoped;
@@ -75,6 +74,7 @@ Content-Length: 66
 	 * @param loginReceiver логин получателя
 	 * @param extensionType тип расширения (необязательный параметр)
 	 * @param extensionValue значение расширения (необязательный параметр)
+	 * @param markReadStr если "true" -- сразу помечать сообщение прочитанным
 	 * @param messageText текст сообщения (тело пакета)
 	 * @return ID отправленного сообщения
 	 */
@@ -86,6 +86,7 @@ Content-Length: 66
 			@QueryParam("loginReceiver") String loginReceiver,
 			@DefaultValue("") @QueryParam("extensionType") String extensionType,
 			@DefaultValue("") @QueryParam("extensionValue") String extensionValue,
+			@DefaultValue("false") @QueryParam("markRead") String markReadStr,
 			String messageText
 		) {
 		String[] receiversArray;
@@ -94,10 +95,11 @@ Content-Length: 66
 		} else {
 			receiversArray = new String[] {loginReceiver};
 		}
+		boolean markRead = Boolean.valueOf(markReadStr);
 		try (UserLogon logon = uc.tokenAuthorize(token, false)){
 			CarabiUser sender = logon.getUser();
 			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, logon);
-			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue, markRead);
 			return StringUtils.join(sentMessagesId, ";");
 		} catch (RegisterException ex) {
 			logger.log(Level.SEVERE, null, ex);
@@ -126,6 +128,7 @@ Content-Length: 68
 	 * @param loginReceiver логин получателя
 	 * @param extensionType тип расширения (необязательный параметр)
 	 * @param extensionValue значение расширения (необязательный параметр)
+	 * @param markReadStr если "true" -- сразу помечать сообщение прочитанным
 	 * @param messageText текст сообщения (тело пакета)
 	 * @return ID отправленного сообщения
 	 */
@@ -138,6 +141,7 @@ Content-Length: 68
 			@QueryParam("loginReceiver") String loginReceiver,
 			@DefaultValue("") @QueryParam("extensionType") String extensionType,
 			@DefaultValue("") @QueryParam("extensionValue") String extensionValue,
+			@DefaultValue("false") @QueryParam("markRead") String markReadStr,
 			String messageText
 		) {
 		String[] receiversArray;
@@ -146,6 +150,7 @@ Content-Length: 68
 		} else {
 			receiversArray = new String[] {loginReceiver};
 		}
+		boolean markRead = Boolean.valueOf(markReadStr);
 		try {
 			UserLogon administrator = uc.getUserLogon(token);
 			if (administrator == null || !administrator.isPermanent()) {
@@ -153,7 +158,7 @@ Content-Length: 68
 			}
 			CarabiUser sender = uc.findUser(loginSender);
 			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, administrator);
-			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue, markRead);
 			return StringUtils.join(sentMessagesId, ";");
 		} catch (RegisterException ex) {
 			logger.log(Level.SEVERE, null, ex);
@@ -185,6 +190,7 @@ Content-Length: xxx
 	 * @param extensionType тип расширения
 	 * @param messageText текст сообщения (необязательный параметр)
 	 * @param extensionValue значение расширения (тело пакета)
+	 * @param markReadStr если "true" -- сразу помечать сообщение прочитанным
 	 * @return ID отправленного сообщения
 	 */
 	@POST
@@ -195,6 +201,7 @@ Content-Length: xxx
 			@QueryParam("loginReceiver") String loginReceiver,
 			@QueryParam("extensionType") String extensionType,
 			@DefaultValue("") @QueryParam("messageText") String messageText,
+			@DefaultValue("false") @QueryParam("markRead") String markReadStr,
 			String extensionValue
 		) {
 		String[] receiversArray;
@@ -203,10 +210,11 @@ Content-Length: xxx
 		} else {
 			receiversArray = new String[] {loginReceiver};
 		}
+		boolean markRead = Boolean.valueOf(markReadStr);
 		try (UserLogon logon = uc.tokenAuthorize(token, false)){
 			CarabiUser sender = logon.getUser();
 			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, logon);
-			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue, markRead);
 			return StringUtils.join(sentMessagesId, ";");
 		} catch (RegisterException ex) {
 			logger.log(Level.SEVERE, null, ex);
@@ -237,6 +245,7 @@ Content-Length: xxx
 	 * @param extensionType тип расширения 
 	 * @param messageText текст сообщения (необязательный параметр)
 	 * @param extensionValue значение расширения (тело пакета)
+	 * @param markReadStr если "true" -- сразу помечать сообщение прочитанным
 	 * @return ID отправленного сообщения
 	 */
 	@POST
@@ -248,6 +257,7 @@ Content-Length: xxx
 			@QueryParam("loginReceiver") String loginReceiver,
 			@QueryParam("extensionType") String extensionType,
 			@DefaultValue("") @QueryParam("messageText") String messageText,
+			@DefaultValue("false") @QueryParam("markRead") String markReadStr,
 			String extensionValue
 		) {
 		String[] receiversArray;
@@ -256,6 +266,7 @@ Content-Length: xxx
 		} else {
 			receiversArray = new String[] {loginReceiver};
 		}
+		boolean markRead = Boolean.valueOf(markReadStr);
 		try {
 			UserLogon administrator = uc.getUserLogon(token);
 			if (administrator == null || !administrator.isPermanent()) {
@@ -263,7 +274,7 @@ Content-Length: xxx
 			}
 			CarabiUser sender = uc.findUser(loginSender);
 			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, administrator);
-			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue);
+			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue, markRead);
 			return StringUtils.join(sentMessagesId, ";");
 		} catch (RegisterException ex) {
 			logger.log(Level.SEVERE, null, ex);
