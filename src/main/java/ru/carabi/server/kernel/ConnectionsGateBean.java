@@ -14,6 +14,7 @@ import javax.naming.NamingException;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.NoResultException;
+import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceUnit;
 import javax.persistence.TypedQuery;
 import javax.sql.DataSource;
@@ -35,17 +36,11 @@ import ru.carabi.server.Settings;
  */
 @Stateless
 public class ConnectionsGateBean {
-	@PersistenceUnit(unitName = "ru.carabi.server_carabiserver-kernel")
-	private EntityManagerFactory emf;
+	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManager em;//Доступ через JPA -- только для служебной информации в ядровой базе
 	
 	@EJB ConnectorBean connector;
 	static final Logger logger = Logger.getLogger(ConnectionsGateBean.class.getName());
-	
-	@PostConstruct
-	public void postConstruct() {
-		em = emf.createEntityManager();
-	}
 	
 	/**
 	 * Возвращает указанную в настройках пользователя базу по умолчанию

@@ -364,6 +364,15 @@ public class ChatService {
 	}
 	
 	/**
+	 * Пометить все сообщения прочитанными
+	 * @param Токен пользователя (получателя сообщения, ставящего пометки о прочтении)
+	 */
+	@WebMethod(operationName = "readAllMessages")
+	public void readAllMessages(@WebParam(name = "token") String token) {
+		
+	}
+	
+	/**
 	 * Пометить прочитанность старых сообщений. 
 	  * Выподняется функция {@link #markRead(java.lang.String, java.lang.String, boolean) }
 	  * для всех сообщений, отправленных до указанной даты.

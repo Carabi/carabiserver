@@ -11,13 +11,15 @@ import javax.persistence.Table;
 
 /**
  *
- * @author sasha
+ * @author sasha<kopilov.ad@gmail.com>
  */
 @Entity
 @Table(name="THUMBNAIL")
 @NamedQueries ({
-@NamedQuery(name = "findThumbnail",
-		query = "select T from ThumbnailMeta T where T.original = :original and T.width = :width and T.height = :height")
+	@NamedQuery(name = "findThumbnail",
+		query = "select T from ThumbnailMeta T where T.original = :original and T.width = :width and T.height = :height"),
+	@NamedQuery(name = "findAllThumbnails",
+		query = "select T from ThumbnailMeta T where T.original = :original")
 })
 public class ThumbnailMeta implements Serializable {
 	private static final long serialVersionUID = 1L;

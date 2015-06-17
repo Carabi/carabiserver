@@ -27,7 +27,7 @@ import ru.carabi.stub.ImagesService_Service;
 
 /**
  * Обработка и хранение изображений
- * @author aleksandr
+ * @author sasha<kopilov.ad@gmail.com>
  */
 @Stateless
 public class ImagesBean {
@@ -78,6 +78,26 @@ public class ImagesBean {
 			}
 		}
 		return thumbnail;
+	}
+	
+	/** Удаление миниатюр из БД и файловой системы
+	 * @param original данные об оригинале
+	 * @param useKernelBase данные о файлах хранятся в ядровой, а не в локальной базе
+	 */
+	public void removeThumbnails(FileOnServer original, boolean useKernelBase) {
+		EntityManager em = useKernelBase ? emKernel : emChat;
+		TypedQuery<ThumbnailMeta> findThumbnails = em.createNamedQuery("findAllThumbnails", ThumbnailMeta.class);
+		findThumbnails.setParameter("original", original);
+		List<ThumbnailMeta> thumbnails = findThumbnails.getResultList();
+		for (ThumbnailMeta thumbnailMeta: thumbnails) {
+			FileOnServer thumbnail = thumbnailMeta.getThumbnail();
+			if (thumbnail != null) {
+				File thumbnailFile = new File(thumbnail.getContentAddress());
+				thumbnailFile.delete();
+				em.remove(thumbnail);
+			}
+			em.remove(thumbnailMeta);
+		}
 	}
 	
 	/**

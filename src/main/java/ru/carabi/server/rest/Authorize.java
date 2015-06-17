@@ -124,7 +124,7 @@ public class Authorize {
 	@GET
 	@Produces("text/plain")
 	public String unauthorize (@QueryParam("token") String token) {
-		usersController.removeUser(token, true);
+		usersController.removeUserLogon(token, true);
 		return token;
 	}
 }

@@ -65,6 +65,7 @@ public class AdminBean {
 	
 	private @EJB ConnectionsGateBean cg;
 	private @EJB EventerBean eventer;
+	private @EJB ImagesBean images;
 	private @EJB UsersControllerBean uc;
 	/**
 	 * Получение ID пользователя Carabi.
@@ -858,15 +859,14 @@ public class AdminBean {
 		em.clear();
 	}
 	
-	public FileOnServer createUserAvatar(String login) throws CarabiException {
-		CarabiUser user = uc.findUser(login);
+	public FileOnServer createUserAvatar(UserLogon logon) throws CarabiException {
+		CarabiUser user = logon.getUser();
+		String login = user.getLogin();
 		FileOnServer avatar = user.getAvatar();
 		if (avatar != null) { //Удалить старый аватар
 			user.setAvatar(null);
 			user = em.merge(user);
-			File avatarFile = new File(avatar.getContentAddress());
-			avatarFile.delete();
-			em.remove(avatar);
+			deleteAvatar(avatar);
 		}
 		avatar = new FileOnServer();
 		avatar.setName(login);
@@ -874,13 +874,22 @@ public class AdminBean {
 		em.flush();
 		avatar.setContentAddress(Settings.AVATARS_LOCATION + "/" + avatar.getId() + "_" + login);
 		user.setAvatar(avatar);
-		em.merge(user);
+		user = em.merge(user);
 		em.flush();
+		logon.setUser(user);
 		return avatar;
 	}
 	
 	public FileOnServer refreshAvatar(FileOnServer fileMetadata) {
 		return em.merge(fileMetadata);
+	}
+	
+	private void deleteAvatar(FileOnServer avatar) {
+		images.removeThumbnails(avatar, true);
+		File avatarFile = new File(avatar.getContentAddress());
+		avatarFile.delete();
+		em.remove(em.find(FileOnServer.class, avatar.getId()));
+		em.flush();
 	}
 	
 	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)

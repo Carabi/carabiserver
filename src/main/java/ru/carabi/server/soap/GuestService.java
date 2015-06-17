@@ -254,7 +254,7 @@ public class GuestService {
 			@WebParam(name = "permanently") boolean permanently
 		) 
 	{
-		usersController.removeUser(token, permanently);
+		usersController.removeUserLogon(token, permanently);
 	}
 	
 	/**

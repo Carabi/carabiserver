@@ -306,7 +306,7 @@ Content-Length: xxx
 				} catch (Exception e){
 					return e.getMessage();
 				} finally {
-					uc.removeUser(targetLogon.getToken(), true);
+					uc.removeUserLogon(targetLogon.getToken(), true);
 				}
 				return "" + unreadMessagesCount;
 			} else {
