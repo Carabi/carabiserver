@@ -120,7 +120,7 @@ public class LoadAvatar extends HttpServlet {
 			}
 			response.setHeader("Content-Length", "" +file.getContentLength());
 			//передача клиенту (чтение или проксирование)
-			try (FileStreamer fileStreamer = FileStreamer.makeFileStreamer(Settings.getMasterServer(), null, file, token, request, urlPattern, wrapFileStorage(logon))) {
+			try (FileStreamer fileStreamer = FileStreamer.makeFileStreamer(Settings.getMasterServer(), null, file, token, request, urlPattern, null)) {
 				String getUrl = urlPattern + "?token=" + token + "&login=" + login;
 				if (width >= 0) {
 					getUrl += ("&width=" + width);
@@ -197,7 +197,7 @@ public class LoadAvatar extends HttpServlet {
 		}
 		String filenameUser = new String(DatatypeConverter.parseBase64Binary(filenameInput), "UTF-8");
 		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
-			FileStreamer streamer = new FileStreamer(filenameUser, wrapFileStorage(logon));
+			FileStreamer streamer = new FileStreamer(filenameUser, wrapFileStorage(logon, uc.findUser(filenameUser)));
 			InputStream inputStream;
 			boolean isMultipartContent = ServletFileUpload.isMultipartContent(request);
 			if (isMultipartContent) {
@@ -235,12 +235,12 @@ public class LoadAvatar extends HttpServlet {
 		response.getOutputStream().println(fileId);
 	}
 	
-	private FileStorage wrapFileStorage(final UserLogon logon) {
+	private FileStorage wrapFileStorage(final UserLogon logon, final CarabiUser targetUser) {
 		return new FileStorage() {
 			@Override
 			public FileOnServer createFileMetadata(String userFilename) {
 				try {
-					return admin.createUserAvatar(logon);
+					return admin.createUserAvatar(logon, targetUser);
 				} catch (CarabiException ex) {
 					logger.log(Level.SEVERE, null, ex);
 				}
@@ -336,7 +336,7 @@ public class LoadAvatar extends HttpServlet {
 			}
 			//Отправляем файл по назначению
 			CarabiAppServer targetServer = Settings.getMasterServer();
-			Long avatarId = handleAvatar(logon, targetServer, user.getLogin(), request, inputStream, CarabiFunc.encrypt(token));
+			Long avatarId = handleAvatar(logon, targetServer, user, request, inputStream, CarabiFunc.encrypt(token));
 			response.getWriter().print(0);
 		} catch (RegisterException e) {
 			sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Unknown token");
@@ -363,13 +363,14 @@ public class LoadAvatar extends HttpServlet {
 	private Long handleAvatar(
 			UserLogon logon,
 			CarabiAppServer targetServer,
-			String filename,
+			CarabiUser targetUser,
 			HttpServletRequest request,
 			InputStream inputStream,
 			String token
 	) throws IOException {
 		//подготовка потока
-		try (FileStreamer avatarStreamer = FileStreamer.makeFileStreamer(targetServer, filename, null, token, request, urlPattern, wrapFileStorage(logon))) {
+		FileStorage wrapedFileStorage = wrapFileStorage(logon, targetUser);
+		try (FileStreamer avatarStreamer = FileStreamer.makeFileStreamer(targetServer, targetUser.getLogin(), null, token, request, urlPattern, wrapedFileStorage)) {
 			//Перекачивание
 			Utls.proxyStreams(inputStream, avatarStreamer.getOutputStream());
 			//Получение ID

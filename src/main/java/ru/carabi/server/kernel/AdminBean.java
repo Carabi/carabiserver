@@ -859,8 +859,20 @@ public class AdminBean {
 		em.clear();
 	}
 	
-	public FileOnServer createUserAvatar(UserLogon logon) throws CarabiException {
-		CarabiUser user = logon.getUser();
+	/**
+	 * Создание / редактирование аватара
+	 * @param logon сессия пользователя (может редактировать аватар себе или другому)
+	 * @param targetUser пользователь, которому меняем аватар, если не текущему
+	 * @return данные о созданном аватаре
+	 * @throws CarabiException 
+	 */
+	public FileOnServer createUserAvatar(UserLogon logon, CarabiUser targetUser) throws CarabiException {
+		CarabiUser user;
+		if (targetUser == null) {
+			user = logon.getUser();
+		} else {
+			user = targetUser;
+		}
 		String login = user.getLogin();
 		FileOnServer avatar = user.getAvatar();
 		if (avatar != null) { //Удалить старый аватар
@@ -876,7 +888,9 @@ public class AdminBean {
 		user.setAvatar(avatar);
 		user = em.merge(user);
 		em.flush();
-		logon.setUser(user);
+		if (targetUser == null) {//если редактируем текущего пользователя -- меняем данные в сессии на обновлённые
+			logon.setUser(user);
+		}
 		return avatar;
 	}
 	
