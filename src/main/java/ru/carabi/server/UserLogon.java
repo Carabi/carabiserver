@@ -397,8 +397,11 @@ public class UserLogon implements Serializable, AutoCloseable {
 				return checkCarabiLog();
 			}
 		} catch (CarabiException | NamingException | SQLException ex) {
-			Logger.getLogger(this.getClass().getName()).log(Level.WARNING, null, ex);
+			Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Error, try to reconnect", ex);
 			try {
+				if (connection != null) {
+					connection.close();
+				}
 				connection = connectionsGate.connectToSchema(schema);
 				authorise(connection);
 				return checkCarabiLog();
