@@ -6,9 +6,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -24,19 +22,12 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.naming.Context;
-import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
-import oracle.jdbc.OracleCallableStatement;
-import oracle.jdbc.OracleConnection;
-import oracle.jdbc.OraclePreparedStatement;
-import oracle.jdbc.OracleTypes;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
-import ru.carabi.server.kernel.UsersControllerBean;
 
 /**
  * Вспомогательные функции для журналирования.
@@ -172,12 +163,12 @@ public abstract class CarabiLogging {
 	 * @param connection подключение к Oracle, в котором открывается лог. скорее всего, оно будет из logon, но при его получении внутри данной функции возникнет рекурсия.
 	 * @return ID созданного лога
 	 */
-	public static int openUserLog(UserLogon logon, OracleConnection connection) throws SQLException, CarabiException, NamingException {
+	public static int openUserLog(UserLogon logon, Connection connection) throws SQLException, CarabiException, NamingException {
 		createLoggersIfNotExists(logon);
 		return openDatabaseLog(connection, logon);
 	}
 
-	private static int openDatabaseLog(OracleConnection connection, UserLogon logon) throws NamingException, SQLException {
+	private static int openDatabaseLog(Connection connection, UserLogon logon) throws NamingException, SQLException {
 		return 0;//cutted
 	}
 	
@@ -240,12 +231,12 @@ public abstract class CarabiLogging {
 		return Settings.CARABI_LOGS_LOCATION + "/" + logon.userLogin() + "/" + logon.getToken();
 	}
 	
-	public static void closeUserLog(UserLogon logon, OracleConnection connection) throws SQLException {
+	public static void closeUserLog(UserLogon logon, Connection connection) throws SQLException {
 		personalLoggers.remove(logon.getToken());
 		closeDatabaseLog(connection, logon);
 	}
 
-	private static void closeDatabaseLog(OracleConnection connection, UserLogon logon) throws SQLException {
+	private static void closeDatabaseLog(Connection connection, UserLogon logon) throws SQLException {
 		//cutted
 	}
 	
