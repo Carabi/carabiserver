@@ -60,7 +60,6 @@ public class UsersControllerBean {
 			logger.warning("tokenCollision");
 		}
 		logon.setToken(token);
-		logon.setConnectionsGate(connectionsGate);
 		logon = usersPercistence.updateLogon(logon);
 		activeUsers.put(token, logon);
 		if (logon.getSchema() != null) {
@@ -197,7 +196,6 @@ public class UsersControllerBean {
 			activeUsers.put(token, logon);
 			logger.log(Level.FINEST, "put {0} to activeUsers in TokenAuth", token);
 		}
-		logon.setConnectionsGate(connectionsGate);
 		if (connectToOracle && logon.getSchema() != null) {
 			if (!logon.checkConnection()) {
 				logger.warning("could not get connection at first time");

@@ -81,7 +81,9 @@ public class UserLogon implements Serializable, AutoCloseable {
 	@Transient
 //	private HashMap<String, Connection> connections = new HashMap<String, Connection>();
 	private Connection connection;
+	
 	@Transient
+	@EJB
 	private ConnectionsGateBean connectionsGate;
 	
 	@Transient
@@ -104,7 +106,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	private int carabiLogID = -1;//ID Carabi-журнала в Oracle
 	
 	@Transient
-	private final Date logonDate = new Date(); // дата и время создания сессии
+	private Date logonDate = new Date(); // дата и время создания сессии
 	
 	/**
 	 * Возврашает ID Carabi-пользователя
@@ -192,10 +194,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	public void setConnection(Connection connection) {
 		this.connection = connection;
-	}
-	
-	public void setConnectionsGate(ConnectionsGateBean cg) {
-		this.connectionsGate = cg;
 	}
 	
 	public Date getLastActive() {
@@ -515,5 +513,12 @@ public class UserLogon implements Serializable, AutoCloseable {
 
 	public String userLogin() {
 		return user.getLogin();
+	}
+
+	public void copyTrancientFields(UserLogon original) {
+		connection = original.getConnection();
+		oracleSID = original.getOracleSID();
+		carabiLogID = original.getCarabiLogID();
+		logonDate = original.getLogonDate();
 	}
 }

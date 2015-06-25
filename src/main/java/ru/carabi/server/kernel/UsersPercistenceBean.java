@@ -93,12 +93,11 @@ public class UsersPercistenceBean {
 	
 	public UserLogon updateLogon(UserLogon logon) {
 		logon.updateLastActive();
-//		if (logonIsNew || monitor.getKernelDBLockcount() == 0) {
-			logon = em.merge(logon);
-			em.merge(logon.getUser());
-			em.flush();
-//		}
-		return logon;
+		UserLogon logonMerged = em.merge(logon);
+		em.merge(logon.getUser());
+		em.flush();
+		logonMerged.copyTrancientFields(logon);
+		return logonMerged;
 	}
 	
 	/**
