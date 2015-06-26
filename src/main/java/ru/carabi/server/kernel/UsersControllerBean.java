@@ -60,6 +60,8 @@ public class UsersControllerBean {
 			logger.warning("tokenCollision");
 		}
 		logon.setToken(token);
+		logon.setConnectionsGate(connectionsGate);
+		logon.setUsersController(this);
 		logon = usersPercistence.updateLogon(logon);
 		activeUsers.put(token, logon);
 		if (logon.getSchema() != null) {
@@ -87,6 +89,8 @@ public class UsersControllerBean {
 		logon = usersPercistence.findUserLogon(token);
 		if (logon != null) {
 			logger.log(Level.FINEST, "got {0} from JPA em", token);
+			logon.setConnectionsGate(connectionsGate);
+			logon.setUsersController(this);
 		}
 		return logon;
 	}

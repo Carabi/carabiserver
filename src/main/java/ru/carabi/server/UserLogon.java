@@ -9,7 +9,6 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.ejb.EJB;
 import javax.naming.NamingException;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -83,11 +82,9 @@ public class UserLogon implements Serializable, AutoCloseable {
 	private Connection connection;
 	
 	@Transient
-	@EJB
 	private ConnectionsGateBean connectionsGate;
 	
 	@Transient
-	@EJB
 	private UsersControllerBean usersController;
 	
 	@Column(name="IP_ADDR_GREY")
@@ -194,6 +191,14 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	public void setConnection(Connection connection) {
 		this.connection = connection;
+	}
+	
+	public void setConnectionsGate(ConnectionsGateBean cg) {
+		this.connectionsGate = cg;
+	}
+	
+	public void setUsersController(UsersControllerBean uc) {
+		this.usersController = uc;
 	}
 	
 	public Date getLastActive() {
@@ -516,9 +521,11 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 
 	public void copyTrancientFields(UserLogon original) {
-		connection = original.getConnection();
-		oracleSID = original.getOracleSID();
-		carabiLogID = original.getCarabiLogID();
-		logonDate = original.getLogonDate();
+		usersController = original.usersController;
+		connectionsGate = original.connectionsGate;
+		connection = original.connection;
+		oracleSID = original.oracleSID;
+		carabiLogID = original.carabiLogID;
+		logonDate = original.logonDate;
 	}
 }
