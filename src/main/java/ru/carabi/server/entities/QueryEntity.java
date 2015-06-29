@@ -15,7 +15,6 @@ import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
 import javax.persistence.Table;
-import ru.carabi.server.entities.ConnectionSchema;
 
 /**
  * Объект для сохранения Oracle-запросов в служебной БД.
@@ -76,8 +75,11 @@ public class QueryEntity implements Serializable {
 	@Column(name="SQL_QUERY")
 	private String body;
 	
-	@Column(name="IS_EXECUTABLE")
-	private int isExecutable;
+	@Column(name="IS_EXECUTABLE_B")
+	private boolean isExecutable;
+	
+	@Column(name="IS_DEPRECATED")
+	private boolean isDeprecated;
 	
 	@OneToMany(cascade=CascadeType.ALL, mappedBy="queryEntity" )
 	@OrderBy("ordernumber")
@@ -122,16 +124,24 @@ public class QueryEntity implements Serializable {
 		this.body = body;
 	}
 	
-	public int getIsExecutable() {
+	public boolean getIsExecutable() {
 		return isExecutable;
 	}
 	
-	public void setIsExecutable(int isExecutable) {
+	public void setIsExecutable(boolean isExecutable) {
 		this.isExecutable = isExecutable;
 	}
 	
 	public boolean isSql() {
-		return getIsExecutable() <= 0;
+		return !getIsExecutable();
+	}
+	
+	public boolean getIsDeprecated() {
+		return isDeprecated;
+	}
+	
+	public void setIsDeprecated(boolean isDeprecated) {
+		this.isDeprecated = isDeprecated;
 	}
 	
 	public List<QueryParameterEntity> getParameters() {

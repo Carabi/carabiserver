@@ -424,14 +424,13 @@ public class AdminService {
 	}
 	
 	/**
-	 * Удаление пользователя из БД по ID
+	 * Удаление хранимого запроса из БД
 	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
 	 * См. 
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
 	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
 	 * @param id - идентификатор удаляемой записи
-	 * //@return "0" - запись удалена, "1" - запись не удалена 
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */
 	@WebMethod(operationName = "deleteQuery")
@@ -440,6 +439,24 @@ public class AdminService {
 	{
 		usersController.tokenControl(token);
 		admin.deleteQuery(id);
+	}
+	
+	/**
+	 * Архивация / деархивация запроса. 
+	 * Пометка, что его следует или не следует использовать
+	 * @param token авторизационный токен
+	 * @param id id запроса
+	 * @param isDeprecated следует ли использовать запрос
+	 * @throws CarabiException если запрос не найден или при ошибке авторизации
+	 */
+	@WebMethod(operationName = "setQueryDeprecated")
+	public void setQueryDeprecated(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "id") Long id,
+			@WebParam(name = "isDeprecated") boolean isDeprecated
+		) throws CarabiException {
+		usersController.tokenControl(token);
+		admin.setQueryDeprecated(id, isDeprecated);
 	}
 	
 	/**

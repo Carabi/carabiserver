@@ -305,6 +305,8 @@ create sequence query_id_gen;
 create table ORACLE_QUERY (
 	QUERY_ID bigint primary key default nextval('query_id_gen'),
 	IS_EXECUTABLE integer not null, --0 -- SQL-запрос (select), 1 -- исполняемый скрипт
+	IS_EXECUTABLE_B boolean default false, --false -- SQL-запрос (select), true -- исполняемый скрипт
+	IS_DEPRECATED boolean default false,
 	NAME varchar(1024) not null unique, --Имя, используемое администратором системы
 	SYSNAME varchar(1024) not null unique, --Имя, по которому запрос будет вызываться клиентом
 	CATEGORY_ID integer references QUERY_CATEGORY (CATEGORY_ID),
@@ -338,7 +340,7 @@ create table SOFTWARE_PRODUCTION (
 	HOME_URL varchar(1024),
 	SCHEMA_INDEPENDENT boolean, --работает на любых БД (или не использует БД) -- не используется фильтрация по PRODUCT_ON_SCHEMA
 	APPSERVER_INDEPENDENT boolean, --работает на любых серверах (или не использует сервер) -- не используется фильтрация по PRODUCT_ON_APPSERVER
-	VISIBLE boolean, --отображать среди доступных для непосредственного использования
+	VISIBLE boolean default true, --отображать среди доступных для непосредственного использования
 	PERMISSION_TO_USE integer references USER_PERMISSION (PERMISSION_ID) -- право пользования продуктом
 );
 

@@ -17,7 +17,6 @@ import javax.persistence.Query;
 import oracle.jdbc.OracleCallableStatement;
 import oracle.jdbc.OracleConnection;
 import ru.carabi.server.CarabiException;
-import ru.carabi.server.entities.ConnectionSchema;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
@@ -74,9 +73,7 @@ public class QueryStorageBean {
 		}
 		final String parametersDump = Utls.dumpParameters(parameters);
 		try {
-			CarabiLogging.log(logon, this,
-					String.format(CarabiLogging.messages.getString("executingTheQuery"), queryEntity.getSysname(), queryEntity.getName()),
-					parametersDump);
+			logQueryEnter(logon, queryEntity, parametersDump);
 			OracleCallableStatement statement = prepareStoredQuery(queryEntity, logon);
 			int i = 0;
 			for (QueryParameterEntity parameterEntity: parametersEntities) {
@@ -136,9 +133,7 @@ public class QueryStorageBean {
 		List<QueryParameterEntity> parametersEntities = queryEntity.getParameters();
 		final String parametersDump = Utls.dumpParameters(parameters);
 		try {
-			CarabiLogging.log(logon, this,
-					String.format(CarabiLogging.messages.getString("executingTheQuery"), queryEntity.getSysname(), queryEntity.getName()),
-					parametersDump);
+			logQueryEnter(logon, queryEntity, parametersDump);
 			OracleCallableStatement statement = prepareStoredQuery(queryEntity, logon);
 			for (QueryParameterEntity parameterEntity: parametersEntities) {
 				if (parameterEntity.getIsIn() > 0) {
@@ -177,6 +172,21 @@ public class QueryStorageBean {
 					new Object[]{name, parametersDump},
 					logon.getConnection(), true, Level.SEVERE, e);
 			throw e;
+		}
+	}
+	
+	private void logQueryEnter(UserLogon logon, QueryEntity queryEntity, final String parametersDump) {
+		CarabiLogging.log(logon,
+				this,
+				String.format(CarabiLogging.messages.getString("executingTheQuery"), queryEntity.getSysname(), queryEntity.getName()),
+				parametersDump
+		);
+		if (queryEntity.getIsDeprecated()) {
+			CarabiLogging.log(logon,
+					this,
+					String.format(CarabiLogging.messages.getString("executingDepreatedQuery"), queryEntity.getName()),
+					String.format(CarabiLogging.messages.getString("executingDepreatedQueryDetails"), queryEntity.getSysname(), logon.getDisplay(), logon.getToken())
+			);
 		}
 	}
 	

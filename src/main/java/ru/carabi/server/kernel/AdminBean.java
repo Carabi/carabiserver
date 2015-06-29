@@ -794,7 +794,7 @@ public class AdminBean {
 		// установка полей запроса
 		queryEntity.setCategory(category);
 		queryEntity.setName(jsonQuery.getString("name"));
-		queryEntity.setIsExecutable(jsonQuery.getInt("isExecutable"));
+		queryEntity.setIsExecutable(jsonQuery.getBoolean("isExecutable"));
 		queryEntity.setSchema(schema);
 		queryEntity.setBody(jsonQuery.getString("text"));
 		queryEntity.setSysname(jsonQuery.getString("sysname"));
@@ -851,9 +851,24 @@ public class AdminBean {
 					+ "хранимого запроса при выполнении JPA-запроса.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;
-		}		
+		}
 	}
+	
+	public void setQueryDeprecated(Long id, boolean isDeprecated) throws CarabiException {
+		if (null == id) {
+			final CarabiException e = new CarabiException("Невозможно обработать "
+					+ "хранимый запрос, т.к. не задан ID записи.");
+			logger.log(Level.WARNING, "" , e);
+			throw e;
+		}
 		
+		final Query query = em.createNativeQuery("update ORACLE_QUERY set IS_DEPRECATED = ? where QUERY_ID = ?");
+		query.setParameter(1, isDeprecated);
+		query.setParameter(2, id);
+		query.executeUpdate();
+	}
+
+	
 	private void close() {
 		em.flush();
 		em.clear();
