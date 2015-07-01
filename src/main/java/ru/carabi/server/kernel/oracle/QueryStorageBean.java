@@ -217,7 +217,7 @@ public class QueryStorageBean {
 	 * @param user пользовательская сессия
 	 * @return скомпилированный запрос
 	 */
-	private OracleCallableStatement prepareStoredQuery(QueryEntity queryEntity, UserLogon logon) throws SQLException {
+	private OracleCallableStatement prepareStoredQuery(QueryEntity queryEntity, UserLogon logon) throws SQLException, CarabiException {
 		OracleConnection connection = Utls.unwrapOracleConnection(logon.getConnection());
 		String query = queryEntity.getBody();
 		if (queryEntity.isSql()) {

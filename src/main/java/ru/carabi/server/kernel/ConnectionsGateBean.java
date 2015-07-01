@@ -200,9 +200,8 @@ public class ConnectionsGateBean {
 	 * @param login
 	 * @return
 	 * @throws CarabiException
-	 * @throws NamingException
 	 */
-	public ConnectionSchema getDedicatedSchema (int schemaID, String schemaName, String login) throws CarabiException, NamingException {
+	public ConnectionSchema getDedicatedSchema (int schemaID, String schemaName, String login) throws CarabiException {
 		if (schemaID >= 0) {
 			return getConnectionSchemaByID(schemaID);
 		} else if (null != schemaName && !schemaName.isEmpty()) {
@@ -212,6 +211,14 @@ public class ConnectionsGateBean {
 		}
 	}
 	
+	/**
+	 * Подключение к указанной базе Oracle
+	 * @param schema данные о требуемой БД
+	 * @return подключение (сессия) Oracle
+	 * @throws NamingException не найден JNDI-ресурс (только при использовании Java EE-пула на промежуточном уровне, Settings.USE_SYSTEM_POOL==true)
+	 * @throws SQLException сбой при подключении
+	 * @throws CarabiException база недоступна
+	 */
 	public Connection connectToSchema(ConnectionSchema schema) throws CarabiException, NamingException, SQLException {
 		if (Settings.USE_SYSTEM_POOL) {
 			return getDatabaseConnectionByJNDI(schema.getJNDI());

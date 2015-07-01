@@ -128,6 +128,7 @@ public class UsersControllerBean {
 		long timestamp = new Date().getTime();
 		for (String userToken: usersTokens) {
 			UserLogon logon = activeUsers.get(userToken);
+			logon.monitorConnections();
 			long lastActiveTimestamp = logon.getLastActive().getTime();
 			if (timestamp - lastActiveTimestamp > Settings.SESSION_LIFETIME * 1000) {
 				removeActiveUser(logon);
@@ -149,7 +150,7 @@ public class UsersControllerBean {
 				Logger.getLogger(UsersControllerBean.class.getName()).log(Level.SEVERE, null, ex);
 			} finally {
 				try {
-					CarabiLogging.closeUserLog(logon, Utls.unwrapOracleConnection(logon.getConnection()));
+					CarabiLogging.closeUserLog(logon, logon.getMasterConnection());
 					logon.closeAllConnections();
 				} catch (SQLException ex) {
 					Logger.getLogger(UsersControllerBean.class.getName()).log(Level.SEVERE, null, ex);
@@ -201,9 +202,7 @@ public class UsersControllerBean {
 			logger.log(Level.FINEST, "put {0} to activeUsers in TokenAuth", token);
 		}
 		if (connectToOracle && logon.getSchema() != null) {
-			if (!logon.checkConnection()) {
-				logger.warning("could not get connection at first time");
-			}
+			logon.getMasterConnection();//предварительная установка связи
 		}
 		return logon;
 	}

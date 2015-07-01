@@ -7,6 +7,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.naming.NamingException;
@@ -20,7 +23,6 @@ import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.Transient;
-import oracle.jdbc.OracleConnection;
 import ru.carabi.server.entities.ConnectionSchema;
 import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
@@ -75,11 +77,32 @@ public class UserLogon implements Serializable, AutoCloseable {
 	                         //на сервис (давно не заходившие удаляются)
 	
 	/**
-	 * Подключение к БД, с которым работает пользователь
+	 * Основное подключение к БД, с которой работает пользователь
 	 */
 	@Transient
-//	private HashMap<String, Connection> connections = new HashMap<String, Connection>();
-	private Connection connection;
+	private Connection masterConnection;
+	
+	/**
+	 * Коллекция подключений, выдаваемых внешним методам.
+	 */
+	@Transient
+	private final Map<Long, Connection> connections = new ConcurrentHashMap<>();
+	
+	/**
+	 * Статусы посключений (занято / не занято).
+	 */
+	@Transient
+	private final Map<Long, Boolean> connectionsFree = new ConcurrentHashMap<>();
+	
+	@Transient
+	private final Map<Long, Date> connectionsLastActive = new ConcurrentHashMap<>();
+	/*
+	 Алгоритм:
+	 1 при вызове getConnection() из внешнего кода возвращается подключение из коллекции
+	   connections, имеющее статус connectionsFree == true;
+	 2 если нет свободных соединений, создать новое через connectionsGate
+	 3 
+	*/
 	
 	@Transient
 	private ConnectionsGateBean connectionsGate;
@@ -182,15 +205,90 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 	
 	/**
+	 * Получение рабочего подключения к Oracle.
 	 * @return connection
 	 */
-	public synchronized Connection getConnection() {
-		checkConnection();
-		return connection;
+	public synchronized Connection getConnection() throws CarabiException, SQLException {
+		Connection connection = null;
+		Long key = null;
+		for (Entry<Long, Boolean> isConnectionFree: connectionsFree.entrySet()) {
+			if (isConnectionFree.getValue()) { //Подключение свободно
+				key = isConnectionFree.getKey();
+				connection = connections.get(key);
+				break;
+			}
+		}
+		if (connection != null) { //Свободное подключение найдено
+			connectionsFree.put(key, false);
+			connectionsLastActive.put(key, new Date());
+			return connection;
+		}
+		try {
+			//Свободное подключение не найдено
+			connection = connectionsGate.connectToSchema(schema);
+			authorise(connection);
+			key = Math.round(Math.random() * Long.MAX_VALUE);
+			connectionsFree.put(key, false);
+			connectionsLastActive.put(key, new Date());
+			return connection;
+		} catch (NamingException ex) {
+			throw new CarabiException(ex);
+		}
 	}
 	
-	public void setConnection(Connection connection) {
-		this.connection = connection;
+	/**
+	 * 
+	 */
+	public void monitorConnections() {
+		long timestamp = new Date().getTime();
+		for (Entry<Long, Boolean> isConnectionFree: connectionsFree.entrySet()) {
+			Long key = isConnectionFree.getKey();
+			try {
+				if (! isConnectionFree.getValue()) { //Подключение может быть занятым
+					Connection connection = connections.get(key);
+					//получим SID этого подключения и получим обратную связь от Oracle,
+					//освободилось ли оно.
+					PreparedStatement getSidStatement = connection.prepareStatement("select SID from dual");
+					ResultSet sidSet = getSidStatement.executeQuery();
+					sidSet.next();
+					int sid = sidSet.getInt(1);
+					PreparedStatement getStatusStatement = masterConnection.prepareStatement("select status from v$session where sid = ?");
+					getStatusStatement.setInt(1, sid);
+					ResultSet statusSet = getStatusStatement.executeQuery();
+					String status = statusSet.getString(1);
+					if ("ACTIVE".equals(status)) {//Подключение дейчтвительно занято
+						continue;
+					} else {//Подключение освободилось
+						connectionsFree.put(key, true);
+						connectionsLastActive.put(key, new Date());
+					}
+				} else { //подключение свободно. Если свободно уже давно -- закрываем
+					long lastActiveTimestamp = connectionsLastActive.get(key).getTime();
+					if (timestamp - lastActiveTimestamp > Settings.SESSION_LIFETIME * 1000) {
+						connections.get(key).close();
+						connections.remove(key);
+						connectionsFree.remove(key);
+						connectionsLastActive.remove(key);
+					}
+				}
+			} catch (SQLException ex) {
+				Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+		
+	}
+	/**
+	 * Получение основного подключения к схеме Oracle. Использовать с осторожностью,
+	 * основное подключение используется для ведения журнала и контроля состояния остальных.
+	 * @return connection
+	 */
+	public synchronized Connection getMasterConnection() {
+		checkConnection(masterConnection);
+		return masterConnection;
+	}
+	
+	public void setMasterConnection(Connection connection) {
+		this.masterConnection = connection;
 	}
 	
 	public void setConnectionsGate(ConnectionsGateBean cg) {
@@ -206,7 +304,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 	
 	/**
-	 * Возвращает основную схему, с которой работает пользователь
+	 * Возвращает текущую схему, с которой работает пользователь
 	 * @return ConnectionSchema
 	 */
 	public ConnectionSchema getSchema() {
@@ -276,7 +374,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	public void setServerContext(String serverContext) {
 		this.serverContext = serverContext;
 	}
-
+	
 	public int getCarabiLogID() {
 		return carabiLogID;
 	}
@@ -298,10 +396,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 		user.setLastActive(new Date());
 	}
 	
-	public void actAsSelf() throws SQLException {
-		authorise(getConnection());
-	}
-
 	/**
 	 * Авторизация подключения в БД.
 	 * Запрос к БД Oracle, необходимый, чтобы PL/SQL-функции Carabi
@@ -331,17 +425,17 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 	
 	public void closeAllConnections() throws SQLException {
-		if (connection != null) {
+		if (masterConnection != null) {
 			try {
-				setSessionInfo(connection, "", "__freeInPool/SOAP_SERVER");
+				setSessionInfo(masterConnection, "", "__freeInPool/SOAP_SERVER");
 				if (isRequireSession()) {
-					CarabiLogging.closeUserLog(this, Utls.unwrapOracleConnection(connection));
+					CarabiLogging.closeUserLog(this, Utls.unwrapOracleConnection(masterConnection));
 				}
 			} catch (SQLException e) {
 				logger.log(Level.SEVERE, "error on closing", e);
 			} finally {
-				connection.close();
-				connection = null;
+				masterConnection.close();
+				masterConnection = null;
 				if (isRequireSession()) {
 					oracleSID = -1;
 				}
@@ -369,10 +463,14 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 
 	
-	public synchronized boolean checkConnection() {
+	private boolean checkConnection(Connection connection) {
 		try {
 		//	logger.log(Level.INFO, "checkConnection: connection.isClosed():{0}, connection.isValid(10): {1}, checkCarabiLog(): {2}", new Object[]{connection.isClosed(), connection.isValid(10), checkCarabiLog()} );
-			if (connection != null && !connection.isClosed() && connection.isValid(10) && checkCarabiLog()) {
+			boolean ok = connection != null && !connection.isClosed() && connection.isValid(10);
+			if (connection == masterConnection) {
+				ok = ok && checkCarabiLog();
+			}
+			if (ok) {
 				int currentUserID = selectUserID();
 				int currentOracleSID = selectOracleSID();
 				if (currentUserID != id || currentOracleSID != oracleSID) {
@@ -411,10 +509,9 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	public void openCarabiLog() {
 		try {
-			OracleConnection oracleConnection = Utls.unwrapOracleConnection(connection);
 			oracleSID = selectOracleSID();
-			carabiLogID = CarabiLogging.openUserLog(this, oracleConnection);
-			authorise(connection);
+			carabiLogID = CarabiLogging.openUserLog(this, masterConnection);
+			authorise(masterConnection);
 		} catch (SQLException ex) {
 			Logger.getLogger(UsersControllerBean.class.getName()).log(Level.WARNING, "could not create journal at first time", ex);
 		} catch (CarabiException | NamingException ex) {
@@ -429,15 +526,14 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	private boolean checkCarabiLog() {
 		try {
-			OracleConnection oracleConnection = Utls.unwrapOracleConnection(connection);
 			int currentOracleSID = selectOracleSID();
 			logger.log(Level.FINE, "checkCarabiLog: carabiLogID: {0}, currentOracleSID: {1}, oracleSID: {2}", new Object[]{carabiLogID, currentOracleSID, oracleSID});
 			if (carabiLogID == -1 || currentOracleSID != oracleSID) {
 				if (carabiLogID != -1) {
-					CarabiLogging.closeUserLog(this, oracleConnection);
+					CarabiLogging.closeUserLog(this, masterConnection);
 				}
 				oracleSID = currentOracleSID;
-				carabiLogID = CarabiLogging.openUserLog(this, oracleConnection);
+				carabiLogID = CarabiLogging.openUserLog(this, masterConnection);
 			}
 			return true;
 		} catch (SQLException ex) {
@@ -486,7 +582,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	private int selectOracleSID() throws SQLException, CarabiException {
 		String sql = "SELECT SID FROM V$MYSTAT WHERE ROWNUM = 1";
-		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+		try (PreparedStatement statement = masterConnection.prepareStatement(sql)) {
 			ResultSet sidResultSet = statement.executeQuery();
 			if (sidResultSet.next()) {
 				return sidResultSet.getInt(1);
@@ -500,7 +596,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	private int selectUserID() throws SQLException, CarabiException {
 		String sql = "SELECT documents.GET_USER_ID from dual";
-		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+		try (PreparedStatement statement = masterConnection.prepareStatement(sql)) {
 			ResultSet sidResultSet = statement.executeQuery();
 			if (sidResultSet.next()) {
 				return sidResultSet.getInt(1);
@@ -517,7 +613,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	public void copyTrancientFields(UserLogon original) {
 		usersController = original.usersController;
 		connectionsGate = original.connectionsGate;
-		connection = original.connection;
+		masterConnection = original.masterConnection;
 		oracleSID = original.oracleSID;
 		carabiLogID = original.carabiLogID;
 		logonDate = original.logonDate;
