@@ -301,22 +301,16 @@ public class UserLogon implements Serializable, AutoCloseable {
 	public void actAsSelf() throws SQLException {
 		authorise(getConnection());
 	}
-	
-	private void authorise(Connection connSource) throws SQLException {
-		OracleConnection connection = Utls.unwrapOracleConnection(connSource);
-		setSessionInfo(connection, "" + carabiLogID, userLogin() + "/SOAP_SERVER");
-		String sql = "begin\n"+
-				"documents.SET_CORE('USE_REGISTER_USER1996');\n" +
-				"documents.REGISTER_USER(:USER_ID, 1, 'HOW_USE_REGISTER_USER');\n" +
-			"end;";
-		try (CallableStatement statement = connection.prepareCall(sql)) {
-			statement.setInt("USER_ID", id);
-			statement.execute();
-			logger.log(Level.FINE, "token = {0}, assumed login = {1}, act as {2}", new Object[]{token, userLogin(), id});
-		} catch(Exception e) {
-			logger.log(Level.SEVERE, "Could not authorise!", e);
-			throw e;
-		}
+
+	/**
+	 * Авторизация подключения в БД.
+	 * Запрос к БД Oracle, необходимый, чтобы PL/SQL-функции Carabi
+	 * (или иной нижележащей БД) принимали сессию авторизованного пользователя
+	 * @param connection
+	 * @throws SQLException 
+	 */
+	private void authorise(Connection connection) throws SQLException {
+		//cutted
 	}
 	
 	/**
