@@ -229,6 +229,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 			connection = connectionsGate.connectToSchema(schema);
 			authorise(connection);
 			key = Math.round(Math.random() * Long.MAX_VALUE);
+			connections.put(key, connection);
 			connectionsFree.put(key, false);
 			connectionsLastActive.put(key, new Date());
 			return connection;
@@ -264,7 +265,8 @@ public class UserLogon implements Serializable, AutoCloseable {
 						continue;
 					} else {//Подключение освободилось (нет исполняемых в данный момент Statement-ов)
 						connectionsFree.put(key, true);
-						connectionsLastActive.put(key, new Date());
+						this.lastActive = new Date();
+						connectionsLastActive.put(key, this.lastActive);
 					}
 				} else if (! cursorFetcher.hasThisConnection(connection)){ //подключение свободно.
 					// Если свободно уже давно -- закрываем,
@@ -289,7 +291,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * @return connection
 	 */
 	public synchronized Connection getMasterConnection() {
-		checkConnection(masterConnection);
+		checkMasterConnection();
 		return masterConnection;
 	}
 	
@@ -447,6 +449,10 @@ public class UserLogon implements Serializable, AutoCloseable {
 				}
 			}
 		}
+		for (Entry<Long, Connection> connectionKey: connections.entrySet()) {
+			connectionKey.getValue().close();
+			connections.remove(connectionKey.getKey());
+		}
 	}
 	
 	@Override
@@ -467,15 +473,16 @@ public class UserLogon implements Serializable, AutoCloseable {
 		sb.append("]");
 		return sb.toString();
 	}
-
 	
-	private boolean checkConnection(Connection connection) {
+	/**
+	 * Проверка, что подключение к БД "исправно", попытка переподключения при необходимости
+	 * @param connection проверяемое подключение
+	 * @return подключение может быть использовано
+	 */
+	private Connection checkConnection(Connection connection) {
 		try {
 		//	logger.log(Level.INFO, "checkConnection: connection.isClosed():{0}, connection.isValid(10): {1}, checkCarabiLog(): {2}", new Object[]{connection.isClosed(), connection.isValid(10), checkCarabiLog()} );
 			boolean ok = connection != null && !connection.isClosed() && connection.isValid(10);
-			if (connection == masterConnection) {
-				ok = ok && checkCarabiLog();
-			}
 			if (ok) {
 				int currentUserID = selectUserID();
 				int currentOracleSID = selectOracleSID();
@@ -483,7 +490,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 					logger.log(Level.WARNING, "different id: current in oracle: {0}, in java: {1}", new Object[]{currentUserID, id});
 					authorise(connection);
 				}
-				return true;
+				return connection;
 			} else {
 				if (connection != null) try {
 					connection.close();
@@ -491,11 +498,11 @@ public class UserLogon implements Serializable, AutoCloseable {
 					logger.log(Level.WARNING, "Error on closing invalid connection", e);
 				}
 				
-				connection = connectionsGate.connectToSchema(schema);
+				Connection newConnection = connectionsGate.connectToSchema(schema);
 				logger.fine("got new connection");
-				authorise(connection);
+				authorise(newConnection);
 				logger.fine("new connection auth");
-				return checkCarabiLog();
+				return newConnection;
 			}
 		} catch (CarabiException | NamingException | SQLException ex) {
 			Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "Error, try to reconnect", ex);
@@ -503,14 +510,30 @@ public class UserLogon implements Serializable, AutoCloseable {
 				if (connection != null) {
 					connection.close();
 				}
-				connection = connectionsGate.connectToSchema(schema);
-				authorise(connection);
-				return checkCarabiLog();
+				Connection newConnection = connectionsGate.connectToSchema(schema);
+				authorise(newConnection);
+				return newConnection;
 			} catch (CarabiException | NamingException | SQLException ex1) {
 				Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex1);
 			}
 		}
-		return false;
+		Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, "Connection was invalid, reconnection failed");
+		return null;
+	}
+	
+	private boolean checkMasterConnection() {
+		Connection masterConnectionChecked = checkConnection(masterConnection);
+		if (masterConnectionChecked != masterConnection) {// переаодключились
+			try {
+				if (masterConnection != null) {
+					masterConnection.close();
+				}
+				masterConnection = masterConnectionChecked;
+			} catch (SQLException ex) {
+				Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+		return checkCarabiLog();
 	}
 	
 	public void openCarabiLog() {
