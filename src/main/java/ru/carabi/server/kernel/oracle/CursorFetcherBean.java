@@ -1,5 +1,6 @@
 package ru.carabi.server.kernel.oracle;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -181,5 +182,14 @@ public class CursorFetcherBean {
 			statement.close();
 		}
 		fetchesForUsers.remove(userToken);
+	}
+	
+	public boolean hasThisConnection(Connection connection) throws SQLException {
+		for (Statement statement: fetchesOnStatements.keySet()) {
+			if (statement.getConnection() == connection) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

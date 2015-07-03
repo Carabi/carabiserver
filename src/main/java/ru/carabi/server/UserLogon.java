@@ -28,6 +28,7 @@ import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.kernel.ConnectionsGateBean;
 import ru.carabi.server.kernel.UsersControllerBean;
+import ru.carabi.server.kernel.oracle.CursorFetcherBean;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
@@ -237,16 +238,19 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 	
 	/**
-	 * 
+	 * Проверка встроенного пула подключений.
+	 * Заняты ли они, закрытие давно не занятых. Должно вызываться по таймеру
+	 * из UsersControllerBean
+	 * @param cursorFetcher ссылка на модуль прокрутки для доп. проверки занятости подключений
 	 */
-	public void monitorConnections() {
+	public void monitorConnections(CursorFetcherBean cursorFetcher) {
 		long timestamp = new Date().getTime();
 		for (Entry<Long, Boolean> isConnectionFree: connectionsFree.entrySet()) {
 			Long key = isConnectionFree.getKey();
+			Connection connection = connections.get(key);
 			try {
-				if (! isConnectionFree.getValue()) { //Подключение может быть занятым
-					Connection connection = connections.get(key);
-					//получим SID этого подключения и получим обратную связь от Oracle,
+				if (! isConnectionFree.getValue()) { //Подключение может быть занятым.
+					//Получим SID этого подключения и получим обратную связь от Oracle,
 					//освободилось ли оно.
 					PreparedStatement getSidStatement = connection.prepareStatement("select SID from dual");
 					ResultSet sidSet = getSidStatement.executeQuery();
@@ -258,14 +262,16 @@ public class UserLogon implements Serializable, AutoCloseable {
 					String status = statusSet.getString(1);
 					if ("ACTIVE".equals(status)) {//Подключение дейчтвительно занято
 						continue;
-					} else {//Подключение освободилось
+					} else {//Подключение освободилось (нет исполняемых в данный момент Statement-ов)
 						connectionsFree.put(key, true);
 						connectionsLastActive.put(key, new Date());
 					}
-				} else { //подключение свободно. Если свободно уже давно -- закрываем
+				} else if (! cursorFetcher.hasThisConnection(connection)){ //подключение свободно.
+					// Если свободно уже давно -- закрываем,
+					// убедившись, что не осталось открытых ResultSet-ов (Fetch-ей)
 					long lastActiveTimestamp = connectionsLastActive.get(key).getTime();
 					if (timestamp - lastActiveTimestamp > Settings.SESSION_LIFETIME * 1000) {
-						connections.get(key).close();
+						connection.close();
 						connections.remove(key);
 						connectionsFree.remove(key);
 						connectionsLastActive.remove(key);

@@ -19,7 +19,6 @@ import ru.carabi.server.CarabiException;
 import ru.carabi.server.RegisterException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
-import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.Permission;
 import ru.carabi.server.entities.SoftwareProduct;
@@ -42,7 +41,6 @@ public class UsersControllerBean {
 	@EJB private UsersPercistenceBean usersPercistence;
 	@EJB private ConnectionsGateBean connectionsGate;
 	@EJB private CursorFetcherBean cursorFetcher;
-	@EJB private MonitorBean monitor;
 	@EJB private Cache cache;
 	
 	/**
@@ -128,7 +126,7 @@ public class UsersControllerBean {
 		long timestamp = new Date().getTime();
 		for (String userToken: usersTokens) {
 			UserLogon logon = activeUsers.get(userToken);
-			logon.monitorConnections();
+			logon.monitorConnections(cursorFetcher);
 			long lastActiveTimestamp = logon.getLastActive().getTime();
 			if (timestamp - lastActiveTimestamp > Settings.SESSION_LIFETIME * 1000) {
 				removeActiveUser(logon);
