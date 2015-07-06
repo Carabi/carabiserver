@@ -222,12 +222,12 @@ public class UserLogon implements Serializable, AutoCloseable {
 		if (connection != null) { //Свободное подключение найдено
 			connectionsFree.put(key, false);
 			connectionsLastActive.put(key, new Date());
-			return connection;
+			return checkConnection(connection, true);
 		}
 		try {
 			//Свободное подключение не найдено
 			connection = connectionsGate.connectToSchema(schema);
-			authorise(connection);
+			authorise(connection, true);
 			key = Math.round(Math.random() * Long.MAX_VALUE);
 			connections.put(key, connection);
 			connectionsFree.put(key, false);
@@ -412,7 +412,14 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * @param connection
 	 * @throws SQLException 
 	 */
-	private void authorise(Connection connection) throws SQLException {
+	private void authorise(Connection connection, boolean openedFromPool) throws SQLException {
+		String postfix;
+		if (openedFromPool) {
+			postfix = "/Pooled";
+		} else {
+			postfix = "/Master";
+		}
+		setSessionInfo(connection, "" + carabiLogID, userLogin() + postfix + "/SOAP_SERVER");
 		//cutted
 	}
 	
@@ -438,7 +445,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 			try {
 				setSessionInfo(masterConnection, "", "__freeInPool/SOAP_SERVER");
 				if (isRequireSession()) {
-					CarabiLogging.closeUserLog(this, Utls.unwrapOracleConnection(masterConnection));
+					CarabiLogging.closeUserLog(this, masterConnection);
 				}
 			} catch (SQLException e) {
 				logger.log(Level.SEVERE, "error on closing", e);
@@ -478,9 +485,10 @@ public class UserLogon implements Serializable, AutoCloseable {
 	/**
 	 * Проверка, что подключение к БД "исправно", попытка переподключения при необходимости
 	 * @param connection проверяемое подключение
-	 * @return подключение может быть использовано
+	 * @param openedFromPool подключение создано во встроенном пуле
+	 * @return проверяемое подключение или новое, если оригинальное разорвано, или null, если к БД не подключиться
 	 */
-	private Connection checkConnection(Connection connection) {
+	private Connection checkConnection(Connection connection, boolean openedFromPool) {
 		try {
 		//	logger.log(Level.INFO, "checkConnection: connection.isClosed():{0}, connection.isValid(10): {1}, checkCarabiLog(): {2}", new Object[]{connection.isClosed(), connection.isValid(10), checkCarabiLog()} );
 			boolean ok = connection != null && !connection.isClosed() && connection.isValid(10);
@@ -489,7 +497,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 				int currentOracleSID = selectOracleSID();
 				if (currentUserID != id || currentOracleSID != oracleSID) {
 					logger.log(Level.WARNING, "different id: current in oracle: {0}, in java: {1}", new Object[]{currentUserID, id});
-					authorise(connection);
+					authorise(connection, openedFromPool);
 				}
 				return connection;
 			} else {
@@ -501,7 +509,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 				
 				Connection newConnection = connectionsGate.connectToSchema(schema);
 				logger.fine("got new connection");
-				authorise(newConnection);
+				authorise(newConnection, openedFromPool);
 				logger.fine("new connection auth");
 				return newConnection;
 			}
@@ -512,7 +520,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 					connection.close();
 				}
 				Connection newConnection = connectionsGate.connectToSchema(schema);
-				authorise(newConnection);
+				authorise(newConnection, openedFromPool);
 				return newConnection;
 			} catch (CarabiException | NamingException | SQLException ex1) {
 				Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex1);
@@ -522,26 +530,19 @@ public class UserLogon implements Serializable, AutoCloseable {
 		return null;
 	}
 	
-	private boolean checkMasterConnection() {
-		Connection masterConnectionChecked = checkConnection(masterConnection);
-		if (masterConnectionChecked != masterConnection) {// переаодключились
-			try {
-				if (masterConnection != null) {
-					masterConnection.close();
-				}
-				masterConnection = masterConnectionChecked;
-			} catch (SQLException ex) {
-				Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex);
-			}
+	private void checkMasterConnection() {
+		Connection masterConnectionChecked = checkConnection(masterConnection, false);
+		if (masterConnectionChecked != masterConnection) {// переподключились
+			masterConnection = masterConnectionChecked;
 		}
-		return checkCarabiLog();
+		checkCarabiLog();
 	}
 	
 	public void openCarabiLog() {
 		try {
 			oracleSID = selectOracleSID();
 			carabiLogID = CarabiLogging.openUserLog(this, masterConnection);
-			authorise(masterConnection);
+			authorise(masterConnection, false);
 		} catch (SQLException ex) {
 			Logger.getLogger(UsersControllerBean.class.getName()).log(Level.WARNING, "could not create journal at first time", ex);
 		} catch (CarabiException | NamingException ex) {
