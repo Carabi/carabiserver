@@ -60,7 +60,7 @@ public class UsersControllerBean {
 		logon.setToken(token);
 		logon.setConnectionsGate(connectionsGate);
 		logon.setUsersController(this);
-		logon = usersPercistence.updateLogon(logon);
+		logon = usersPercistence.addLogon(logon);
 		activeUsers.put(token, logon);
 		if (logon.getSchema() != null) {
 			logger.log(Level.FINEST, "put {0} to activeUsers in Add", token);
@@ -178,7 +178,7 @@ public class UsersControllerBean {
 			if (!logon.isPermanent()) {
 				logon.setAppServer(Settings.getCurrentServer());
 			}
-			logon = usersPercistence.updateLogon(logon);
+			usersPercistence.updateLogon(logon);
 		}
 		return logon;
 	}

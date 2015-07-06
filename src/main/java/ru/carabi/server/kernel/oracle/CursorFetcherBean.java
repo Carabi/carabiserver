@@ -186,7 +186,7 @@ public class CursorFetcherBean {
 	
 	public boolean hasThisConnection(Connection connection) throws SQLException {
 		for (Statement statement: fetchesOnStatements.keySet()) {
-			if (statement.getConnection() == connection) {
+			if (!statement.isClosed() && statement.getConnection() == connection) {
 				return true;
 			}
 		}

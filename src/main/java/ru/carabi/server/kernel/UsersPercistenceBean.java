@@ -91,13 +91,22 @@ public class UsersPercistenceBean {
 		}
 	}
 	
-	public UserLogon updateLogon(UserLogon logon) {
+	public UserLogon addLogon(UserLogon logon) {
 		logon.updateLastActive();
 		UserLogon logonMerged = em.merge(logon);
 		em.merge(logon.getUser());
 		em.flush();
 		logonMerged.copyTrancientFields(logon);
 		return logonMerged;
+	}
+	
+	public void updateLogon(UserLogon logon) {
+		logon.updateLastActive();
+		Query updateQuery = em.createNativeQuery("update USER_LOGON set LASTACTIVE = ? where TOKEN = ?");
+		updateQuery.setParameter(1, logon.getLastActive());
+		updateQuery.setParameter(2, logon.getToken());
+		updateQuery.executeUpdate();
+		em.flush();
 	}
 	
 	/**

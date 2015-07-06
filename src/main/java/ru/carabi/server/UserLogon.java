@@ -87,16 +87,16 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * Коллекция подключений, выдаваемых внешним методам.
 	 */
 	@Transient
-	private final Map<Long, Connection> connections = new ConcurrentHashMap<>();
+	private Map<Long, Connection> connections = new ConcurrentHashMap<>();
 	
 	/**
 	 * Статусы посключений (занято / не занято).
 	 */
 	@Transient
-	private final Map<Long, Boolean> connectionsFree = new ConcurrentHashMap<>();
+	private Map<Long, Boolean> connectionsFree = new ConcurrentHashMap<>();
 	
 	@Transient
-	private final Map<Long, Date> connectionsLastActive = new ConcurrentHashMap<>();
+	private Map<Long, Date> connectionsLastActive = new ConcurrentHashMap<>();
 	/*
 	 Алгоритм:
 	 1 при вызове getConnection() из внешнего кода возвращается подключение из коллекции
@@ -260,6 +260,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 					PreparedStatement getStatusStatement = masterConnection.prepareStatement("select status from v$session where sid = ?");
 					getStatusStatement.setInt(1, sid);
 					ResultSet statusSet = getStatusStatement.executeQuery();
+					statusSet.next();
 					String status = statusSet.getString(1);
 					if ("ACTIVE".equals(status)) {//Подключение дейчтвительно занято
 						continue;
@@ -634,7 +635,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 			}
 		}
 	}
-
+	
 	public String userLogin() {
 		return user.getLogin();
 	}
@@ -643,6 +644,9 @@ public class UserLogon implements Serializable, AutoCloseable {
 		usersController = original.usersController;
 		connectionsGate = original.connectionsGate;
 		masterConnection = original.masterConnection;
+		connections = original.connections;
+		connectionsFree = original.connectionsFree;
+		connectionsLastActive = original.connectionsLastActive;
 		oracleSID = original.oracleSID;
 		carabiLogID = original.carabiLogID;
 		logonDate = original.logonDate;
