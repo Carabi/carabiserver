@@ -1,5 +1,6 @@
 package ru.carabi.server.kernel.oracle;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -70,11 +71,12 @@ public class SqlQueryBean {
 			boolean fetchIsNew = false;
 			//если нет -- создаём
 			if (fetch == null) {
-				OracleConnection connection = Utls.unwrapOracleConnection(logon.getConnection());
-				OraclePreparedStatement statement = (OraclePreparedStatement)connection.prepareStatement(sql);
+				Connection connection = logon.getConnection();
+				OracleConnection oracleConnection = Utls.unwrapOracleConnection(connection);
+				OraclePreparedStatement statement = (OraclePreparedStatement)oracleConnection.prepareStatement(sql);
 				OracleUtls.setInputParameters(statement, parameters);
 				ResultSet cursor = statement.executeQuery();
-				fetch = new Fetch(cursor, statement, startPos);
+				fetch = new Fetch(cursor, statement, startPos, logon.getConnectionKey(connection));
 				fetchIsNew = true;
 			}
 			columns.value = fetch.columns;
@@ -123,7 +125,8 @@ public class SqlQueryBean {
 	
 	public int executeScript(UserLogon logon, String script, Holder<ArrayList<QueryParameter>> parameters, int fetchCount) {
 		try {
-			OracleConnection connection = Utls.unwrapOracleConnection(logon.getConnection());
+			Connection connection = logon.getConnection();
+			OracleConnection oracleConnection = Utls.unwrapOracleConnection(connection);
 			script = OracleUtls.removeComments(script);
 			ArrayList<String> parametersInSource = OracleUtls.searchInOut(script);
 			if (parametersInSource.size() != parameters.value.size()) {
@@ -131,7 +134,7 @@ public class SqlQueryBean {
 			}
 			script = OracleUtls.replaceInOut(script);
 			int i = 0;
-			OracleCallableStatement statement = (OracleCallableStatement)connection.prepareCall(script);
+			OracleCallableStatement statement = (OracleCallableStatement)oracleConnection.prepareCall(script);
 			for (QueryParameter parameter: parameters.value) {
 				if (parameter.getIsIn() != null && parameter.getIsIn() > 0) {
 					OracleUtls.setInputParameter(statement, parameter.getType(), parameter.getValue(), i + 1);
@@ -149,7 +152,7 @@ public class SqlQueryBean {
 				}
 				i++;
 			}
-			OracleUtls.fetchResultCursors(logon, parameters.value, fetchCount, statement, cursorFetcher);
+			OracleUtls.fetchResultCursors(logon, parameters.value, fetchCount, connection, statement, cursorFetcher);
 			return 0;
 		} catch (CarabiException ex) {
 			Logger.getLogger(SqlQueryBean.class.getName()).log(Level.SEVERE, null, ex);

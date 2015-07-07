@@ -3,6 +3,7 @@ package ru.carabi.server.kernel.oracle;
 import ru.carabi.server.entities.QueryParameterEntity;
 import ru.carabi.server.entities.QueryEntity;
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -262,7 +263,7 @@ public class OracleUtls {
 	 * @throws SQLException при ошибках взаимодействия с Oracle
 	 * @throws CarabiException если пользователь сохранил более {@link Settings#FETCHES_BY_USER} прокруток
 	 */
-	public static boolean fetchResultCursors(UserLogon logon, Collection<QueryParameter> parameters, int fetchCount, Statement statement, CursorFetcherBean cursorFetcher) throws SQLException, CarabiException {
+	public static boolean fetchResultCursors(UserLogon logon, Collection<QueryParameter> parameters, int fetchCount, Connection connection, Statement statement, CursorFetcherBean cursorFetcher) throws SQLException, CarabiException {
 		boolean cursorsSaved = false;
 		boolean saveCursors = logon.isRequireSession() && fetchCount >= 0;
 		fetchCount = Math.abs(fetchCount);
@@ -274,7 +275,7 @@ public class OracleUtls {
 				parameter.setValue("-1");
 				ArrayList<ArrayList<String>> columns = Utls.getResultSetColumns(cursor);
 				result.put("columns", columns);
-				Fetch fetch = new Fetch(cursor, statement, 0);
+				Fetch fetch = new Fetch(cursor, statement, 0, logon.getConnectionKey(connection));
 				ArrayList<ArrayList<?>> list = fetch.processFetching(fetchCount);
 				result.put("list", list);
 				if (saveCursors && list.size() == fetchCount) {

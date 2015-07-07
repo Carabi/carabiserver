@@ -124,6 +124,7 @@ public class CursorFetcherBean {
 		int size = list.value.size();
 		endpos.value = startPos + size;
 		if (size < fetchCount) {
+			
 			closeFetch(logon, queryTag);
 		}
 		return size;
@@ -158,6 +159,7 @@ public class CursorFetcherBean {
 		if (statementFetches.isEmpty()) {
 			closingFetch.statement.close();
 			Logger.getLogger(this.getClass().getName()).info("Statement closed");
+			logon.freeConnection(closingFetch.connectionKey);
 		}
 	}
 

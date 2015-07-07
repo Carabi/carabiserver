@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.logging.Logger;
 import ru.carabi.server.Settings;
 import ru.carabi.server.Utls;
 
@@ -21,13 +20,15 @@ public class Fetch {
 	public ResultSet cursor;
 	public Statement statement;//Открытое SQL-обращение -- должно быть закрыто вместе с курсором.
 	public int currentPosition;
-	private Integer recordCount = null;
+	public int connectionKey;
 	public ArrayList<ArrayList<String>> columns;
+	private Integer recordCount = null;
 	
-	public Fetch(ResultSet cursor, Statement statement, int startpos) throws SQLException {
+	public Fetch(ResultSet cursor, Statement statement, int startpos, int connectionKey) throws SQLException {
 		this.cursor = cursor;
 		this.statement = statement;
 		this. currentPosition = startpos;
+		this.connectionKey = connectionKey;
 		postConstruct();
 	}
 	
@@ -77,11 +78,11 @@ public class Fetch {
 		}
 		return result;
 	}
-
+	
 	public Integer getRecordCount() {
 		return recordCount;
 	}
-
+	
 	public void setRecordCount(Integer recordCount) {
 		this.recordCount = recordCount;
 	}

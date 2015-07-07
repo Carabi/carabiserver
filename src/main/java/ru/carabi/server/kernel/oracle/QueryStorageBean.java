@@ -230,7 +230,7 @@ public class QueryStorageBean {
 		return (OracleCallableStatement)connection.prepareCall(query);
 	}
 	private void fetchResultAndLog(UserLogon logon, Collection<QueryParameter> parameters, int fetchCount, Connection connection, OracleCallableStatement statement, String queryName) throws SQLException, CarabiException {
-			boolean cursorsOpened = OracleUtls.fetchResultCursors(logon, parameters, fetchCount, statement, cursorFetcher);
+			boolean cursorsOpened = OracleUtls.fetchResultCursors(logon, parameters, fetchCount, connection, statement, cursorFetcher);
 			String message;
 			if (!cursorsOpened) {
 				statement.close();

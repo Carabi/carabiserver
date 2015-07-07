@@ -236,7 +236,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 			//Свободное подключение не найдено
 			connection = connectionsGate.connectToSchema(schema);
 			authorise(connection, true);
-			key = connection.hashCode();
+			key = getConnectionKey(connection);
 			connections.put(key, connection);
 			connectionsFree.put(key, false);
 			connectionsLastActive.put(key, new Date());
@@ -250,14 +250,18 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * Освобождение подключения во встроенном пуле.
 	 */
 	public void freeConnection(Connection connection) {
-		int key = connection.hashCode();
-		if (connections.get(key) != null) {
-			connectionsFree.put(key, true);
+		int key = getConnectionKey(connection);
+		freeConnection(key);
+	}
+	
+	public void freeConnection(int connectionKey) {
+		if (connections.get(connectionKey) != null) {
+			connectionsFree.put(connectionKey, true);
 			lastActive = new Date();
-			connectionsLastActive.put(key,lastActive);
+			connectionsLastActive.put(connectionKey,lastActive);
 		}
 	}
-
+	
 	/**
 	 * Проверка встроенного пула подключений.
 	 * Заняты ли они, закрытие давно не занятых. Должно вызываться по таймеру
@@ -479,7 +483,10 @@ public class UserLogon implements Serializable, AutoCloseable {
 		}
 		for (Entry<Integer, Connection> connectionKey: connections.entrySet()) {
 			connectionKey.getValue().close();
-			connections.remove(connectionKey.getKey());
+			int key = connectionKey.getKey();
+			connections.remove(key);
+			connectionsFree.remove(key);
+			connectionsLastActive.remove(key);
 		}
 	}
 	
@@ -671,5 +678,14 @@ public class UserLogon implements Serializable, AutoCloseable {
 		oracleSID = original.oracleSID;
 		carabiLogID = original.carabiLogID;
 		logonDate = original.logonDate;
+	}
+	
+	/**
+	 * Получение идентификатора подключения, открытого через встроенный пул сессии
+	 * @param connection
+	 * @return 
+	 */
+	public int getConnectionKey(Connection connection) {
+		return connection.hashCode();
 	}
 }
