@@ -1,5 +1,6 @@
 package ru.carabi.server.kernel.oracle;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -74,7 +75,9 @@ public class QueryStorageBean {
 		final String parametersDump = Utls.dumpParameters(parameters);
 		try {
 			logQueryEnter(logon, queryEntity, parametersDump);
-			OracleCallableStatement statement = prepareStoredQuery(queryEntity, logon);
+			Connection connection = logon.getConnection();
+			OracleConnection oracleConnection = Utls.unwrapOracleConnection(connection);
+			OracleCallableStatement statement = prepareStoredQuery(queryEntity, oracleConnection);
 			int i = 0;
 			for (QueryParameterEntity parameterEntity: parametersEntities) {
 				if (parameterEntity.getIsIn() > 0) {
@@ -101,11 +104,11 @@ public class QueryStorageBean {
 					i++;
 				}
 			}
-			fetchResultAndLog(logon, parameters, fetchCount, statement, name);
+			fetchResultAndLog(logon, parameters, fetchCount, connection, statement, name);
 		} catch(SQLException e) {
 			CarabiLogging.logError("Ошибка при выполнении запроса {0} с параметрами {1}",
 					new Object[]{name, parametersDump},
-					logon.getConnection(), true, Level.SEVERE, e);
+					logon.getMasterConnection(), true, Level.SEVERE, e);
 			throw e;
 		}
 	}
@@ -134,7 +137,9 @@ public class QueryStorageBean {
 		final String parametersDump = Utls.dumpParameters(parameters);
 		try {
 			logQueryEnter(logon, queryEntity, parametersDump);
-			OracleCallableStatement statement = prepareStoredQuery(queryEntity, logon);
+			Connection connection = logon.getConnection();
+			OracleConnection oracleConnection = Utls.unwrapOracleConnection(connection);
+			OracleCallableStatement statement = prepareStoredQuery(queryEntity, oracleConnection);
 			for (QueryParameterEntity parameterEntity: parametersEntities) {
 				if (parameterEntity.getIsIn() > 0) {
 					QueryParameter inputParameter = parameters.get(parameterEntity.getName().toUpperCase());
@@ -161,16 +166,16 @@ public class QueryStorageBean {
 					}
 				}
 			}
-			fetchResultAndLog(logon, parameters.values(), fetchCount, statement, name);
+			fetchResultAndLog(logon, parameters.values(), fetchCount, connection, statement, name);
 		} catch(SQLException e) {
 			CarabiLogging.logError("Ошибка Oracle при выполнении запроса {0} с параметрами {1}",
 					new Object[]{name, parametersDump},
-					logon.getConnection(), true, Level.SEVERE, e);
+					logon.getMasterConnection(), true, Level.SEVERE, e);
 			throw e;
 		} catch(CarabiException e) {
 			CarabiLogging.logError("Внутренняя ошибка при выполнении запроса {0} с параметрами {1}",
 					new Object[]{name, parametersDump},
-					logon.getConnection(), true, Level.SEVERE, e);
+					logon.getMasterConnection(), true, Level.SEVERE, e);
 			throw e;
 		}
 	}
@@ -217,15 +222,14 @@ public class QueryStorageBean {
 	 * @param user пользовательская сессия
 	 * @return скомпилированный запрос
 	 */
-	private OracleCallableStatement prepareStoredQuery(QueryEntity queryEntity, UserLogon logon) throws SQLException, CarabiException {
-		OracleConnection connection = Utls.unwrapOracleConnection(logon.getConnection());
+	private OracleCallableStatement prepareStoredQuery(QueryEntity queryEntity, OracleConnection connection) throws SQLException, CarabiException {
 		String query = queryEntity.getBody();
 		if (queryEntity.isSql()) {
 			query = "begin open :RESULT_CURSOR for " + query + "; end;";
 		}
 		return (OracleCallableStatement)connection.prepareCall(query);
 	}
-	private void fetchResultAndLog(UserLogon logon, Collection<QueryParameter> parameters, int fetchCount, OracleCallableStatement statement, String queryName) throws SQLException, CarabiException {
+	private void fetchResultAndLog(UserLogon logon, Collection<QueryParameter> parameters, int fetchCount, Connection connection, OracleCallableStatement statement, String queryName) throws SQLException, CarabiException {
 			boolean cursorsOpened = OracleUtls.fetchResultCursors(logon, parameters, fetchCount, statement, cursorFetcher);
 			String message;
 			if (!cursorsOpened) {

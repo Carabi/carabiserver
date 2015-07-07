@@ -87,22 +87,30 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * Коллекция подключений, выдаваемых внешним методам.
 	 */
 	@Transient
-	private Map<Long, Connection> connections = new ConcurrentHashMap<>();
+	private Map<Integer, Connection> connections = new ConcurrentHashMap<>();
 	
 	/**
 	 * Статусы посключений (занято / не занято).
 	 */
 	@Transient
-	private Map<Long, Boolean> connectionsFree = new ConcurrentHashMap<>();
+	private Map<Integer, Boolean> connectionsFree = new ConcurrentHashMap<>();
 	
+	/**
+	 * Последнее использование каждого подключения
+	 */
 	@Transient
-	private Map<Long, Date> connectionsLastActive = new ConcurrentHashMap<>();
+	private Map<Integer, Date> connectionsLastActive = new ConcurrentHashMap<>();
 	/*
 	 Алгоритм:
 	 1 при вызове getConnection() из внешнего кода возвращается подключение из коллекции
 	   connections, имеющее статус connectionsFree == true;
-	 2 если нет свободных соединений, создать новое через connectionsGate
-	 3 
+	 2 если нет свободных соединений, создать новое через connectionsGate;
+	 3 UsersControllerBean каждую минуту вызывает monitorConnections.
+	   3.1 Для сессий, помеченных занятыми, выполняется запрос в Oracle, проверяющий, освободилось ли оно;
+	   3.2 давно свободные сессии закрываются, если нет открытых на них курсоров;
+	 4 пользователь может освободить сессию сам, вызвав freeConnection.
+	   Она сразу помечается свободной в UserLogon, чтобы не открывались лишние,
+	   в Oracle будет закрыта спустя Settings.SESSION_LIFETIME
 	*/
 	
 	@Transient
@@ -211,8 +219,8 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	public synchronized Connection getConnection() throws CarabiException, SQLException {
 		Connection connection = null;
-		Long key = null;
-		for (Entry<Long, Boolean> isConnectionFree: connectionsFree.entrySet()) {
+		int key = 0;
+		for (Entry<Integer, Boolean> isConnectionFree: connectionsFree.entrySet()) {
 			if (isConnectionFree.getValue()) { //Подключение свободно
 				key = isConnectionFree.getKey();
 				connection = connections.get(key);
@@ -228,7 +236,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 			//Свободное подключение не найдено
 			connection = connectionsGate.connectToSchema(schema);
 			authorise(connection, true);
-			key = Math.round(Math.random() * Long.MAX_VALUE);
+			key = connection.hashCode();
 			connections.put(key, connection);
 			connectionsFree.put(key, false);
 			connectionsLastActive.put(key, new Date());
@@ -239,6 +247,18 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 	
 	/**
+	 * Освобождение подключения во встроенном пуле.
+	 */
+	public void freeConnection(Connection connection) {
+		int key = connection.hashCode();
+		if (connections.get(key) != null) {
+			connectionsFree.put(key, true);
+			lastActive = new Date();
+			connectionsLastActive.put(key,lastActive);
+		}
+	}
+
+	/**
 	 * Проверка встроенного пула подключений.
 	 * Заняты ли они, закрытие давно не занятых. Должно вызываться по таймеру
 	 * из UsersControllerBean
@@ -246,8 +266,8 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	public void monitorConnections(CursorFetcherBean cursorFetcher) {
 		long timestamp = new Date().getTime();
-		for (Entry<Long, Boolean> isConnectionFree: connectionsFree.entrySet()) {
-			Long key = isConnectionFree.getKey();
+		for (Entry<Integer, Boolean> isConnectionFree: connectionsFree.entrySet()) {
+			int key = isConnectionFree.getKey();
 			Connection connection = connections.get(key);
 			try {
 				if (! isConnectionFree.getValue()) { //Подключение может быть занятым.
@@ -457,7 +477,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 				}
 			}
 		}
-		for (Entry<Long, Connection> connectionKey: connections.entrySet()) {
+		for (Entry<Integer, Connection> connectionKey: connections.entrySet()) {
 			connectionKey.getValue().close();
 			connections.remove(connectionKey.getKey());
 		}
