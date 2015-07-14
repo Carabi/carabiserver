@@ -16,10 +16,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
+import javax.ejb.Schedule;
 import javax.ejb.Singleton;
+import javax.ejb.Timer;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -809,24 +812,28 @@ public class ChatBean {
 		return result.build();
 	}
 	
+	private final Set<String> onlineUsers = new ConcurrentSkipListSet<>();
 	private Set<String> getOnlineUsers() {
-		//emKernel.clear();
+		return onlineUsers;
+	}
+	
+	@Schedule(minute="*/1", hour="*")
+	public synchronized void dispatcheOnlineUsers(Timer timer) {
+		//С каждого Eventer пытаемся получить список подключенных пользователей
 		TypedQuery<CarabiAppServer> getSevers = emKernel.createNamedQuery("getAllServers", CarabiAppServer.class);
 		List<CarabiAppServer> servers = getSevers.getResultList();
-		//С каждого Eventer пытаемся получить список подключенных пользователей
-		Set<String> result = new HashSet<>();
+		onlineUsers.clear();
 		for (CarabiAppServer server: servers) {
 			try {
 				String usersOnlineJson = eventer.eventerSingleRequestResponse(server, "[]", new Holder<>(CarabiEventType.userOnlineQuery.getCode()), true);
 				logger.log(Level.FINE, "online from {0}: {1}", new Object[]{server.getComputer(), usersOnlineJson});
 				JsonReader reader = Json.createReader(new StringReader(usersOnlineJson));
 				JsonObject usersOnline = reader.readObject();
-				result.addAll(usersOnline.keySet());
+				onlineUsers.addAll(usersOnline.keySet());
 			} catch (IOException ex) {
 				Logger.getLogger(ChatBean.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
-		return result;
 	}
 	
 	/**
