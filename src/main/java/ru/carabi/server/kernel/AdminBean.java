@@ -127,7 +127,8 @@ public class AdminBean {
 	}
 	
 	/**
-	 * Возвращает список доступных пользователей из ядровой базы.
+	 * Возвращает список пользователей с указанным статусом из ядровой базы.
+	 * Если статус не указан, он игнорируется/
 	 * Берутся пользователи, имеющие доступ к базе, с которой работает текущий пользователь.
 	 * Результат возвращается в JSON в формате 
 	 * <code>
@@ -139,8 +140,14 @@ public class AdminBean {
 	 * @param logon сессия текущего пользователя
 	 * @return строка c Json-объектом
 	 */
-	public String getUsersList(UserLogon logon) {
-		final Query query = em.createNamedQuery("getSchemaUsersList");
+	public String getUsersList(UserLogon logon, String statusSysname) {
+		Query query;
+		if (statusSysname != null) {
+			query = em.createNamedQuery("getSchemaUsersWithStatusList");
+			query.setParameter("status", statusSysname);
+		} else {
+			query = em.createNamedQuery("getSchemaUsersList");
+		}
 		query.setParameter("schema_id", logon.getSchema().getId());
 		final List resultList = query.getResultList();
 		close();
@@ -151,10 +158,11 @@ public class AdminBean {
 			final Object[] dbUser = (Object[]) usersIterator.next();
 			final JsonObjectBuilder jsonUserDetails = Json.createObjectBuilder();
 			Utls.addJsonObject(jsonUserDetails, "id", dbUser[0]);
+			Utls.addJsonObject(jsonUserDetails, "login", dbUser[1]);
 			final StrBuilder name = new StrBuilder();
 			name.setNullText("");
-			name.append(dbUser[1]).append(" ").append(dbUser[2]).append(" ")
-					.append(dbUser[3]);
+			name.append(dbUser[2]).append(" ").append(dbUser[3]).append(" ")
+					.append(dbUser[4]);
 			Utls.addJsonObject(jsonUserDetails, "name", name.toString());
 
 			final JsonObjectBuilder jsonUser = Json.createObjectBuilder();
@@ -418,23 +426,29 @@ public class AdminBean {
 		return user.getId();
 	}	
 	
-	public void deleteUser(Long id) throws CarabiException {
-		if (null == id) {
+	/**
+	 * Удаление пользователя из ядровой БД
+	 * @param logon сессия текущего пользователя
+	 * @param login логин удаляемого пользователя
+	 * @throws CarabiException 
+	 */
+	public void deleteUser(UserLogon logon, String login) throws CarabiException {
+		if (login == null) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
-					+ "пользователя, т.к. не задан ID удаляемой записи.");
+					+ "пользователя, т.к. не задан login удаляемой записи.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}
 		
-		final Query query = em.createQuery("DELETE FROM CarabiUser cs WHERE cs.id = :id");
-		int deletedCount = query.setParameter("id", id).executeUpdate();
+		final Query query = em.createQuery("DELETE FROM CarabiUser cu WHERE cu.login = :login");
+		int deletedCount = query.setParameter("login", login).executeUpdate();
 		if (deletedCount != 1) {
-			final CarabiException e = new CarabiException("Нет записи с таким id. Ошибка удаления "
+			final CarabiException e = new CarabiException("Нет записи с таким login-ом. Ошибка удаления "
 					+ "пользователя при выполнении JPA-запроса.");
 			logger.log(Level.WARNING, "" , e);
-			throw e;			
+			throw e;
 		}
-	}		
+	}
 	
 	public String getSchemasList() {
 		// gets oracle databases from kernel db
@@ -1069,8 +1083,15 @@ public class AdminBean {
 			Logger.getLogger(AdminBean.class.getName()).log(Level.SEVERE, null, ex);
 		}
 	}
-
-	public void setUserStatus(String login, String statusSysname) throws CarabiException {
+	
+	/**
+	 * Изменение статуса пользователя
+	 * @param logon сессия текущего пользователя
+	 * @param login
+	 * @param statusSysname
+	 * @throws CarabiException 
+	 */
+	public void setUserStatus(UserLogon logon, String login, String statusSysname) throws CarabiException {
 		CarabiUser user = uc.findUser(login);
 		try {
 			TypedQuery<UserStatus> getUserStatus = em.createNamedQuery("getUserStatus", UserStatus.class);

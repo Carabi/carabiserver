@@ -1,5 +1,6 @@
 package ru.carabi.server.entities;
 
+import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -15,7 +16,7 @@ import javax.persistence.Table;
 @Entity
 @Table(name="USER_STATUS")
 @NamedQuery(name = "getUserStatus", query = "select US from UserStatus US where US.sysname = :sysname")
-public class UserStatus {
+public class UserStatus implements Serializable {
 
 	@Id
 	@Column(name="STATUS_ID")

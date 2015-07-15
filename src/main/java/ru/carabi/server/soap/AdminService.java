@@ -10,6 +10,7 @@ import javax.jws.WebService;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
+import ru.carabi.server.entities.UserStatus;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -78,7 +79,18 @@ public class AdminService {
 	@WebMethod(operationName = "getUsersList")
 	public String getUsersList(@WebParam(name = "token") String token) throws CarabiException {
 		UserLogon logon = usersController.tokenControl(token);
-		return admin.getUsersList(logon);
+		return admin.getUsersList(logon, null);
+	}
+	
+	/**
+	 * Получение списка активных пользователей.
+	 * Аналогично {@link #getUsersList(java.lang.String)}, но возвращает только 
+	 * активных пользователей (с {@link CarabiUser#status} == "active").
+	 */
+	@WebMethod(operationName = "getActiveUsersList")
+	public String getActiveUsersList(@WebParam(name = "token") String token) throws CarabiException {
+		UserLogon logon = usersController.tokenControl(token);
+		return admin.getUsersList(logon, "active");
 	}
 	
 	/**
@@ -180,21 +192,40 @@ public class AdminService {
 	}
 	
 	/**
-	 * Удаление пользователя из БД по ID
+	 * Изменение статуса пользователя.
+	 * Присвоение пользователю {@link UserStatus} с указанным наименованием
+	 * @param token Токен (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param login логин редактируемого пользователя
+	 * @param status системное наименование устанавливаемого статуса
+	 * @throws CarabiException 
+	 */
+	@WebMethod(operationName = "setUserStatus")
+	public void setUserStatus(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "login") String login,
+			@WebParam(name = "status") String status
+	) throws CarabiException{
+		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+			admin.setUserStatus(logon, login, status);
+		}
+	}
+	
+	/**
+	 * Удаление пользователя из БД
 	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
 	 * См. 
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
 	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
-	 * @param id - идентификатор удаляемой записи
+	 * @param login логин удаляемого пользователя
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */
 	@WebMethod(operationName = "deleteUser")
-	public void deleteUser(@WebParam(name = "token") String token, @WebParam(name = "id") Long id) 
+	public void deleteUser(@WebParam(name = "token") String token, @WebParam(name = "login") String login) 
 			throws CarabiException
 	{
-		usersController.tokenControl(token);
-		admin.deleteUser(id);
+		UserLogon logon = usersController.tokenControl(token);
+		admin.deleteUser(logon, login);
 	}	
 	
 	/**

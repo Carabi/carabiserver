@@ -150,17 +150,15 @@ public class UsersAdmin {
 			@DefaultValue("banned") @QueryParam("status") String status,
 			@PathParam("schema") String schemaName
 	) {
-		UserLogon administrator = usersController.getUserLogon(token);
-		if (administrator == null) {
-			return "Unknown token: " + token;
-		}
-		try {
-			admin.setUserStatus(login, status);
+		try (UserLogon administrator = usersController.tokenAuthorize(token, false)) {
+			if (administrator == null) {
+				return "Unknown token: " + token;
+			}
+			admin.setUserStatus(administrator, login, status);
 			return login + " " + status;
 		} catch (CarabiException ex) {
 			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
 			return ex.getMessage();
 		}
-		
 	}
 }
