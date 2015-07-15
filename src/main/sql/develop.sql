@@ -304,8 +304,7 @@ create table QUERY_CATEGORY (
 create sequence query_id_gen;
 create table ORACLE_QUERY (
 	QUERY_ID bigint primary key default nextval('query_id_gen'),
-	IS_EXECUTABLE integer not null, --0 -- SQL-запрос (select), 1 -- исполняемый скрипт
-	IS_EXECUTABLE_B boolean default false, --false -- SQL-запрос (select), true -- исполняемый скрипт
+	IS_EXECUTABLE boolean default false, --false -- SQL-запрос (select), true -- исполняемый скрипт
 	IS_DEPRECATED boolean default false,
 	NAME varchar(1024) not null unique, --Имя, используемое администратором системы
 	SYSNAME varchar(1024) not null unique, --Имя, по которому запрос будет вызываться клиентом

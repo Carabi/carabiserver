@@ -75,7 +75,7 @@ public class QueryEntity implements Serializable {
 	@Column(name="SQL_QUERY")
 	private String body;
 	
-	@Column(name="IS_EXECUTABLE_B")
+	@Column(name="IS_EXECUTABLE")
 	private boolean isExecutable;
 	
 	@Column(name="IS_DEPRECATED")
