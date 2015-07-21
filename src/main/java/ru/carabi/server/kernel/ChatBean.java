@@ -20,9 +20,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
-import javax.ejb.Schedule;
 import javax.ejb.Singleton;
-import javax.ejb.Timer;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -812,28 +810,35 @@ public class ChatBean {
 		return result.build();
 	}
 	
-	private final Set<String> onlineUsers = new ConcurrentSkipListSet<>();
+	private Set<String> onlineUsers;
+	private Date lastOnlineUsersGot = new Date(0);
 	private Set<String> getOnlineUsers() {
+		if ((new Date().getTime() - lastOnlineUsersGot.getTime()) > CarabiFunc.onlineControlTimeout * 1000) {
+			onlineUsers = scanOnlineUsers();
+			lastOnlineUsersGot = new Date();
+		}
 		return onlineUsers;
 	}
 	
-	@Schedule(minute="*/1", hour="*")
-	public synchronized void dispatcheOnlineUsers(Timer timer) {
+	private synchronized Set<String> scanOnlineUsers() {
 		//С каждого Eventer пытаемся получить список подключенных пользователей
 		TypedQuery<CarabiAppServer> getSevers = emKernel.createNamedQuery("getAllServers", CarabiAppServer.class);
 		List<CarabiAppServer> servers = getSevers.getResultList();
-		onlineUsers.clear();
+		Set<String> newOnlineUsers = new ConcurrentSkipListSet<>();
 		for (CarabiAppServer server: servers) {
 			try {
 				String usersOnlineJson = eventer.eventerSingleRequestResponse(server, "[]", new Holder<>(CarabiEventType.userOnlineQuery.getCode()), true);
-				logger.log(Level.FINE, "online from {0}: {1}", new Object[]{server.getComputer(), usersOnlineJson});
-				JsonReader reader = Json.createReader(new StringReader(usersOnlineJson));
-				JsonObject usersOnline = reader.readObject();
-				onlineUsers.addAll(usersOnline.keySet());
+				if (usersOnlineJson != null) {
+					logger.log(Level.FINE, "online from {0}: {1}", new Object[]{server.getComputer(), usersOnlineJson});
+					JsonReader reader = Json.createReader(new StringReader(usersOnlineJson));
+					JsonObject usersOnline = reader.readObject();
+					newOnlineUsers.addAll(usersOnline.keySet());
+				}
 			} catch (IOException ex) {
 				Logger.getLogger(ChatBean.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
+		return newOnlineUsers;
 	}
 	
 	/**
