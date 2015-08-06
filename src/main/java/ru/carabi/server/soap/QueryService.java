@@ -29,7 +29,6 @@ import ru.carabi.server.Utls;
 import ru.carabi.server.kernel.Cache;
 import ru.carabi.server.kernel.GuestBean;
 import ru.carabi.server.kernel.UsersControllerBean;
-import ru.carabi.server.kernel.oracle.CarabiDocumentBean;
 import ru.carabi.server.kernel.oracle.CursorFetcherBean;
 import ru.carabi.server.kernel.oracle.OrderParameter;
 import ru.carabi.server.kernel.oracle.QueryParameter;
@@ -261,46 +260,6 @@ public class QueryService {
 		} catch (Throwable e) {
 			logger.log(Level.SEVERE, "Unknown error:", e);
 			throw e;
-		}
-	}
-	
-	/**
-	 * Получение Караби-таблицы (wave-таблицы)
-	 * @param token авторизационный токен
-	 * @param sessionName Ключ кеша
-	 * @param tableName имя Караби-таблицы
-	 * @param fetchCount число возвращаемых записей. Сохранение прокрутки пока не предусмотрено.
-	 * @param fetchAll вернуть все строки курсоров независимо от fetchCount
-	 * @param documentsIds список документов, по которым получаем данные
-	 * @return 
-	 */
-//	 * Если указано положительное количество (или 0) &ndash; курсор сохраняется в прокрутке,
-//	 * если отрицательное &ndash; закрывается.
-
-	@WebMethod(operationName = "getCarabiTable")
-	public String getCarabiTable(
-			@WebParam(name = "token") String token,
-			@WebParam(name = "sessionName") String sessionName,
-			@WebParam(name = "tableName") String tableName,
-			@WebParam(name = "fetchCount") int fetchCount,
-			@WebParam(name = "fetchAll") boolean fetchAll,
-			@WebParam(name = "documentsIds") ArrayList<Long> documentsIds
-	) throws CarabiException {
-		logger.log(
-				Level.FINE, 
-				"getCarabiTable token={0}, sessionName={1}, tableName={2}, fetchCount={3}, fetchAll={4}",
-				new Object[] {token, sessionName, tableName, fetchCount, fetchAll}
-			);
-		if (fetchAll) {
-			fetchCount = Integer.MAX_VALUE;
-		}
-		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			QueryParameter carabiTable = sqlQuery.getCarabiTable(logon, tableName, documentsIds, fetchCount);
-			wrapJson(carabiTable);
-			return carabiTable.getValue();
-		} catch (JSONException ex) {
-			Logger.getLogger(QueryService.class.getName()).log(Level.SEVERE, null, ex);
-			throw new CarabiException(ex);
 		}
 	}
 	
