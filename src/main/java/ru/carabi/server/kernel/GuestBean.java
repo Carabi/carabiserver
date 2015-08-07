@@ -6,9 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.HttpURLConnection;
 import java.net.Socket;
-import java.net.URL;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -122,6 +120,8 @@ public class GuestBean {
 	 * @param vc Проверять версию клиента
 	 * @param schemaID ID целевой схемы Oracle (-1 для выбора по названию)
 	 * @param schemaName Название целевой схемы Oracle (пустое значение для выбора основной схемы)
+	 * @param autoCloseableConnection Закрывать Oracle-сессию после каждого вызова -- рекомендуется при редком обращении, если не используются прокрутки
+	 * @param notConnectToOracle Не подключаться к Oracle при авторизации (использование данной опции не позволит вернуть подробные данные о пользователе)
 	 * @param timestamp Выходной параметр &mdash; выдача шифровального ключа для передачи пароля на втором этапе
 	 * @return Код возврата:
 	 *	<ul>
@@ -135,6 +135,8 @@ public class GuestBean {
 			int vc,
 			int schemaID,
 			final String schemaName,
+			boolean autoCloseableConnection,
+			boolean notConnectToOracle,
 			Holder<String> timestamp,
 			GuestSesion guestSesion
 		) throws RegisterException {
@@ -143,8 +145,9 @@ public class GuestBean {
 		guestSesion.setTimeStamp("");
 		guestSesion.setSchemaName(schemaName.trim());
 		guestSesion.setSchemaID(schemaID);
+		guestSesion.setRequireSession(!autoCloseableConnection);
+		guestSesion.setConnectToOracle(!notConnectToOracle);
 		
-//		try {
 		boolean versionControl = vc != 0;
 		if ((!Settings.projectVersion.equals(version)) && versionControl) {
 			logger.log(Level.INFO, messages.getString("versionNotFitInfo"), login);
@@ -158,12 +161,6 @@ public class GuestBean {
 		timestampBuilder.append(DateFormat.getInstance().format(new Date()));
 		timestamp.value = timestampBuilder.toString();
 		guestSesion.setTimeStamp(Settings.projectName + "9999" + Settings.serverName + timestamp.value);
-			//Проверка доступности БД - надо?
-//		} catch (Exception e) {
-//			logger.log(Level.INFO, messages.getString("welcomeError"), login);
-//			logger.log(Level.SEVERE, "", e);
-//			return Settings.SQL_ERROR;
-//		}
 		return 0;
 	}
 	
@@ -207,20 +204,13 @@ public class GuestBean {
 			}
 			logger.log(Level.INFO, messages.getString("registerStart"), login);
 			//Получаем пользователя по имени из схемы с нужным номером или названием
-			UserLogon logon = createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user);
+			UserLogon logon = createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user, guestSesion.connectToOracle());
 			//Сверяем пароль
 			logger.log(Level.INFO, "passwordCipher: {0}", logon.getUser().getPassword());
 			logger.log(Level.INFO, "timestamp: {0}", guestSesion.getTimeStamp());
-			String passwordTokenServer = DigestUtils.md5Hex(logon.getPasswordCipher() + guestSesion.getTimeStamp());
+			String passwordTokenServer = DigestUtils.md5Hex(logon.getUser().getPassword() + guestSesion.getTimeStamp());
 			logger.log(Level.INFO, "passwordTokenServer: {0}", passwordTokenServer);
 			logger.log(Level.INFO, "passwordTokenClient: {0}", passwordTokenClient);
-//			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
-//				CarabiLogging.logError(messages.getString("registerRefusedDetailsPass"),
-//						new Object[]{login, "Oracle " + authorize.getSchema().getSysname(), passwordTokenServer, passwordTokenClient},
-//						authorize.getConnection(), true, Level.WARNING, null);
-//				authorize.closeConnection();
-//				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_ORACLE);
-//			}
 			passwordTokenServer = DigestUtils.md5Hex(logon.getUser().getPassword() + guestSesion.getTimeStamp());
 			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
 				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_KERNEL);
@@ -229,9 +219,9 @@ public class GuestBean {
 			logon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
 			logon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
 			logon.setServerContext(connectionProperties.getProperty("serverContext"));
-			String token = authorize.authorizeUser(true);
+			String token = authorize.authorizeUser(guestSesion.requireSession());
 			//Готовим информацию для возврата
-			SoapUserInfo soapUserInfo = new SoapUserInfo();//authorize.createSoapUserInfo();
+			SoapUserInfo soapUserInfo = authorize.createSoapUserInfo();
 			soapUserInfo.token = token;
 			info.value = soapUserInfo;
 			schemaID.value = -1;//currentUser.getSchema().getId();
@@ -264,7 +254,7 @@ public class GuestBean {
 	 * @param token Выход: Ключ для авторизации при выполнении последующих действий
 	 * @return ID Carabi-пользователя
 	 */
-	public int registerUserLight(
+	public long registerUserLight(
 			CarabiUser user,
 			String passwordCipherClient,
 			boolean requireSession,
@@ -287,7 +277,7 @@ public class GuestBean {
 				schemaName.value = defaultSchema.getSysname();
 				logger.log(Level.INFO, "User {0} got schema {1} as default", new Object[] {login, schemaName.value});
 			}
-			//Перед входом в Oracle сверяем пароль по ядровой базе
+			//Сверяем пароль
 			if (!user.getPassword().equalsIgnoreCase(passwordCipherClient)) {
 				CarabiLogging.logError(messages.getString("registerRefusedDetailsPass"),
 						new Object[]{login, "carabi_kernel", user.getPassword(), passwordCipherClient},
@@ -295,20 +285,12 @@ public class GuestBean {
 				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_KERNEL);
 			}
 			//Получаем пользователя по имени из схемы с нужным названием
-			UserLogon logon = createUserLogon(-1, schemaName.value, user);
+			UserLogon logon = createUserLogon(-1, schemaName.value, user, false);
 			logon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
 			logon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
 			logon.setServerContext(connectionProperties.getProperty("serverContext"));
 			logger.log(Level.INFO, "По имени схемы и логину ({0}, {1}) получен пользователь: {2}", 
 					new Object[] {schemaName, login, String.valueOf(logon)});
-			//Сверяем пароль
-			if (!passwordCipherClient.equalsIgnoreCase(logon.getPasswordCipher())) {
-				CarabiLogging.logError(messages.getString("registerRefusedDetailsPass"),
-						new Object[]{login, "Oracle " + authorize.getSchema().getSysname(), logon.getPasswordCipher(), passwordCipherClient},
-						authorize.getConnection(), true, Level.SEVERE, null);
-				authorize.closeConnection();
-				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_ORACLE);
-			}
 			//Запоминаем пользователя
 			token.value = authorize.authorizeUser(requireSession);
 			logger.log(Level.INFO, "Пользователю выдан токен: {0}", token.value);
@@ -335,7 +317,7 @@ public class GuestBean {
 	 * @param token Выход: Ключ для авторизации при выполнении последующих действий
 	 * @return ID Carabi-пользователя
 	 */
-	public int registerGuestUser(
+	public long registerGuestUser(
 			CarabiUser user,
 			String passwordCipherClient,
 			Holder<String> token
@@ -375,23 +357,23 @@ public class GuestBean {
 		return 0;
 	}
 	
-	private UserLogon createUserLogon(int schemaID, String schemaName, CarabiUser user) throws CarabiException, NamingException, SQLException {
-		//Подключаемся к БД: по названию, по ID или к основной
-//		logger.info("try to connect");
-		//authorize.connectToDatabase(schemaID, schemaName, user);
+	private UserLogon createUserLogon(int schemaID, String schemaName, CarabiUser user, boolean connectToOracle) throws CarabiException, NamingException, SQLException {
 		authorize.setCurrentUser(user);
-//		logger.info("connected to Oracle");
-		//Проверяем наличие пользователя, получаем данные о нём
-		boolean userExists = authorize.searchCurrentUser();
-		if (!userExists) {
-			logger.log(Level.INFO, messages.getString("registerRefused"), user.getLogin());
-			CarabiLogging.logError(messages.getString("registerRefusedDetailsBase"),
-					new Object[]{user.getLogin(), "Oracle " + authorize.getSchema().getSysname()},
-					authorize.getConnection(), true, Level.WARNING, null);
-		//	authorize.closeConnection();
-			throw new RegisterException(RegisterException.MessageCode.NO_LOGIN_ORACLE);
+		if (connectToOracle) {
+			authorize.connectToDatabase(schemaID, schemaName);
+			//Проверяем наличие пользователя в Oracle, получаем доп. данные о нём
+			boolean userExists = authorize.searchCurrentUser();
+			if (!userExists) {
+				logger.log(Level.INFO, messages.getString("registerRefused"), user.getLogin());
+				CarabiLogging.logError(messages.getString("registerRefusedDetailsBase"),
+						new Object[]{user.getLogin(), "Oracle " + authorize.getSchema().getSysname()},
+						authorize.getConnection(), true, Level.WARNING, null);
+				authorize.closeConnection();
+				throw new RegisterException(RegisterException.MessageCode.NO_LOGIN_ORACLE);
+			}
 		}
 		return authorize.createUserLogon();
+		
 	}
 	
 	/**

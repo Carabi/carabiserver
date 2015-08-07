@@ -54,7 +54,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	private String token;
 	
 	@Column(name="ORACLE_USER_ID")
-	private int id;//ID пользователя в Carabi
+	private long id;//ID пользователя в Carabi
 
 	@ManyToOne
 	@JoinColumn(name="USER_ID")
@@ -141,11 +141,11 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * Возврашает ID Carabi-пользователя
 	 * @return ID пользователя в Carabi (в базе Oracle)
 	 */
-	public int getId() {
+	public long getId() {
 		return id;
 	}
 	
-	public void setId(int id) {
+	public void setId(long id) {
 		this.id = id;
 	}
 	
@@ -155,10 +155,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	public void setUser(CarabiUser user) {
 		this.user = user;
-	}
-	
-	public String getPasswordCipher() {
-		return user.getPassword();
 	}
 	
 	public String getDisplay() {
@@ -497,8 +493,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 		sb.append(getId());
 		sb.append(", login=");
 		sb.append(userLogin());
-		sb.append(", passwordCipher=");
-		sb.append(getPasswordCipher());
 		sb.append(", display=");
 		sb.append(getDisplay());
 		sb.append(", requireSession=");

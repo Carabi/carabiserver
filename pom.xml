@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ru.carabi.server</groupId>
-    <artifactId>carabiserver_free_upstream</artifactId>
-    <version>2.2.0.3</version>
+    <artifactId>carabiserver_free</artifactId>
+    <version>2.2.1.0</version>
     <packaging>war</packaging>
 
-    <name>carabiserver-web</name>
+    <name>carabiserver_web_free</name>
 
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
@@ -61,8 +61,8 @@
         </dependency>
         <dependency>
             <groupId>ru.carabi</groupId>
-            <artifactId>stub</artifactId>
-            <version>2.1.1.0</version>
+            <artifactId>stub_free</artifactId>
+            <version>2.2.1</version>
         </dependency>
         <dependency>
             <groupId>commons-fileupload</groupId>

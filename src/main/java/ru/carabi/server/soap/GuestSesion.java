@@ -14,6 +14,8 @@ public class GuestSesion implements Serializable {
 	private String timeStamp;
 	private String login;
 	private int schemaID;
+	private boolean requireSession;
+	private boolean connectToOracle;
 
 	public String getTimeStamp() {
 		return timeStamp;
@@ -46,6 +48,22 @@ public class GuestSesion implements Serializable {
 
 	public void setSchemaName(String schemaName) {
 		this.schemaName = schemaName;
+	}
+
+	public boolean requireSession() {
+		return requireSession;
+	}
+
+	public void setRequireSession(boolean requireSession) {
+		this.requireSession = requireSession;
+	}
+
+	public boolean connectToOracle() {
+		return connectToOracle;
+	}
+
+	public void setConnectToOracle(boolean connectToOracle) {
+		this.connectToOracle = connectToOracle;
 	}
 	
 }

@@ -74,6 +74,8 @@ public class GuestService {
 	 * @param vc Проверять версию клиента
 	 * @param schemaID ID целевой схемы Oracle (-1 для выбора по названию)
 	 * @param schemaName Название целевой схемы Oracle (пустое значение для выбора основной схемы)
+	 * @param autoCloseableConnection Закрывать Oracle-сессию после каждого вызова -- рекомендуется при редком обращении, если не используются прокрутки
+	 * @param notConnectToOracle Не подключаться к Oracle при авторизации (использование данной опции не позволит вернуть подробные данные о пользователе)
 	 * @param timestamp Выходной параметр &mdash; выдача шифровального ключа для передачи пароля на втором этапе
 	 * @return Код возврата:
 	 *	<ul>
@@ -88,9 +90,11 @@ public class GuestService {
 			@WebParam(name = "vc") int vc,
 			@WebParam(name = "schemaID") int schemaID,
 			@WebParam(name = "schemaName") final String schemaName,
+			@WebParam(name = "autoCloseableConnection") boolean autoCloseableConnection,
+			@WebParam(name = "notConnectToOracle") boolean notConnectToOracle,
 			@WebParam(name = "timestamp", mode = WebParam.Mode.OUT) Holder<String> timestamp
 		) throws RegisterException {
-		return guest.wellcomeNN(login, version, vc, schemaID, schemaName, timestamp, guestSesion);
+		return guest.wellcomeNN(login, version, vc, schemaID, schemaName, autoCloseableConnection, notConnectToOracle, timestamp, guestSesion);
 	}
 
 	/**
@@ -111,13 +115,12 @@ public class GuestService {
 			@WebParam(name = "password") String passwordTokenClient,
 			@WebParam(name = "clientIp") String clientIp,
 			@WebParam(name = "version") String version,
-			@WebParam(name = "vc") int vc,//Номер версии
+			@WebParam(name = "vc") int vc,
 			@WebParam(name = "schemaID", mode = WebParam.Mode.OUT) Holder<Integer> schemaID, //Порядковый номер схемы БД
 			@WebParam(name = "info", mode = WebParam.Mode.OUT) Holder<SoapUserInfo> info//Результат
 		) throws CarabiException, RegisterException {
 		try {
 			logger.log(Level.INFO, "cg.tryConnectToOracle({0}, {1}, {2});", new Object[]{guestSesion.getSchemaID(), guestSesion.getSchemaName(), login});
-			cg.tryConnectToOracle(guestSesion.getSchemaID(), guestSesion.getSchemaName(), login);
 		} catch (Exception ex) {
 			logger.log(Level.SEVERE, null, ex);
 		}
@@ -148,7 +151,7 @@ public class GuestService {
 	 * @return ID Carabi-пользователя
 	 */
 	@WebMethod(operationName = "registerUserLight")
-	public int registerUserLight(
+	public long registerUserLight(
 			@WebParam(name = "login") String login,
 			@WebParam(name = "password") String passwordCipherClient,
 			@WebParam(name = "requireSession") boolean requireSession,
@@ -160,7 +163,6 @@ public class GuestService {
 		try {
 			CarabiUser user = guest.searchUser(login);
 			user = guest.checkCurrentServer(user);
-			cg.tryConnectToOracle(-1, schemaName.value, login);
 			return guest.registerUserLight(user, passwordCipherClient, requireSession, getConnectionProperties(clientIp), schemaName, token);
 		} catch (RegisterException e) {
 			if (e.badLoginPassword()) {
@@ -181,7 +183,7 @@ public class GuestService {
 	 * @return ID Carabi-пользователя
 	 */
 	@WebMethod(operationName = "registerGuestUser")
-	public int registerGuestUser(
+	public long registerGuestUser(
 			@WebParam(name = "login") String login,
 			@WebParam(name = "password") String passwordCipherClient,
 			@WebParam(name = "token", mode = WebParam.Mode.OUT) Holder<String> token
@@ -235,7 +237,7 @@ public class GuestService {
 	}
 	
 	@WebMethod(operationName = "getOracleUserID")
-	public int getOracleUserID(@WebParam(name = "token") String token) throws CarabiException {
+	public long getOracleUserID(@WebParam(name = "token") String token) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			return logon.getId();
 		}

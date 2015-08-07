@@ -227,14 +227,4 @@ public class ConnectionsGateBean {
 		}
 	}
 	
-	public void tryConnectToOracle(int schemaID, String schemaName, String login) {
-//		ConnectionSchema schema = null;
-//		try {
-//			schema = getDedicatedSchema(schemaID, schemaName, login);
-//			Connection connection = connectToSchema(schema);
-//			connection.close();
-//		} catch (Exception e){
-//			logger.log(Level.WARNING, "error on trying to connect", e);
-//		}
-	}
 }
