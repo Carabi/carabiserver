@@ -119,14 +119,29 @@ public class UserLogon implements Serializable, AutoCloseable {
 	@Transient
 	private UsersControllerBean usersController;
 	
+	/**
+	 * IP-адрес клиента, передаваемый клиентом
+	 */
 	@Column(name="IP_ADDR_GREY")
 	private String greyIpAddr;
 	
+	/**
+	 * IP-адрес клиента, определяемый сервером
+	 */
 	@Column(name="IP_ADDR_WHITE")
 	private String whiteIpAddr;
 	
+	/**
+	 * Адрес сервера, к которому подключились
+	 */
 	@Column(name="SERVER_CONTEXT")
 	private String serverContext;
+	
+	/**
+	 * Название подключившейся программы
+	 */
+	@Column(name="USER_AGENT")
+	private String userAgent;
 	
 	@Transient
 	private int oracleSID = -1;//ID сессии в Oracle -- для журналирования и контроля
@@ -402,6 +417,14 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	public void setServerContext(String serverContext) {
 		this.serverContext = serverContext;
+	}
+	
+	public String getUserAgent() {
+		return userAgent;
+	}
+	
+	public void setUserAgent(String userAgent) {
+		this.userAgent = userAgent;
 	}
 	
 	public int getCarabiLogID() {

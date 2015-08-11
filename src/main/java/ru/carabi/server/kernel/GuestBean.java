@@ -177,6 +177,7 @@ public class GuestBean {
 	 * Выполняется после предварительной. Создаёт долгоживущую сессию Oracle.
 	 * @param user пользователь, найденный в ядровой базе по логину
 	 * @param passwordTokenClient ключ -- md5 (md5(login+password)+ (Settings.projectName + "9999" + Settings.serverName timestamp из welcome)) *[login и md5 -- в верхнем регистре]
+	 * @param userAgent название программы-клиента
 	 * @param connectionProperties свойства подключения клиента (для журналирования). Должны содержать ipAddrWhite, ipAddrGrey и serverContext.
 	 * @param version Номер версии
 	 * @param vc Проверять номер версии
@@ -187,6 +188,7 @@ public class GuestBean {
 	public int registerUser(
 			CarabiUser user,
 			String passwordTokenClient,
+			String userAgent,
 			Properties connectionProperties,
 			String version,
 			int vc,//Номер версии
@@ -204,7 +206,7 @@ public class GuestBean {
 			}
 			logger.log(Level.INFO, messages.getString("registerStart"), login);
 			//Получаем пользователя по имени из схемы с нужным номером или названием
-			UserLogon logon = createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user, guestSesion.connectToOracle());
+			UserLogon logon = createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user, guestSesion.connectToOracle(), userAgent);
 			//Сверяем пароль
 			logger.log(Level.INFO, "passwordCipher: {0}", logon.getUser().getPassword());
 			logger.log(Level.INFO, "timestamp: {0}", guestSesion.getTimeStamp());
@@ -248,7 +250,9 @@ public class GuestBean {
 	 * Одноэтапная авторизация -- для использования PHP-скриптами.
 	 * @param user Запись о пользователе Carabi
 	 * @param passwordCipherClient Зашифрованный пароль
-	 * @param requireSession Требуется долгоживущая сессия Oracle
+	 * @param userAgent название программы-клиента
+	 * @param notConnectToOracle не подключаться к Oracle при авторизации (использование данной опции не позволит вернуть подробные данные о пользователе)
+	 * @param requireSession требуется долгоживущая сессия Oracle
 	 * @param connectionProperties свойства подключения клиента (для журналирования). Должны содержать ipAddrWhite, ipAddrGrey и serverContext.
 	 * @param schemaName Псевдоним базы Carabi, к которой нужно подключиться (если не задан -- возвращается основная)
 	 * @param token Выход: Ключ для авторизации при выполнении последующих действий
@@ -257,7 +261,9 @@ public class GuestBean {
 	public long registerUserLight(
 			CarabiUser user,
 			String passwordCipherClient,
+			String userAgent,
 			boolean requireSession,
+			boolean notConnectToOracle,
 			Properties connectionProperties,
 			Holder<String> schemaName,
 			Holder<String> token
@@ -285,7 +291,7 @@ public class GuestBean {
 				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_KERNEL);
 			}
 			//Получаем пользователя по имени из схемы с нужным названием
-			UserLogon logon = createUserLogon(-1, schemaName.value, user, false);
+			UserLogon logon = createUserLogon(-1, schemaName.value, user, !notConnectToOracle, userAgent);
 			logon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
 			logon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
 			logon.setServerContext(connectionProperties.getProperty("serverContext"));
@@ -310,54 +316,7 @@ public class GuestBean {
 		}
 	}
 	
-	/**
-	 * Аналог registerUserLight без подключения к Oracle
-	 * @param user Запись о пользователе Carabi
-	 * @param passwordCipherClient Зашифрованный пароль
-	 * @param token Выход: Ключ для авторизации при выполнении последующих действий
-	 * @return ID Carabi-пользователя
-	 */
-	public long registerGuestUser(
-			CarabiUser user,
-			String passwordCipherClient,
-			Holder<String> token
-		) throws RegisterException, CarabiException {
-		logger.log(Level.INFO,
-				   "GuestService.registerGuestUser called with params: user={0}, password={1}", 
-				   new Object[]{user.getLogin(), passwordCipherClient});
-		try {
-			String login = user.getLogin();
-			//сверяем пароль по ядровой базе
-			if (!user.getPassword().equalsIgnoreCase(passwordCipherClient)) {
-				CarabiLogging.logError(messages.getString("registerRefusedDetailsPass"),
-						new Object[]{login, "carabi_kernel", user.getPassword(), passwordCipherClient},
-						null, false, Level.WARNING, null);
-				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_KERNEL);
-			}
-			//Создаём сессию
-			UserLogon logon = new UserLogon();
-			logon.setUser(user);
-			logon.setDisplay(user.getFirstname() + " " + user.getMiddlename() + " " + user.getLastname());
-			logon.setAppServer(Settings.getCurrentServer());
-			logon.setRequireSession(false);
-			//Запоминаем пользователя
-			logon = uc.addUser(logon);
-			token.value = logon.getToken();
-			logger.log(Level.INFO, "Пользователю выдан токен: {0}", token.value);
-			return logon.getId();
-		} catch (CarabiException ex) {
-			CarabiLogging.logError("GuestService.registerUserLight failed with Exception. ", null, null, false, Level.SEVERE, ex);
-			throw ex;
-		} catch (Exception ex) {
-			CarabiLogging.logError("GuestService.registerUserLight failed with Exception. ", null, null, false, Level.SEVERE, ex);
-		} finally {
-			if (authorize != null) authorize.remove();
-			authorize = null;
-		}
-		return 0;
-	}
-	
-	private UserLogon createUserLogon(int schemaID, String schemaName, CarabiUser user, boolean connectToOracle) throws CarabiException, NamingException, SQLException {
+	private UserLogon createUserLogon(int schemaID, String schemaName, CarabiUser user, boolean connectToOracle, String userAgent) throws CarabiException, NamingException, SQLException {
 		authorize.setCurrentUser(user);
 		if (connectToOracle) {
 			authorize.connectToDatabase(schemaID, schemaName);
@@ -372,7 +331,9 @@ public class GuestBean {
 				throw new RegisterException(RegisterException.MessageCode.NO_LOGIN_ORACLE);
 			}
 		}
-		return authorize.createUserLogon();
+		UserLogon userLogon = authorize.createUserLogon();
+		userLogon.setUserAgent(userAgent);
+		return userLogon;
 		
 	}
 	

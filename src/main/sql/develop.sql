@@ -271,6 +271,7 @@ create table USER_LOGON (
 	IP_ADDR_WHITE varchar(64), --IP клиента, определённый сервером (внешний) -- для журналирования.
 	IP_ADDR_GREY varchar(64), --IP клиента, переданный клиентом (внутренний) -- для журналирования.
 	SERVER_CONTEXT varchar(64), --сервер, в котором открыта сессия -- например, 83.243.75.4/carabiserver
+	USER_AGENT varchar(128),
 	LASTACTIVE timestamp,
 	REQUIRESESSION integer,
 	SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID),

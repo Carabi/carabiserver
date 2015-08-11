@@ -95,7 +95,7 @@ public class Authorize {
 				user = em.merge(user);
 			}
 			Holder<String> gettingToken = new Holder();
-			guest.registerUserLight(user, password, requireSession, getConnectionProperties(clientIp), new Holder(schemaName ), gettingToken);
+			guest.registerUserLight(user, password, "RestService", requireSession, false, getConnectionProperties(clientIp), new Holder(schemaName), gettingToken);
 			return "{\"token\":\"" + gettingToken.value + "\", \"eventer_token\":\"" + eventer.getEventerToken(gettingToken.value) + "\"}";
 		} catch (CarabiException ex) {
 			Logger.getLogger(Authorize.class.getName()).log(Level.SEVERE, null, ex);

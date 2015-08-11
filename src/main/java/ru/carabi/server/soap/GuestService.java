@@ -102,6 +102,7 @@ public class GuestService {
 	 * Выполняется после предварительной. Создаёт долгоживущую сессию Oracle.
 	 * @param login логин
 	 * @param passwordTokenClient ключ &mdash; md5 (md5(login+password)+ (Settings.projectName + "9999" + Settings.serverName timestamp из welcome)) *[login и md5 -- в верхнем регистре]
+	 * @param userAgent название программы-клиента
 	 * @param clientIp локальный IP-адрес клиентского компьютера (для журналирования)
 	 * @param version Номер версии
 	 * @param vc Проверять номер версии
@@ -113,6 +114,7 @@ public class GuestService {
 	public int registerUser(
 			@WebParam(name = "login") String login,
 			@WebParam(name = "password") String passwordTokenClient,
+			@WebParam(name = "userAgent") String userAgent,
 			@WebParam(name = "clientIp") String clientIp,
 			@WebParam(name = "version") String version,
 			@WebParam(name = "vc") int vc,
@@ -127,7 +129,7 @@ public class GuestService {
 		try {
 			CarabiUser user = guest.searchUser(login);
 			user = guest.checkCurrentServer(user);
-			return guest.registerUser(user, passwordTokenClient, getConnectionProperties(clientIp), version, vc, schemaID, info, guestSesion);
+			return guest.registerUser(user, passwordTokenClient, userAgent, getConnectionProperties(clientIp), version, vc, schemaID, info, guestSesion);
 		} catch (RegisterException e) {
 			if (e.badLoginPassword()) {
 				logger.log(Level.INFO, "", e);
@@ -144,17 +146,21 @@ public class GuestService {
 	 * Одноэтапная авторизация &mdash; для использования PHP-скриптами.
 	 * @param login Имя пользователя Carabi
 	 * @param passwordCipherClient Зашифрованный пароль
+	 * @param userAgent название программы-клиента
 	 * @param requireSession Требуется долгоживущая сессия Oracle
+	 * @param notConnectToOracle Не подключаться к Oracle при авторизации (на выходе будет -1 вместо ID)
 	 * @param clientIp локальный IP-адрес клиента (при использовании для Web &mdash; адрес браузера) &mdash; для журналирования.
 	 * @param schemaName Псевдоним базы Carabi, к которой нужно подключиться (если не задан &mdash; возвращается основная)
 	 * @param token Выход: Ключ для авторизации при выполнении последующих действий
-	 * @return ID Carabi-пользователя
+	 * @return ID Carabi-пользователя, если не указан параметр notConnectToOracle, иначе -1
 	 */
 	@WebMethod(operationName = "registerUserLight")
 	public long registerUserLight(
 			@WebParam(name = "login") String login,
 			@WebParam(name = "password") String passwordCipherClient,
+			@WebParam(name = "userAgent") String userAgent,
 			@WebParam(name = "requireSession") boolean requireSession,
+			@WebParam(name = "notConnectToOracle") boolean notConnectToOracle,
 			@WebParam(name = "clientIp") String clientIp,
 			@WebParam(name = "schemaName", mode = WebParam.Mode.INOUT) Holder<String> schemaName,
 			@WebParam(name = "token", mode = WebParam.Mode.OUT) Holder<String> token
@@ -163,7 +169,7 @@ public class GuestService {
 		try {
 			CarabiUser user = guest.searchUser(login);
 			user = guest.checkCurrentServer(user);
-			return guest.registerUserLight(user, passwordCipherClient, requireSession, getConnectionProperties(clientIp), schemaName, token);
+			return guest.registerUserLight(user, passwordCipherClient, userAgent, requireSession, notConnectToOracle, getConnectionProperties(clientIp), schemaName, token);
 		} catch (RegisterException e) {
 			if (e.badLoginPassword()) {
 				logger.log(Level.INFO, "", e);
@@ -173,25 +179,6 @@ public class GuestService {
 				throw e;
 			}
 		}
-	}
-	
-	/**
-	 * Аналог registerUserLight без подключения к Oracle
-	 * @param login Имя пользователя Carabi
-	 * @param passwordCipherClient Зашифрованный пароль
-	 * @param token Выход: Ключ для авторизации при выполнении последующих действий
-	 * @return ID Carabi-пользователя
-	 */
-	@WebMethod(operationName = "registerGuestUser")
-	public long registerGuestUser(
-			@WebParam(name = "login") String login,
-			@WebParam(name = "password") String passwordCipherClient,
-			@WebParam(name = "token", mode = WebParam.Mode.OUT) Holder<String> token
-		) throws RegisterException, CarabiException {
-		logger.log(Level.INFO, "{0} is logining", login);
-		CarabiUser user = guest.searchUser(login);
-		user = guest.checkCurrentServer(user);
-		return guest.registerGuestUser(user, passwordCipherClient, token);
 	}
 	
 	/**
