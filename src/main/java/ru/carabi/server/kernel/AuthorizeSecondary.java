@@ -1,18 +1,26 @@
 package ru.carabi.server.kernel;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.HashMap;
+import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.soap.SoapUserInfo;
 
 /**
- * Методы, формирующие данные о пользователях.
- * Используются, прежде всего, при авторизации.
- * Возможны различные реализации в зависимости от нижелещащей (не ядровой) БД.
- * 
+ * Методы для авторизации в неядровой БД.
  * @author sasha<kopilov.ad@gmail.com>
  */
-public interface UsersFormatter {
+public interface AuthorizeSecondary {
+	
+	/**
+	 * Авторизация подключения в БД.
+	 * Запрос к неядровой БД, необходимый, чтобы PL/SQL-функции
+	 * принимали сессию авторизованного пользователя
+	 * @param connection подключение, в котором надо обозначить пользователя
+	 * @param logon ядровая сессия авторизуемого пользователя
+	 */
+	public void authorizeUser(Connection connection, UserLogon logon) throws SQLException;
 	
 	/**
 	 * Возвращает ID пользователя в неядровой БД.

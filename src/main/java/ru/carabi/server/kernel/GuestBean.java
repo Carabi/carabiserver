@@ -7,10 +7,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.ResourceBundle;
@@ -49,15 +51,18 @@ public class GuestBean {
 	private static final Logger logger = Logger.getLogger("ru.carabi.server.kernel.GuestBean");
 	
 	Context ctx;
-
-	private AuthorizeBean authorize;
 	
-	@EJB private UsersControllerBean uc;
+	AuthorizeSecondary authorize = new AuthorizeSecondaryAbstract();
+	
+	@EJB private UsersControllerBean usersController;
 
 	@EJB private SqlQueryBean sqlQueryBean;
+
+	@EJB private ConnectionsGateBean connectionsGate;
 	
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManager em;
+	HashMap<String, ?> userInfo;
 	
 	private static final ResourceBundle messages = ResourceBundle.getBundle("ru.carabi.server.soap.Messages");
 
@@ -79,7 +84,7 @@ public class GuestBean {
 		// prepare sql request
 		String script = 
 			"begin\n" +
-			"  documents.REGISTER_USER("+String.valueOf(logon.getId())+",2);\n"+
+			"  documents.REGISTER_USER("+String.valueOf(logon.getExternalId())+",2);\n"+
 			"  :result := appl_web_user.get_web_user_id(documents.GET_USER_ID);\n"+
 			"end;";
 		QueryParameter qp = new QueryParameter();
@@ -167,7 +172,7 @@ public class GuestBean {
 	public String getWebUserInfo(UserLogon logon) throws CarabiException {
 		return String.format("{\"login\":\"%s\", \"idCarabiUser\":\"%d\", \"idWebUser\":\"%s\"}",
 			logon.userLogin(),
-			logon.getId(),
+			logon.getExternalId(),
 			getWebUserId(logon)
 		);
 	}
@@ -198,7 +203,6 @@ public class GuestBean {
 		) throws CarabiException, RegisterException {
 		String login = user.getLogin();
 		try {
-			authorize = (AuthorizeBean) ctx.lookup("java:module/AuthorizeBean");
 			boolean versionControl = vc != 0;
 			if ((!Settings.projectVersion.equals(version)) && versionControl) {
 				logger.log(Level.INFO, messages.getString("versionNotFitInfo"), login);
@@ -221,12 +225,14 @@ public class GuestBean {
 			logon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
 			logon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
 			logon.setServerContext(connectionProperties.getProperty("serverContext"));
-			String token = authorize.authorizeUser(guestSesion.requireSession());
+			String token = authorizeUserLogon(logon, guestSesion.requireSession());
 			//Готовим информацию для возврата
-			SoapUserInfo soapUserInfo = authorize.createSoapUserInfo();
+			SoapUserInfo soapUserInfo = authorize.createSoapUserInfo(userInfo);
 			soapUserInfo.token = token;
 			info.value = soapUserInfo;
-			schemaID.value = -1;//currentUser.getSchema().getId();
+			if (logon.getSchema() != null) {
+				schemaID.value = logon.getSchema().getId();
+			}
 		} catch (CarabiException e) {
 			if (!RegisterException.class.isInstance(e)) {
 				CarabiLogging.logError("GuestService.registerUser failed with Exception. ", null, null, false, Level.SEVERE, e);
@@ -238,9 +244,6 @@ public class GuestBean {
 		} catch (Exception e) {
 			CarabiLogging.logError("GuestService.registerUser failed with UNKNOWN Exception. ", null, null, false, Level.SEVERE, e);
 			throw new CarabiException(e);
-		} finally {
-			if (authorize != null) authorize.remove();
-			authorize = null;
 		}
 		return 0;
 	}
@@ -274,7 +277,6 @@ public class GuestBean {
 				   new Object[]{user.getLogin(), passwordCipherClient, requireSession, schemaName.value});
 		try {
 			String login = user.getLogin();
-			authorize = (AuthorizeBean) ctx.lookup("java:module/AuthorizeBean");
 			if (schemaName.value == null || schemaName.value.isEmpty()) {
 				final ConnectionSchema defaultSchema = user.getDefaultSchema();
 				if (defaultSchema == null || defaultSchema.getSysname() == null || defaultSchema.getSysname().isEmpty()) {
@@ -298,9 +300,9 @@ public class GuestBean {
 			logger.log(Level.INFO, "По имени схемы и логину ({0}, {1}) получен пользователь: {2}", 
 					new Object[] {schemaName, login, String.valueOf(logon)});
 			//Запоминаем пользователя
-			token.value = authorize.authorizeUser(requireSession);
+			token.value = authorizeUserLogon(logon, requireSession);
 			logger.log(Level.INFO, "Пользователю выдан токен: {0}", token.value);
-			return logon.getId();
+			return logon.getExternalId();
 		} catch (CarabiException ex) {
 			if (RegisterException.class.isInstance(ex)) {
 				throw ex;
@@ -310,31 +312,36 @@ public class GuestBean {
 		} catch (Exception ex) {
 			CarabiLogging.logError("GuestService.registerUserLight failed with Exception. ", null, null, false, Level.SEVERE, ex);
 			throw new CarabiException(ex);
-		} finally {
-			if (authorize != null) authorize.remove();
-			authorize = null;
 		}
 	}
 	
 	private UserLogon createUserLogon(int schemaID, String schemaName, CarabiUser user, boolean connectToOracle, String userAgent) throws CarabiException, NamingException, SQLException {
-		authorize.setCurrentUser(user);
+		ConnectionSchema schema = connectionsGate.getDedicatedSchema(schemaID, schemaName, user.getLogin());
 		if (connectToOracle) {
-			authorize.connectToDatabase(schemaID, schemaName);
-			//Проверяем наличие пользователя в Oracle, получаем доп. данные о нём
-			boolean userExists = authorize.searchCurrentUser();
-			if (!userExists) {
-				logger.log(Level.INFO, messages.getString("registerRefused"), user.getLogin());
-				CarabiLogging.logError(messages.getString("registerRefusedDetailsBase"),
-						new Object[]{user.getLogin(), "Oracle " + authorize.getSchema().getSysname()},
-						authorize.getConnection(), true, Level.WARNING, null);
-				authorize.closeConnection();
-				throw new RegisterException(RegisterException.MessageCode.NO_LOGIN_ORACLE);
+			try (Connection connection = connectionsGate.connectToSchema(schema)) {
+				//Проверяем наличие пользователя в Oracle, получаем доп. данные о нём
+				userInfo = authorize.getDetailedUserInfo(connection, user.getLogin());
+				if (userInfo == null) {
+					logger.log(Level.INFO, messages.getString("registerRefused"), user.getLogin());
+					throw new RegisterException(RegisterException.MessageCode.NO_LOGIN_ORACLE);
+				}
 			}
 		}
-		UserLogon userLogon = authorize.createUserLogon();
-		userLogon.setUserAgent(userAgent);
-		return userLogon;
-		
+		UserLogon logon = new UserLogon();
+		logon.setExternalId(authorize.getUserID(userInfo));
+		logon.setUser(user);
+		//final String userDisplayString = authorize.getUserDisplayString(user, userInfo);
+		logon.setDisplay(authorize.getUserDisplayString(user, userInfo));
+		logon.setSchema(schema);
+		logon.setAppServer(Settings.getCurrentServer());
+		logon.setUserAgent(userAgent);
+		return logon;
+	}
+	
+	private String authorizeUserLogon(UserLogon logon, boolean requireSession) {
+		logon.setRequireSession(requireSession);
+		logon = usersController.addUser(logon);
+		return logon.getToken();
 	}
 	
 	/**
@@ -404,7 +411,7 @@ public class GuestBean {
 	public void sendPasswordRecoverCode(String email) throws CarabiException {
 		CarabiUser user;
 		try {
-			user = uc.getUserByEmail(email);
+			user = usersController.getUserByEmail(email);
 		} catch (Exception e){
 			return;
 		}
@@ -462,7 +469,7 @@ public class GuestBean {
 	public boolean recoverPassword(String email, String code, String password) {
 		CarabiUser user;
 		try {
-			user = uc.getUserByEmail(email);
+			user = usersController.getUserByEmail(email);
 		} catch (Exception e){
 			return false;
 		}

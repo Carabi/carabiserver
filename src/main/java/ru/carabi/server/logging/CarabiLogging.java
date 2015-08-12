@@ -231,9 +231,9 @@ public abstract class CarabiLogging {
 		return Settings.CARABI_LOGS_LOCATION + "/" + logon.userLogin() + "/" + logon.getToken();
 	}
 	
-	public static void closeUserLog(UserLogon logon, Connection connection) throws SQLException {
+	public static void closeUserLog(UserLogon logon) throws SQLException {
 		personalLoggers.remove(logon.getToken());
-		closeDatabaseLog(connection, logon);
+		closeDatabaseLog(logon.getMasterConnection(), logon);
 	}
 
 	private static void closeDatabaseLog(Connection connection, UserLogon logon) throws SQLException {

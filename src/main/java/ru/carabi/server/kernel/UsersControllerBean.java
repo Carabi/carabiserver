@@ -62,10 +62,6 @@ public class UsersControllerBean {
 		logon.setUsersController(this);
 		logon = usersPercistence.addLogon(logon);
 		activeUsers.put(token, logon);
-		if (logon.getSchema() != null) {
-			logger.log(Level.FINEST, "put {0} to activeUsers in Add", token);
-			logon.openCarabiLog();
-		}
 		logger.log(Level.FINE, "{0}-th user added!", activeUsers.size());
 		return logon;
 	}
@@ -148,7 +144,7 @@ public class UsersControllerBean {
 				Logger.getLogger(UsersControllerBean.class.getName()).log(Level.SEVERE, null, ex);
 			} finally {
 				try {
-					CarabiLogging.closeUserLog(logon, logon.getMasterConnection());
+					CarabiLogging.closeUserLog(logon);
 					logon.closeAllConnections();
 				} catch (SQLException ex) {
 					Logger.getLogger(UsersControllerBean.class.getName()).log(Level.SEVERE, null, ex);
@@ -199,9 +195,9 @@ public class UsersControllerBean {
 			activeUsers.put(token, logon);
 			logger.log(Level.FINEST, "put {0} to activeUsers in TokenAuth", token);
 		}
-		if (connectToOracle && logon.getSchema() != null) {
-			logon.getMasterConnection();//предварительная установка связи
-		}
+//		if (connectToOracle && logon.getSchema() != null) {
+//			logon.getMasterConnection();//предварительная установка связи
+//		}
 		return logon;
 	}
 	

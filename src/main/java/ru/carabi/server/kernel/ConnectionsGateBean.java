@@ -202,6 +202,10 @@ public class ConnectionsGateBean {
 	 * @throws CarabiException
 	 */
 	public ConnectionSchema getDedicatedSchema (int schemaID, String schemaName, String login) throws CarabiException {
+		// Проверка входных параметров
+		if (schemaID < 0 && schemaName == null && login == null || login.equals("")) {
+			throw new CarabiException("please input not empty schemaID, schemaName or login");
+		}
 		if (schemaID >= 0) {
 			return getConnectionSchemaByID(schemaID);
 		} else if (null != schemaName && !schemaName.isEmpty()) {

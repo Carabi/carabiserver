@@ -200,7 +200,7 @@ public class GuestService {
 			} else {
 				result.addNull("schema");
 			}
-			result.add("carabiUserID", logon.getId());
+			result.add("carabiUserID", logon.getExternalId());
 			return result.build().toString();
 		}
 	}
@@ -226,7 +226,7 @@ public class GuestService {
 	@WebMethod(operationName = "getOracleUserID")
 	public long getOracleUserID(@WebParam(name = "token") String token) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			return logon.getId();
+			return logon.getExternalId();
 		}
 	}
 	

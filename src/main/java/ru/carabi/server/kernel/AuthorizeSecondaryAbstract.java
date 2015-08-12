@@ -2,16 +2,24 @@ package ru.carabi.server.kernel;
 
 import java.sql.Connection;
 import java.util.HashMap;
+import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.soap.SoapUserInfo;
 
 /**
- * Пустая реализация интерфейса {@link UsersFormatter}.
+ * Пустая реализация интерфейса {@link AuthorizeSecondary}.
  * Используется при отсутствии неядровой БД.
  * 
  * @author sasha<kopilov.ad@gmail.com>
  */
-public class EmptyUsersFormatter implements UsersFormatter {
+public class AuthorizeSecondaryAbstract implements AuthorizeSecondary {
+	
+	/**
+	 * Ничего не делает, так как нет БД
+	 */
+	@Override
+	public void authorizeUser(Connection connection, UserLogon logon) {
+	}
 	
 	/**
 	 * Возвращает -1 (ID ненайденного пользователя).

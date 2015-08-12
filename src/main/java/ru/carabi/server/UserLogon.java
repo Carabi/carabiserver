@@ -26,6 +26,8 @@ import javax.persistence.Transient;
 import ru.carabi.server.entities.ConnectionSchema;
 import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
+import ru.carabi.server.kernel.AuthorizeSecondary;
+import ru.carabi.server.kernel.AuthorizeSecondaryAbstract;
 import ru.carabi.server.kernel.ConnectionsGateBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.kernel.oracle.CursorFetcherBean;
@@ -47,14 +49,14 @@ import ru.carabi.server.logging.CarabiLogging;
 })
 @Table(name="USER_LOGON")
 public class UserLogon implements Serializable, AutoCloseable {
-	private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 3L;
 	private static final Logger logger = Logger.getLogger(UserLogon.class.getName());
 	
 	@Id
 	private String token;
 	
 	@Column(name="ORACLE_USER_ID")
-	private long id;//ID пользователя в Carabi
+	private long externalID;//ID пользователя в Carabi
 
 	@ManyToOne
 	@JoinColumn(name="USER_ID")
@@ -152,16 +154,19 @@ public class UserLogon implements Serializable, AutoCloseable {
 	@Transient
 	private Date logonDate = new Date(); // дата и время создания сессии
 	
+	@Transient
+	private AuthorizeSecondary authorizeSecondary = new AuthorizeSecondaryAbstract();
+	
 	/**
-	 * Возврашает ID Carabi-пользователя
-	 * @return ID пользователя в Carabi (в базе Oracle)
+	 * Возврашает ID пользователя в текущей неядровой БД
+	 * @return ID пользователя в текущей неядровой БД Oracle
 	 */
-	public long getId() {
-		return id;
+	public long getExternalId() {
+		return externalID;
 	}
 	
-	public void setId(long id) {
-		this.id = id;
+	public void setExternalId(long id) {
+		this.externalID = id;
 	}
 	
 	public CarabiUser getUser() {
@@ -226,9 +231,11 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	/**
 	 * Получение рабочего подключения к Oracle.
+	 * Создание центрального подключеия, если оно не создано.
 	 * @return connection
 	 */
 	public synchronized Connection getConnection() throws CarabiException, SQLException {
+		checkMasterConnection();
 		Connection connection = null;
 		int key = 0;
 		for (Entry<Integer, Boolean> isConnectionFree: connectionsFree.entrySet()) {
@@ -246,7 +253,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 		try {
 			//Свободное подключение не найдено
 			connection = connectionsGate.connectToSchema(schema);
-			authorise(connection, true);
+			authorize(connection, true);
 			key = getConnectionKey(connection);
 			connections.put(key, connection);
 			connectionsFree.put(key, false);
@@ -327,12 +334,15 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * @return connection
 	 */
 	public synchronized Connection getMasterConnection() {
+		if (externalID < 0) {//ещё не вошли в неядровую БД
+			try (Connection connectionTmp = connectionsGate.connectToSchema(schema)) {
+				externalID = authorizeSecondary.getUserID(connectionTmp, userLogin());
+			} catch (CarabiException | NamingException | SQLException ex) {
+				Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
 		checkMasterConnection();
 		return masterConnection;
-	}
-	
-	public void setMasterConnection(Connection connection) {
-		this.masterConnection = connection;
 	}
 	
 	public void setConnectionsGate(ConnectionsGateBean cg) {
@@ -450,12 +460,12 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	/**
 	 * Авторизация подключения в БД.
-	 * Запрос к БД Oracle, необходимый, чтобы PL/SQL-функции Carabi
-	 * (или иной нижележащей БД) принимали сессию авторизованного пользователя
+	 * Запрос к неядровой БД, необходимый, чтобы PL/SQL-функции
+	 * принимали сессию авторизованного пользователя
 	 * @param connection
 	 * @throws SQLException 
 	 */
-	private void authorise(Connection connection, boolean openedFromPool) throws SQLException {
+	private void authorize(Connection connection, boolean openedFromPool) throws SQLException {
 		String postfix;
 		if (openedFromPool) {
 			postfix = "/Pooled";
@@ -463,7 +473,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 			postfix = "/Master";
 		}
 		setSessionInfo(connection, "" + carabiLogID, userLogin() + postfix + "/SOAP_SERVER");
-		//cutted
+		authorizeSecondary.authorizeUser(connection, this);
 	}
 	
 	/**
@@ -487,17 +497,15 @@ public class UserLogon implements Serializable, AutoCloseable {
 		if (masterConnection != null) {
 			try {
 				setSessionInfo(masterConnection, "", "__freeInPool/SOAP_SERVER");
-				if (isRequireSession()) {
-					CarabiLogging.closeUserLog(this, masterConnection);
+				if (externalID >= 0) {
+					CarabiLogging.closeUserLog(this);
 				}
 			} catch (SQLException e) {
 				logger.log(Level.SEVERE, "error on closing", e);
 			} finally {
 				masterConnection.close();
 				masterConnection = null;
-				if (isRequireSession()) {
-					oracleSID = -1;
-				}
+				oracleSID = -1;
 			}
 		}
 		for (Entry<Integer, Connection> connectionKey: connections.entrySet()) {
@@ -513,7 +521,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	public String toString() {
 		StringBuilder sb = new StringBuilder(super.toString());
 		sb.append("[userId=");
-		sb.append(getId());
+		sb.append(getExternalId());
 		sb.append(", login=");
 		sb.append(userLogin());
 		sb.append(", display=");
@@ -539,9 +547,9 @@ public class UserLogon implements Serializable, AutoCloseable {
 			if (ok) {
 				int currentUserID = selectUserID();
 				int currentOracleSID = selectOracleSID();
-				if (currentUserID != id || currentOracleSID != oracleSID) {
-					logger.log(Level.WARNING, "different id: current in oracle: {0}, in java: {1}", new Object[]{currentUserID, id});
-					authorise(connection, openedFromPool);
+				if (currentUserID != externalID || currentOracleSID != oracleSID) {
+					logger.log(Level.WARNING, "different id: current in oracle: {0}, in java: {1}", new Object[]{currentUserID, externalID});
+					authorize(connection, openedFromPool);
 				}
 				return connection;
 			} else {
@@ -553,7 +561,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 				
 				Connection newConnection = connectionsGate.connectToSchema(schema);
 				logger.fine("got new connection");
-				authorise(newConnection, openedFromPool);
+				authorize(newConnection, openedFromPool);
 				logger.fine("new connection auth");
 				return newConnection;
 			}
@@ -564,7 +572,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 					connection.close();
 				}
 				Connection newConnection = connectionsGate.connectToSchema(schema);
-				authorise(newConnection, openedFromPool);
+				authorize(newConnection, openedFromPool);
 				return newConnection;
 			} catch (CarabiException | NamingException | SQLException ex1) {
 				Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex1);
@@ -582,18 +590,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 		checkCarabiLog();
 	}
 	
-	public void openCarabiLog() {
-		try {
-			oracleSID = selectOracleSID();
-			carabiLogID = CarabiLogging.openUserLog(this, masterConnection);
-			authorise(masterConnection, false);
-		} catch (SQLException ex) {
-			Logger.getLogger(UsersControllerBean.class.getName()).log(Level.WARNING, "could not create journal at first time", ex);
-		} catch (CarabiException | NamingException ex) {
-			Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex);
-		}
-	}
-	
 	/**
 	 * Проверка, что журнал в Carabi создан и не переподключалась сессия.
 	 * @return true, если старый журнал актуален или новый создан успешно.
@@ -605,7 +601,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 			logger.log(Level.FINE, "checkCarabiLog: carabiLogID: {0}, currentOracleSID: {1}, oracleSID: {2}", new Object[]{carabiLogID, currentOracleSID, oracleSID});
 			if (carabiLogID == -1 || currentOracleSID != oracleSID) {
 				if (carabiLogID != -1) {
-					CarabiLogging.closeUserLog(this, masterConnection);
+					CarabiLogging.closeUserLog(this);
 				}
 				oracleSID = currentOracleSID;
 				carabiLogID = CarabiLogging.openUserLog(this, masterConnection);
@@ -629,12 +625,11 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	private void setSessionInfo(Connection connection, String actionName, String userName) throws SQLException {
 		String sql = "begin \n" +
-				"APPL_USER.NOW_EMPLOYEE_ID := -1;\n" +
 				"dbms_application_info.set_module(:MODULE_NAME,:ACTION_NAME);\n"+
 				"dbms_application_info.set_client_info(:USER_NAME);\n"+
 				"end;";
 		try (CallableStatement statement = connection.prepareCall(sql)) {
-			statement.setString("MODULE_NAME", "SOAP_SERVER");
+			statement.setString("MODULE_NAME", "SOAP_SERVER/" + userAgent);
 			statement.setString("ACTION_NAME", actionName);
 			statement.setString("USER_NAME", userName);
 			statement.execute();
