@@ -100,6 +100,7 @@ public class SqlQueryBean {
 					if (fetchIsNew) {
 						fetch.cursor.close();
 						fetch.statement.close();
+						logon.freeConnection(fetch.connectionKey);
 					} else {
 						cursorFetcher.closeFetch(logon, queryTag);
 					}
