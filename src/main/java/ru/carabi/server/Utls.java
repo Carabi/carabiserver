@@ -15,11 +15,13 @@ import java.sql.Types;
 import java.sql.Wrapper;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import javax.enterprise.context.Dependent;
 import javax.inject.Named;
 import javax.json.Json;
@@ -247,18 +249,20 @@ public class Utls {
 		return index;
 	}
 	
+	/**
+	 * Рекурсивное приведение карты к формату JSON.
+	 * Предполагается, что к вложенные карты при их наличии так же будут содержать
+	 * только строковые ключи.
+	 */
 	public static JsonObjectBuilder mapToJson(Map<String, ?> mapObject, String[] putToList) {
 		JsonObjectBuilder jsonObject = Json.createObjectBuilder();
-		for (String key: mapObject.keySet()) {
+		for (Entry<String, ?> entry: mapObject.entrySet()) {
+			String key = entry.getKey();
 			if (putToList != null && putToList.length > 0 && Arrays.binarySearch(putToList, key) < 0) {
 				continue;
 			}
-			final Object object = mapObject.get(key);
-			if (object == null) {
-				jsonObject.addNull(key);
-			} else {
-				jsonObject.add(key, object.toString());
-			}
+			final Object object = entry.getValue();
+			addJsonObject(jsonObject, key, object);
 		}
 		return jsonObject;
 	}
@@ -272,6 +276,15 @@ public class Utls {
 		if (table == null) return jsonArray;
 		for (LinkedHashMap<String, ?> row: table) {
 			jsonArray.add(mapToJson(row));
+		}
+		return jsonArray;
+	}
+	
+	public static JsonArrayBuilder listToJson(List<?> list) {
+		JsonArrayBuilder jsonArray = Json.createArrayBuilder();
+		if (list == null) return jsonArray;
+		for (Object object: list) {
+			addJsonObject(jsonArray, object);
 		}
 		return jsonArray;
 	}
@@ -290,16 +303,26 @@ public class Utls {
 	}
 	
 	public static void addJsonObject(JsonObjectBuilder jsonObject, String name, Object value) {
-		if (value == null) {
+		if (value == null) {//если ключ содержит пустое значение -- оно добавляется отдельным методом
 			jsonObject.addNull(name);
+		} else if (value instanceof Map) {//Если ключ содержит карту -- вызывается метод.
+			//Предполагается, что ключи вложенных карт текстовые.
+			jsonObject.add(name, mapToJson((Map<String, ?>)value));
+		} else if (value instanceof List) {//Если ключ содержит список -- вызывается метод.
+			jsonObject.add(name, listToJson((List<?>)value));
 		} else {
 			jsonObject.add(name, value.toString());
 		}
 	}
 	
 	public static void addJsonObject(JsonArrayBuilder jsonArray, Object value) {
-		if (value == null) {
+		if (value == null) {//если ключ содержит пустое значение -- оно добавляется отдельным методом
 			jsonArray.addNull();
+		} else if (value instanceof Map) {//Если ключ содержит карту -- вызывается метод.
+			//Предполагается, что ключи вложенных карт текстовые.
+			jsonArray.add(mapToJson((Map<String, ?>)value));
+		} else if (value instanceof List) {//Если ключ содержит список -- вызывается метод.
+			jsonArray.add(listToJson((List<?>)value));
 		} else {
 			jsonArray.add(value.toString());
 		}

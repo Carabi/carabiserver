@@ -11,14 +11,12 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
+import javax.json.JsonObjectBuilder;
 import javax.jws.WebMethod;
 import javax.jws.WebParam;
 import javax.jws.WebService;
 import javax.xml.ws.Holder;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.CarabiOracleError;
 import ru.carabi.server.CarabiOracleMessage;
@@ -27,14 +25,11 @@ import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.kernel.Cache;
-import ru.carabi.server.kernel.GuestBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.kernel.oracle.CursorFetcherBean;
-import ru.carabi.server.kernel.oracle.OrderParameter;
 import ru.carabi.server.kernel.oracle.QueryParameter;
 import ru.carabi.server.kernel.oracle.QueryStorageBean;
 import ru.carabi.server.kernel.oracle.SqlQueryBean;
-import ru.carabi.server.logging.CarabiLogging;
 
 /** 
  * Сервис для осуществления запросов к БД Oracle.
@@ -110,7 +105,7 @@ public class QueryService {
 		Holder<ArrayList<ArrayList<?>>> list = new Holder<>();
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			int result = cursorFetcher.fetchNext(logon, queryTag, startPos, fetchCount, list, endpos);
-			listJson.value = new JSONArray(list.value).toString();
+			listJson.value = Utls.listToJson(list.value).build().toString();
 			logger.log(Level.INFO, "fetch result = {0}", endpos.value);
 			return result;
 		} catch (SQLException ex) {
@@ -212,7 +207,7 @@ public class QueryService {
 			@WebParam(name = "fetchCount") int fetchCount,
 			@WebParam(name = "fetchAll") boolean fetchAll,
 			@WebParam(name = "parameters", mode= WebParam.Mode.INOUT) Holder<ArrayList<QueryParameter>> parameters
-		) throws CarabiException, CarabiOracleError, CarabiOracleMessage, JSONException {
+		) throws CarabiException, CarabiOracleError, CarabiOracleMessage {
 		final String parametersDump = Utls.dumpParameters(parameters.value);
 		logger.log(
 				Level.FINE, 
@@ -251,9 +246,6 @@ public class QueryService {
 				logger.log(Level.SEVERE, "Oracle error:", e);
 				throw new CarabiOracleError(e);
 			}
-		} catch (JSONException e) {
-			logger.log(Level.SEVERE, "Json eror:", e);
-			throw e;
 		} catch (CarabiException e) {
 			logger.log(Level.WARNING, "Internal or logic eror:", e);
 			throw e;
@@ -263,18 +255,18 @@ public class QueryService {
 		}
 	}
 	
-	private void wrapJson(Holder<ArrayList<QueryParameter>> parameters) throws JSONException {
+	private void wrapJson(Holder<ArrayList<QueryParameter>> parameters) {
 		for (QueryParameter queryParameter: parameters.value) {
 			wrapJson(queryParameter);
 		}
 	}
 	
-	private void wrapJson(QueryParameter queryParameter) throws JSONException {
+	private void wrapJson(QueryParameter queryParameter) {
 		if ("CURSOR".equals(queryParameter.getType())) {
 			Map cursorData = (Map) queryParameter.getValueObject();
-			JSONObject cursorObject = new JSONObject(cursorData);
-			cursorObject.put("queryTag", queryParameter.getValue());
-			queryParameter.setValue(cursorObject.toString());
+			JsonObjectBuilder cursorObject = Utls.mapToJson(cursorData);
+			cursorObject.add("queryTag", queryParameter.getValue());
+			queryParameter.setValue(cursorObject.build().toString());
 			queryParameter.setValueObject(null);
 		}
 	}
