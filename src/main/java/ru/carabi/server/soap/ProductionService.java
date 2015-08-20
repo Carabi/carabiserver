@@ -1,6 +1,8 @@
 package ru.carabi.server.soap;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -10,11 +12,11 @@ import javax.jws.WebService;
 import javax.jws.WebMethod;
 import javax.jws.WebParam;
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
-import javax.persistence.TypedQuery;
+import javax.persistence.Query;
 import ru.carabi.server.CarabiException;
-import ru.carabi.server.entities.SoftwareProduct;
+import ru.carabi.server.UserLogon;
+import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.ProductVersion;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -35,47 +37,83 @@ public class ProductionService {
 	
 	/**
 	 * Получение сведений о версиях продукта.
-	 * Выдаются подробные сведения о всех версиях одного продукта компании Караби по системному имени продукта и клиента.
-	 * Берутся все записи, для которых указана введённая компания, а так же 
+	 * Выдаются подробные сведения об имеющихся версиях одного продукта компании Караби по его системному имени.
+	 * Версии, для которых не указано подразделение ({@link ru.carabi.server.entities.Department), возвращаются всегда.
+	 * Если указан параметр department &mdash; добавляются версии с данным подразделением.
+	 * Если department не указан, он берётся от текущего пользователя при условии, что ignoreDepartment==false.
+	 * Если showAllDepartments==true, добавляются спец. версии всех подразделений
+	 * (параметры department и ignoreDepartment игнорируются).
 	 * @param token авторизационный токен
 	 * @param productName системное имя продукта
-	 * @param corporation компания, которой предназначена версия
+	 * @param department компания или подразделение, которому предназначена версия (по умолчанию &mdash; подразделение текущего пользователя).
+	 * @param ignoreDepartment показывать только общие версии (не помеченные, как предназначенные конкретному подразделению)
+	 * @param showAllDepartments показывать версии для всех подразделений
 	 * @return массив сведений о версиях
 	 * @throws CarabiException если продукта с таким именем не существует
 	 */
-	@WebMethod(operationName = "checkVersion")
-	public List<ProductVersion> checkVersion(
+	@WebMethod(operationName = "getVersionsList")
+	public List<ProductVersion> getVersionsList(
 			@WebParam(name = "token") String token,
 			@WebParam(name = "productName") String productName,
-			@WebParam(name = "corporation") String corporation
-	) throws CarabiException {
-		usersController.tokenControl(token);
-		TypedQuery<SoftwareProduct> jpaQuery = em.createNamedQuery("findSoftwareProduct", SoftwareProduct.class);
-		jpaQuery.setParameter("productName", productName);
-		try {
-			SoftwareProduct product = jpaQuery.getSingleResult();
-			List<ProductVersion> versions = product.getVersions();
+			@WebParam(name = "department") String department,
+			@WebParam(name = "ignoreDepartment") boolean ignoreDepartment,
+			@WebParam(name = "showAllDepartments") boolean showAllDepartments)
+	 throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+			String sql = "select current_versions.*, department.sysname as department_sysname, department.name as department_name\n"+
+					//product_version_id, version_number, issue_date, singularity, download_url, is_significant_update, destinated_for_department, do_not_advice_newer_common
+					"from appl_production.search_product_versions(?, ?, ?, ?, ?) as current_versions\n" +
+					"left join carabi_kernel.department on department.department_id = current_versions.destinated_for_department";
+			Query searchProductVersions = em.createNativeQuery(sql);
+			searchProductVersions.setParameter(1, token);
+			searchProductVersions.setParameter(2, productName);
+			searchProductVersions.setParameter(3, department);
+			searchProductVersions.setParameter(4, ignoreDepartment);
+			searchProductVersions.setParameter(5, showAllDepartments);
+			List<?> resultList = searchProductVersions.getResultList();
 			TreeSet<ProductVersion> orderer = new TreeSet(new VersionComparator());
-			for (ProductVersion version: versions) {
-				orderer.add(version);
+			for (Object row: resultList) {
+				Object[] data = (Object[])row;
+				ProductVersion productVersion = new ProductVersion();
+				productVersion.setId((Long) data[0]);
+				productVersion.setVersionNumber((String) data[1]);
+				productVersion.setIssueDate((Date) data[2]);
+				productVersion.setSingularity((String) data[3]);
+				productVersion.setDownloadUrl((String) data[4]);
+				productVersion.setIsSignificantUpdate((Boolean) data[5]);
+				productVersion.setDoNotAdviceNewerCommon((Boolean) data[7]);
+				final Integer departmentId = (Integer) data[6];
+				if (departmentId != null) {
+					Department departmentObj = new Department();
+					departmentObj.setId(departmentId);
+					departmentObj.setSysname((String) data[8]);
+					departmentObj.setName((String) data[9]);
+					productVersion.setDestinatedForDepartment(departmentObj);
+				}
+				orderer.add(productVersion);
 			}
-			versions.clear();
+			List<ProductVersion> versions = new ArrayList<>();
 			for (ProductVersion version: orderer) {
-				version.setCarabiProduct(null);
 				versions.add(version);
 			}
 			return versions;
-		} catch(NoResultException e) {
-			throw new CarabiException("No product \""+productName + "\"");
 		}
 	}
 	
 	/**
 	 * Получение сведений о последней версии продукта.
 	 * Выдаются подробные сведения о последней версии одного продукта компании Караби по системному имени.
+	 * Учитываются общие версии и версии, предназначенные подразделению текущего пользователя, либо
+	 * иного подразделения, указанного в параметре department. Если есть две версии (сборки) с одинаковым номером
+	 * (например, 2.5.1), одна из которых общая, а другая предназначена указанному подразделению --
+	 * возвращена будет вторая. Если имеется сборка, предназначенная указанному подразделению,
+	 * и более свежая общая -- первая будет возвращена только в том случае, если для неё задано поле
+	 * {@link ProductVersion#doNotAdviceNewerCommon}, иначе общая свежая сборка имеет больший приоритет.
+	 * При указании параметра ignoreDepartment версии для подразделений игнорируются.
 	 * @param token авторизационный токен
 	 * @param productName системное имя продукта
-	 * @param corporation компания, которой предназначена версия
+	 * @param department компания или подразделение, которому предназначена версия
+	 * @param ignoreDepartment учитвыать только общие версии (не адресованные конкретным подразделениям)
 	 * @return сведения о последней версии
 	 * @throws CarabiException если продукта с таким именем не существует
 	 */
@@ -83,10 +121,30 @@ public class ProductionService {
 	public ProductVersion checkLastVersion(
 			@WebParam(name = "token") String token,
 			@WebParam(name = "productName") String productName,
-			@WebParam(name = "corporation") String corporation
+			@WebParam(name = "department") String department,
+			@WebParam(name = "ignoreDepartment ") boolean ignoreDepartment 
 	) throws CarabiException {
-		List<ProductVersion> checkVersion = checkVersion(token, productName, corporation);
-		return checkVersion.get(checkVersion.size()-1);
+		List<ProductVersion> versions = getVersionsList(token, productName, department, ignoreDepartment, false);
+		ProductVersion lastCommon = null, lastForDepartment = null;
+		boolean commonIsNewer = false;
+		for (ProductVersion version: versions) {
+			if (version.getDestinatedForDepartment() == null) {
+				lastCommon = version;
+				commonIsNewer = true;
+			} else {
+				lastForDepartment = version;
+				commonIsNewer = false;
+			}
+		}
+		if (commonIsNewer) {
+			if (lastForDepartment != null && lastForDepartment.isDoNotAdviceNewerCommon()) {
+				return lastForDepartment;
+			} else {
+				return lastCommon;
+			}
+		} else {
+			return lastForDepartment;
+		}
 	}
 	
 	private static int[] parseVersion(String version) {

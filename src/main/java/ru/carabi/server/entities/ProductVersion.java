@@ -9,6 +9,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 
@@ -18,6 +20,10 @@ import javax.persistence.Temporal;
  */
 @Entity
 @Table(name="PRODUCT_VERSION")
+@NamedQueries({
+@NamedQuery(name="getProductVersions",
+		query="SELECT P FROM SoftwareProduct P where P.sysname = :productName")
+})
 public class ProductVersion implements Serializable {
 	private static final long serialVersionUID = 1L;
 	@Id
@@ -36,13 +42,20 @@ public class ProductVersion implements Serializable {
 	@Temporal(javax.persistence.TemporalType.DATE)
 	private Date issueDate;
 	
-	String singularity;
+	private String singularity;
 	
 	@Column(name="DOWNLOAD_URL")
-	String downloadUrl;
+	private String downloadUrl;
 	
 	@Column(name="IS_SIGNIFICANT_UPDATE")
-	int isSignificantUpdate;
+	private boolean isSignificantUpdate;
+	
+	@ManyToOne
+	@JoinColumn(name="DESTINATED_FOR_DEPARTMENT")
+	private Department destinatedForDepartment;
+	
+	@Column(name="DO_NOT_ADVICE_NEWER_COMMON")
+	private boolean doNotAdviceNewerCommon;
 	
 	public Long getId() {
 		return id;
@@ -117,15 +130,27 @@ public class ProductVersion implements Serializable {
 		this.downloadUrl = downloadUrl;
 	}
 	
-	public int getIsSignificantUpdate() {
+	public boolean isSignificantUpdate() {
 		return isSignificantUpdate;
 	}
 	
-	public boolean isSignificantUpdate() {
-		return isSignificantUpdate != 0;
+	public void setIsSignificantUpdate(boolean isSignificantUpdate) {
+		this.isSignificantUpdate = isSignificantUpdate;
 	}
 	
-	public void setIsSignificantUpdate(int isSignificantUpdate) {
-		this.isSignificantUpdate = isSignificantUpdate;
+	public Department getDestinatedForDepartment() {
+		return destinatedForDepartment;
+	}
+	
+	public void setDestinatedForDepartment(Department destinatedForDepartment) {
+		this.destinatedForDepartment = destinatedForDepartment;
+	}
+	
+	public boolean isDoNotAdviceNewerCommon() {
+		return doNotAdviceNewerCommon;
+	}
+	
+	public void setDoNotAdviceNewerCommon(boolean doNotAdviceNewerCommon) {
+		this.doNotAdviceNewerCommon = doNotAdviceNewerCommon;
 	}
 }

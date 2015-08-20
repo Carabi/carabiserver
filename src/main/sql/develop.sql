@@ -95,7 +95,9 @@ create table DEPARTMENT (
 	--Основная БД Oracle
 	DEFAULT_SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) on delete set null,
 	--Основной сервер с БД для чата
-	MAIN_SERVER_ID integer references APPSERVER (APPSERVER_ID) on delete set null
+	MAIN_SERVER_ID integer references APPSERVER (APPSERVER_ID) on delete set null,
+	--вышестоящее подразделение
+	PARENT_DEPARTMENT_ID integer references DEPARTMENT (DEPARTMENT_ID)
 );
 
 /**
@@ -373,8 +375,9 @@ create table PRODUCT_VERSION (
 	ISSUE_DATE date, --Дата выпуска
 	SINGULARITY varchar(32000), --Особенности данной версии
 	DOWNLOAD_URL varchar(1024), --Где скачать
-	IS_SIGNIFICANT_UPDATE integer not null default 0,--Является важным обновлением, если не 0
-	DESTINATED_FOR_DEPARTMENT integer references DEPARTMENT(DEPARTMENT_ID) on delete cascade --компания, которой адресована данная сборка
+	IS_SIGNIFICANT_UPDATE boolean default false,--Является важным обновлением
+	DESTINATED_FOR_DEPARTMENT integer references DEPARTMENT(DEPARTMENT_ID) on delete cascade, --компания, которой адресована данная сборка
+	DO_NOT_ADVICE_NEWER_COMMON boolean --если заполнено DESTINATED_FOR_DEPARTMENT -- не предлагать обновляться на более свежие версии с DESTINATED_FOR_DEPARTMENT == null 
 );
 
 /**

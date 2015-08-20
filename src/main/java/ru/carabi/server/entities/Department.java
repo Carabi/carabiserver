@@ -13,7 +13,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 /**
- * Юридическое лицо.
+ * Юридическое лицо, подразделение.
  * Объединяет пользователей по месту работы и используемому ПО.
  * @author sasha<kopilov.ad@gmail.com>
  */

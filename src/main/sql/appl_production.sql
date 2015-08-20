@@ -2,6 +2,7 @@
 CREATE SCHEMA appl_production;
 
 CREATE TYPE appl_production.production AS (production_id INTEGER, name CHARACTER VARYING, sysname CHARACTER VARYING, parent_production INTEGER, home_url CHARACTER VARYING);
+CREATE TYPE appl_production.product_version AS (version_id BIGINT, version_number CHARACTER VARYING, issue_date DATE, singularity CHARACTER VARYING, download_url CHARACTER VARYING, is_significant_update BOOLEAN, destinated_for_department INTEGER, do_not_advice_newer_common BOOLEAN);
 
 /**
  * Возвращает ID продукта по его системному имени.
@@ -231,6 +232,69 @@ BEGIN
 		RAISE EXCEPTION 'Unknown token: %', token$;
 	END IF;
 	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, production_id$);
+END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE;
+
+/**
+ * Поиск версий продукта. Версии, для которых не указано подразделение (department), возвращаются всегда.
+ * Если указан параметр department_id -- добавляются версии с данным подразделением.
+ * Если show_all_departments==true, добавляются спец. версии всех подразделений.
+ */
+CREATE OR REPLACE FUNCTION appl_production.search_product_versions(product_id$ INTEGER, department_id$ INTEGER, show_all_departments$ BOOLEAN)
+	RETURNS SETOF appl_production.product_version AS
+$BODY$
+DECLARE
+BEGIN
+	IF show_all_departments$ THEN
+		RETURN QUERY
+			SELECT product_version_id, version_number, issue_date, singularity, download_url, is_significant_update, destinated_for_department, do_not_advice_newer_common
+			FROM carabi_kernel.product_version
+			WHERE product_id = product_id$;
+	ELSE
+		RETURN QUERY
+			SELECT product_version_id, version_number, issue_date, singularity, download_url, is_significant_update, destinated_for_department, do_not_advice_newer_common
+			FROM carabi_kernel.product_version
+			WHERE product_id = product_id$ AND (destinated_for_department = department_id$ OR destinated_for_department IS NULL);
+	END IF;
+END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE;
+
+/**
+ * Поиск версий продукта. Версии, для которых не указано подразделение (department), возвращаются всегда.
+ * Если указан параметр department_name -- добавляются версии с данным подразделением при условии, что ignore_department==false.
+ * По умолчанию department берётся от текущего пользователя.
+ * Если show_all_departments==true, добавляются спец. версии всех подразделений
+ * (параметры department и ignoreDepartment игнорируются).
+ */
+CREATE OR REPLACE FUNCTION appl_production.search_product_versions(token$ CHARACTER VARYING,
+		product_name$ CHARACTER VARYING,
+		department_name$ CHARACTER VARYING,
+		ignore_department$ BOOLEAN,
+		show_all_departments$ BOOLEAN)
+	RETURNS SETOF appl_production.product_version AS
+$BODY$
+DECLARE
+	product_id$ INTEGER;
+	department_id$ INTEGER;
+BEGIN
+	product_id$ := appl_production.get_production_by_sysname(product_name$);
+	IF ignore_department$ THEN
+		department_id$ := NULL;
+	ELSEIF department_name$ IS NULL OR department_name$ = '' THEN
+		--Не игнорируем подразделение, но на вход пустое -- берём у пользователя
+		SELECT department_id INTO department_id$ FROM carabi_kernel.user_logon
+				LEFT JOIN carabi_kernel.carabi_user ON carabi_kernel.user_logon.user_id = carabi_kernel.carabi_user.user_id
+				WHERE token = token$;
+	ELSE
+		--Получаем ID подразделения
+		SELECT department_id INTO department_id$ FROM carabi_kernel.department WHERE sysname = department_name$;
+		IF department_id$ IS NULL THEN
+			RAISE EXCEPTION 'Unknown department: %', department_name$;
+		END IF;
+	END IF;
+	RETURN QUERY SELECT * FROM appl_production.search_product_versions(product_id$, department_id$, show_all_departments$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
