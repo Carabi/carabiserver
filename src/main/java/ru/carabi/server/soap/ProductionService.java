@@ -3,7 +3,9 @@ package ru.carabi.server.soap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -104,10 +106,11 @@ public class ProductionService {
 	 * Получение сведений о последней версии продукта.
 	 * Выдаются подробные сведения о последней версии одного продукта компании Караби по системному имени.
 	 * Учитываются общие версии и версии, предназначенные подразделению текущего пользователя, либо
-	 * иного подразделения, указанного в параметре department. Если есть две версии (сборки) с одинаковым номером
-	 * (например, 2.5.1), одна из которых общая, а другая предназначена указанному подразделению --
-	 * возвращена будет вторая. Если имеется сборка, предназначенная указанному подразделению,
-	 * и более свежая общая -- первая будет возвращена только в том случае, если для неё задано поле
+	 * иного подразделения, указанного в параметре department. Учитываются так же вышестоящие подразделения.
+	 * Производится сортировка по номеру версии (свежие в приоритете) и по привязанности
+	 * к подразделению (null -- низший приоритет, текущий department -- высший).
+	 * Ставрые версии для указанного/нижележащего подразделения имеют приоритет 
+	 * над новыми для вышележащего/общими версиями только если в БД указано поле
 	 * {@link ProductVersion#doNotAdviceNewerCommon}, иначе общая свежая сборка имеет больший приоритет.
 	 * При указании параметра ignoreDepartment версии для подразделений игнорируются.
 	 * @param token авторизационный токен
@@ -122,29 +125,59 @@ public class ProductionService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "productName") String productName,
 			@WebParam(name = "department") String department,
-			@WebParam(name = "ignoreDepartment ") boolean ignoreDepartment 
+			@WebParam(name = "ignoreDepartment") boolean ignoreDepartment 
 	) throws CarabiException {
+		//Упорядоченный (от старых к новым)список версий.
 		List<ProductVersion> versions = getVersionsList(token, productName, department, ignoreDepartment, false);
-		ProductVersion lastCommon = null, lastForDepartment = null;
-		boolean commonIsNewer = false;
+		String sql = "select * from appl_department.get_departments_branch(?, ?)";
+		Query getDepartmentsBranch = em.createNativeQuery(sql);
+		getDepartmentsBranch.setParameter(1, token);
+		getDepartmentsBranch.setParameter(2, department);
+		List departmentsBranchResultList = getDepartmentsBranch.getResultList();
+		//Список ID подразделений от требуемого к вышестоящим
+		List<Integer> departmentsBranch = new ArrayList<>();
+		for (Object departmentID: departmentsBranchResultList) {
+			departmentsBranch.add((Integer)departmentID);
+		}
+		departmentsBranch.add(null);//общие версии, апстрим
+		//Индексация версий по подразделениям
+		Map<Integer, List<ProductVersion>> versionsByDepartments = new HashMap<>();
 		for (ProductVersion version: versions) {
-			if (version.getDestinatedForDepartment() == null) {
-				lastCommon = version;
-				commonIsNewer = true;
+			Integer departmentID = null;
+			Department destinatedForDepartment = version.getDestinatedForDepartment();
+			if (destinatedForDepartment != null) {
+				departmentID = destinatedForDepartment.getId();
+			}
+			List<ProductVersion> versionsForDepartment = versionsByDepartments.get(departmentID);
+			if (versionsForDepartment == null) {
+				versionsForDepartment = new ArrayList<>();
+			}
+			//В каждом versionsForDepartment версии остаются отсортированными по номеру
+			versionsForDepartment.add(version);
+			versionsByDepartments.put(departmentID, versionsForDepartment);
+		}
+		ProductVersion result = null;
+		//перебираем подразделения от текущего к вышестоящему
+		for (Integer departmentID: departmentsBranch) {
+			List<ProductVersion> versionsForDepartment = versionsByDepartments.get(departmentID);
+			if (versionsForDepartment == null || versionsForDepartment.isEmpty()) {
+				continue;
+			}
+			ProductVersion newestForDepartment = versionsForDepartment.get(versionsForDepartment.size()-1);
+			if (result == null) {
+				result = newestForDepartment;
 			} else {
-				lastForDepartment = version;
-				commonIsNewer = false;
+				//Для очередного (более абстрактного) подразделения берём только более новую версию
+				//и только если для ранее выбранной не указано doNotAdviceNewerCommon
+				if (result.isDoNotAdviceNewerCommon()) {
+					return result;
+				}
+				if (VersionComparator.compareVersions(newestForDepartment, result) > 0) {
+					result = newestForDepartment;
+				}
 			}
 		}
-		if (commonIsNewer) {
-			if (lastForDepartment != null && lastForDepartment.isDoNotAdviceNewerCommon()) {
-				return lastForDepartment;
-			} else {
-				return lastCommon;
-			}
-		} else {
-			return lastForDepartment;
-		}
+		return result;
 	}
 	
 	private static int[] parseVersion(String version) {
@@ -166,6 +199,10 @@ public class ProductionService {
 	private static class VersionComparator implements Comparator<ProductVersion> {
 		@Override
 		public int compare(ProductVersion t, ProductVersion t1) {
+			return compareVersions(t, t1);
+		}
+		
+		public static int compareVersions(ProductVersion t, ProductVersion t1) {
 			String version = t.getVersionNumber();
 			String version1 = t1.getVersionNumber();
 			int[] numbers = parseVersion(version);

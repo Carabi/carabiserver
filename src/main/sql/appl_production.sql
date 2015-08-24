@@ -238,7 +238,7 @@ $BODY$
 
 /**
  * Поиск версий продукта. Версии, для которых не указано подразделение (department), возвращаются всегда.
- * Если указан параметр department_id -- добавляются версии с данным подразделением.
+ * departments_set$ -- множество ID подразделений, если указано -- добавляются версии с данными подразделениями.
  * Если show_all_departments==true, добавляются спец. версии всех подразделений.
  */
 CREATE OR REPLACE FUNCTION appl_production.search_product_versions(product_id$ INTEGER, department_id$ INTEGER, show_all_departments$ BOOLEAN)
@@ -255,7 +255,9 @@ BEGIN
 		RETURN QUERY
 			SELECT product_version_id, version_number, issue_date, singularity, download_url, is_significant_update, destinated_for_department, do_not_advice_newer_common
 			FROM carabi_kernel.product_version
-			WHERE product_id = product_id$ AND (destinated_for_department = department_id$ OR destinated_for_department IS NULL);
+			WHERE product_id = product_id$ AND (
+				destinated_for_department IN (SELECT * from appl_department.get_departments_branch(department_id$)) OR destinated_for_department IS NULL
+			);
 	END IF;
 END;
 $BODY$
@@ -263,8 +265,8 @@ $BODY$
 
 /**
  * Поиск версий продукта. Версии, для которых не указано подразделение (department), возвращаются всегда.
- * Если указан параметр department_name -- добавляются версии с данным подразделением при условии, что ignore_department==false.
- * По умолчанию department берётся от текущего пользователя.
+ * Если указан параметр department_name -- добавляются версии с данным или вышестоящим подразделением
+ * при условии, что ignore_department==false. По умолчанию department берётся от текущего пользователя.
  * Если show_all_departments==true, добавляются спец. версии всех подразделений
  * (параметры department и ignoreDepartment игнорируются).
  */
@@ -284,15 +286,10 @@ BEGIN
 		department_id$ := NULL;
 	ELSEIF department_name$ IS NULL OR department_name$ = '' THEN
 		--Не игнорируем подразделение, но на вход пустое -- берём у пользователя
-		SELECT department_id INTO department_id$ FROM carabi_kernel.user_logon
-				LEFT JOIN carabi_kernel.carabi_user ON carabi_kernel.user_logon.user_id = carabi_kernel.carabi_user.user_id
-				WHERE token = token$;
+		department_id$ := appl_department.get_department_by_token(token$);
 	ELSE
 		--Получаем ID подразделения
-		SELECT department_id INTO department_id$ FROM carabi_kernel.department WHERE sysname = department_name$;
-		IF department_id$ IS NULL THEN
-			RAISE EXCEPTION 'Unknown department: %', department_name$;
-		END IF;
+		department_id$ := appl_department.get_department_by_sysname(department_name$);
 	END IF;
 	RETURN QUERY SELECT * FROM appl_production.search_product_versions(product_id$, department_id$, show_all_departments$);
 END;
