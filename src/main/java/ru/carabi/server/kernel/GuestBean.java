@@ -321,6 +321,9 @@ public class GuestBean {
 		userInfo = null;
 		ConnectionSchema schema = connectionsGate.getDedicatedSchema(schemaID, schemaName, user.getLogin());
 		if (connectToOracle) {
+			if (schema == null) {
+				throw new CarabiException("connectToOracle == true, but schema == null for user: " + user.getLogin());
+			}
 			try (Connection connection = connectionsGate.connectToSchema(schema)) {
 				//Проверяем наличие пользователя в Oracle, получаем доп. данные о нём
 				userInfo = authorize.getDetailedUserInfo(connection, user.getLogin());

@@ -55,11 +55,6 @@ public class ConnectionsGateBean {
 		activeUser.setParameter("login", login);
 		try {
 			CarabiUser user = activeUser.getSingleResult();
-			if (null == user.getDefaultSchema()) {
-				final String msg = "Для пользователя: "+login+" - не задана схема по умолчанию.";
-				logger.log(Level.CONFIG, msg);
-				throw new CarabiException(msg);
-			}
 			return user.getDefaultSchema();
 		} catch (NoResultException e) {
 			final String msg = "Не найдено пользователя по логину: "+login+".";
