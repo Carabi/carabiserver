@@ -128,26 +128,26 @@ public class OracleUtls {
 		try {
 			Object value = statement.getObject(ordernumber);
 			parameter.setValueObject(value);
-			if (value != null && String.class.equals(value.getClass())) {
+			if (value == null) {
+				parameter.setIsNull(1);
+			} else if (String.class.equals(value.getClass())) {
 				parameter.setType("VARCHAR2");
 				parameter.setValue((String) value);
-			} else if (value != null && java.math.BigDecimal.class.equals(value.getClass())) {
+			} else if (java.math.BigDecimal.class.equals(value.getClass())) {
 				parameter.setType("NUMBER");
 				parameter.setValue(value.toString());
-			} else if (value != null && java.util.Date.class.isInstance(value)) {
+			} else if (java.util.Date.class.isInstance(value)) {
 				parameter.setType("DATE");
 				parameter.setValue(new CarabiDate((java.util.Date)value).toString());
-			} else if (value != null && oracle.sql.TIMESTAMP.class.equals(value.getClass())) {
+			} else if (oracle.sql.TIMESTAMP.class.equals(value.getClass())) {
 				parameter.setType("DATE");
 				parameter.setValue(new CarabiDate(((oracle.sql.TIMESTAMP)value).timestampValue()).toString());
-			} else if (value != null && java.sql.ResultSet.class.isAssignableFrom(value.getClass())){
+			} else if (java.sql.ResultSet.class.isAssignableFrom(value.getClass())){
 				parameter.setType("CURSOR");
 				parameter.setValue("CURSOR");
-			} else if (value != null) {
+			} else {
 				Logger.getLogger(OracleUtls.class.getName()).info(value.getClass().getName());
 				parameter.setValue(value.toString());
-			} else {
-				parameter.setValue("");
 			}
 		} catch (SQLException ex) {
 			throw new CarabiException(ex, Settings.SQL_ERROR);
