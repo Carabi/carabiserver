@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+	xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+	
+	<head>
+		<title>Стартовая страница</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+	</head>
+	<body>
+		<h1>#{l10n.indexWelcome}</h1>
+		<c:if test="#{currentClient.isAuthorized}">
+			Вам доступны следующие продукты:
+		</c:if>
+		<c:if test="#{!currentClient.isAuthorized}">
+			<p>
+				#{l10n.pleaseAuth}
+			</p>
+			<ui:include src="WEB-INF/includes/authInc.xhtml">
+				
+			</ui:include>
+		</c:if>
+	</body>
+</html>

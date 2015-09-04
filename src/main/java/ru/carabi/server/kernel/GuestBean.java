@@ -55,6 +55,7 @@ public class GuestBean {
 	AuthorizeSecondary authorize = new AuthorizeSecondaryAbstract();
 	
 	@EJB private UsersControllerBean usersController;
+	@EJB private UsersPercistenceBean usersPercistence;
 
 	@EJB private SqlQueryBean sqlQueryBean;
 
@@ -351,13 +352,14 @@ public class GuestBean {
 	 * @throws RegisterException пользователя с таким логином нет.
 	 */
 	public CarabiUser searchUser(String login) throws RegisterException {
-		CarabiUser user;
-		try {
-			//получаем запись о пользователе из ядровой базы
-			TypedQuery<CarabiUser> activeUser = em.createNamedQuery("getUserInfo", CarabiUser.class);
-			activeUser.setParameter("login", login);
-			user = activeUser.getSingleResult();
-		} catch (NoResultException ex) {
+		CarabiUser user = null;
+		if (usersPercistence.userExists(login)) {
+			try {
+				user = usersPercistence.findUser(login);
+			} catch (CarabiException ex) {//shoud not be thrown
+				Logger.getLogger(GuestBean.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		} else {
 			CarabiLogging.logError(messages.getString("registerRefusedDetailsBase"),
 					new Object[]{login, "carabi_kernel"},
 				null, false, Level.INFO, null);

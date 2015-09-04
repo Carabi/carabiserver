@@ -110,6 +110,18 @@ public class UsersPercistenceBean {
 	}
 	
 	/**
+	 * Проверка, что существует пользователь с таким логином.
+	 * @param login логин пользователя, которого ищем
+	 * @return true, если найден пользователь с таким логином в ядровой БД
+	 */
+	public boolean userExists(String login) {
+		Query findUser = em.createNamedQuery("findUser");
+		findUser.setParameter("login", login);
+		List resultList = findUser.getResultList();
+		return !resultList.isEmpty();
+	}
+	
+	/**
 	 * Поиск пользователя по логину
 	 * @param login логин
 	 * @return найденный пользователь
