@@ -2,7 +2,7 @@
 CREATE SCHEMA appl_production;
 
 CREATE TYPE appl_production.production AS (production_id INTEGER, name CHARACTER VARYING, sysname CHARACTER VARYING, parent_production INTEGER, home_url CHARACTER VARYING);
-CREATE TYPE appl_production.product_version AS (version_id BIGINT, version_number CHARACTER VARYING, issue_date DATE, singularity CHARACTER VARYING, download_url CHARACTER VARYING, is_significant_update BOOLEAN, destinated_for_department INTEGER, do_not_advice_newer_common BOOLEAN);
+CREATE TYPE appl_production.product_version AS (version_id BIGINT, version_number CHARACTER VARYING, issue_date DATE, singularity CHARACTER VARYING, download_url CHARACTER VARYING, file_id BIGINT, is_significant_update BOOLEAN, destinated_for_department INTEGER, do_not_advice_newer_common BOOLEAN);
 
 /**
  * Возвращает ID продукта по его системному имени.
@@ -248,12 +248,12 @@ DECLARE
 BEGIN
 	IF show_all_departments$ THEN
 		RETURN QUERY
-			SELECT product_version_id, version_number, issue_date, singularity, download_url, is_significant_update, destinated_for_department, do_not_advice_newer_common
+			SELECT product_version_id, version_number, issue_date, singularity, download_url, file_id, is_significant_update, destinated_for_department, do_not_advice_newer_common
 			FROM carabi_kernel.product_version
 			WHERE product_id = product_id$;
 	ELSE
 		RETURN QUERY
-			SELECT product_version_id, version_number, issue_date, singularity, download_url, is_significant_update, destinated_for_department, do_not_advice_newer_common
+			SELECT product_version_id, version_number, issue_date, singularity, download_url, file_id, is_significant_update, destinated_for_department, do_not_advice_newer_common
 			FROM carabi_kernel.product_version
 			WHERE product_id = product_id$ AND (
 				destinated_for_department IN (SELECT * from appl_department.get_departments_branch(department_id$)) OR destinated_for_department IS NULL

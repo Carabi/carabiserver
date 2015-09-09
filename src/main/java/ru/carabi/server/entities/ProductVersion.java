@@ -135,7 +135,7 @@ public class ProductVersion implements Serializable {
 	}
 	
 	public String getDownloadUrl() {
-		System.out.println("downloadUrl: " + downloadUrl);
+//		System.out.println("downloadUrl: " + downloadUrl);
 		return downloadUrl;
 	}
 	

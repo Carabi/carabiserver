@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.DatatypeConverter;
 import ru.carabi.server.CarabiException;
+import ru.carabi.server.RegisterException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.entities.Department;
@@ -109,8 +110,12 @@ public class LoadSoftware extends HttpServlet {
 		} catch (NumberFormatException e) {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
 		} catch (CarabiException e) {
+			if (e instanceof RegisterException) {
+				sendError(response, HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+				return;
+			}
 			Throwable cause = e.getCause();
-			if (RestException.class.isAssignableFrom(cause.getClass())) {
+			if (cause != null && RestException.class.isAssignableFrom(cause.getClass())) {
 				RestException restException = (RestException) cause;
 				sendError(response, restException.getResponse().getStatus(), cause.getMessage());
 			}

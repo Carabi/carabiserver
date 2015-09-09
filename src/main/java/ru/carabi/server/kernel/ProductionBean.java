@@ -17,6 +17,7 @@ import javax.persistence.TypedQuery;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.Department;
+import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.entities.ProductVersion;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.logging.CarabiLogging;
@@ -70,14 +71,18 @@ public class ProductionBean {
 			productVersion.setIssueDate((Date) data[2]);
 			productVersion.setSingularity((String) data[3]);
 			productVersion.setDownloadUrl((String) data[4]);
-			productVersion.setIsSignificantUpdate((Boolean) data[5]);
-			productVersion.setDoNotAdviceNewerCommon((Boolean) data[7]);
-			final Integer departmentId = (Integer) data[6];
+			Long fileId = (Long) data[5];
+			FileOnServer file = new FileOnServer();
+			file.setId(fileId);
+			productVersion.setFile(file);
+			productVersion.setIsSignificantUpdate((Boolean) data[6]);
+			productVersion.setDoNotAdviceNewerCommon((Boolean) data[8]);
+			final Integer departmentId = (Integer) data[7];
 			if (departmentId != null) {
 				Department departmentObj = new Department();
 				departmentObj.setId(departmentId);
-				departmentObj.setSysname((String) data[8]);
-				departmentObj.setName((String) data[9]);
+				departmentObj.setSysname((String) data[9]);
+				departmentObj.setName((String) data[10]);
 				productVersion.setDestinatedForDepartment(departmentObj);
 			}
 			orderer.add(productVersion);

@@ -77,6 +77,7 @@ public class CurrentProduct implements Serializable {
 			if (version.getDownloadUrl() == null && version.getFile() != null) {
 				version.setDownloadUrl("LoadSoftware?productName=" + product.getSysname() + "&versionNumber=" + version.getVersionNumber());
 			}
+			System.out.println(version.getVersionNumber());
 		}
 		return versionsList;
 	}
