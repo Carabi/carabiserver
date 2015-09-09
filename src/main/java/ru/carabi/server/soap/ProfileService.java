@@ -14,6 +14,7 @@ import ru.carabi.server.entities.Permission;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
+import ru.carabi.server.kernel.UsersPercistenceBean;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
@@ -23,6 +24,7 @@ import ru.carabi.server.logging.CarabiLogging;
 @WebService(serviceName = "ProfileService")
 public class ProfileService {
 	@EJB private UsersControllerBean usersController;
+	@EJB private UsersPercistenceBean usersPercistence;
 	@EJB private AdminBean admin;
 	Logger logger = CarabiLogging.getLogger(ProfileService.class);
 	
@@ -70,9 +72,9 @@ public class ProfileService {
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
 			if (StringUtils.isEmpty(currentProduct)) {
-				return usersController.getAvailableProduction(logon);
+				return usersPercistence.getAvailableProduction(logon);
 			} else {
-				return usersController.getAvailableProduction(logon, currentProduct);
+				return usersPercistence.getAvailableProduction(logon, currentProduct);
 			}
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);

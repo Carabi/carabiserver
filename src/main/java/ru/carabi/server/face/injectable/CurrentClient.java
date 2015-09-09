@@ -1,26 +1,30 @@
 package ru.carabi.server.face.injectable;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Properties;
-import java.util.logging.Level;
-import javax.enterprise.context.RequestScoped;
+import javax.ejb.EJB;
+import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 import ru.carabi.server.UserLogon;
-import ru.carabi.server.logging.CarabiLogging;
+import ru.carabi.server.entities.Department;
+import ru.carabi.server.entities.SoftwareProduct;
+import ru.carabi.server.kernel.UsersPercistenceBean;
 
 /**
  * Данные о клиенте, использующем сервер через браузер.
  * @author sasha
  */
 
-@Named
-@RequestScoped
+@Named(value = "currentClient")
+@SessionScoped
 public class CurrentClient implements Serializable {
 	
 	private Properties properties = new Properties();
 	
+	@EJB private UsersPercistenceBean usersPercistence;
+	
 	private UserLogon userLogon;
-	private String test;
 	
 //	public UserLogon getUserLogon() {
 //		return userLogon;
@@ -33,16 +37,24 @@ public class CurrentClient implements Serializable {
 	public Properties getProperties() {
 		return properties;
 	}
-
-	public String getTest() {
-		CarabiLogging.getLogger(this).log(Level.INFO, "getTest: {0}", test);
-		return test;
-	}
-
-	public void setTest(String test) {
-		CarabiLogging.getLogger(this).log(Level.INFO, "setTest. before: {0}", this.test);
-		this.test = test;
-		CarabiLogging.getLogger(this).log(Level.INFO, "setTest. after: {0}", this.test);
+	
+	public UserLogon getUserLogon() {
+		return userLogon;
 	}
 	
+	public void setUserLogon(UserLogon userLogon) {
+		this.userLogon = userLogon;
+	}
+	
+	public List<SoftwareProduct> getAvailableProduction() {
+		return usersPercistence.getAvailableProduction(userLogon);
+	}
+	
+	private List<Department> departmentBranch;
+	public List<Department> getDepartmentBranch() {
+		if (departmentBranch == null) {
+			departmentBranch = usersPercistence.getDepartmentBranch(userLogon);
+		}
+		return departmentBranch;
+	}
 }

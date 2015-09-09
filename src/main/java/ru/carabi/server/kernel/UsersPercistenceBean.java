@@ -2,6 +2,7 @@ package ru.carabi.server.kernel;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -22,6 +23,7 @@ import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
+import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.Permission;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.logging.CarabiLogging;
@@ -256,5 +258,24 @@ public class UsersPercistenceBean {
 		}
 		return result;
 	}
-	
+
+	public List<Department> getDepartmentBranch(UserLogon userLogon) {
+		String sql = "select * from appl_department.get_departments_branch_detailed(?, null)";
+		Query query = em.createNativeQuery(sql);
+		query.setParameter(1, userLogon.getToken());
+		List resultList = query.getResultList();
+		int i = resultList.size();
+		Department[] result = new Department[i];
+		for (Object row: resultList) {
+			i--;
+			Object[] data = (Object[])row;
+			Department department = new Department();
+			department.setId((Integer) data[0]);
+			department.setName((String) data[1]);
+			department.setSysname((String) data[2]);
+			department.setDescription((String) data[3]);
+			result[i] = department;
+		}
+		return Arrays.asList(result);
+	}
 }

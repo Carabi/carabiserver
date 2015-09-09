@@ -21,8 +21,8 @@ import javax.persistence.Temporal;
 @Entity
 @Table(name="PRODUCT_VERSION")
 @NamedQueries({
-@NamedQuery(name="getProductVersions",
-		query="SELECT P FROM SoftwareProduct P where P.sysname = :productName")
+	@NamedQuery(name="getProductNameNumberVersion",
+		query="SELECT V FROM ProductVersion V WHERE V.carabiProduct.sysname = :productName AND V.versionNumber = :versionNumber")
 })
 public class ProductVersion implements Serializable {
 	private static final long serialVersionUID = 1L;
@@ -43,6 +43,10 @@ public class ProductVersion implements Serializable {
 	private Date issueDate;
 	
 	private String singularity;
+	
+	@ManyToOne
+	@JoinColumn(name="FILE_ID")
+	private FileOnServer file;
 	
 	@Column(name="DOWNLOAD_URL")
 	private String downloadUrl;
@@ -90,7 +94,7 @@ public class ProductVersion implements Serializable {
 		return "ru.carabi.server.ProductVersion[ id=" + id + " ]";
 	}
 	
-	public SoftwareProduct getCarabiProduct() {
+	public SoftwareProduct getSoftwareProduct() {
 		return carabiProduct;
 	}
 	
@@ -122,7 +126,16 @@ public class ProductVersion implements Serializable {
 		this.singularity = singularity;
 	}
 	
+	public FileOnServer getFile() {
+		return file;
+	}
+	
+	public void setFile(FileOnServer file) {
+		this.file = file;
+	}
+	
 	public String getDownloadUrl() {
+		System.out.println("downloadUrl: " + downloadUrl);
 		return downloadUrl;
 	}
 	

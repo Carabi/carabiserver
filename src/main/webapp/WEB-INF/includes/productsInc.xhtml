@@ -1,0 +1,15 @@
+<ui:composition
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+	<p>
+		#{l10n.youAreAllowedForThoseProducts}
+	</p>
+	<ul>
+		<c:forEach var="product" items="#{currentClient.availableProduction}">
+			<li>
+				<a href="product.xhtml?product=#{product.sysname}">#{product.name}</a>
+			</li>
+		</c:forEach>
+	</ul>
+</ui:composition>

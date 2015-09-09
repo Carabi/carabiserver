@@ -1,19 +1,35 @@
 <?xml version='1.0' encoding='UTF-8' ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html
-	xmlns="http://www.w3.org/1999/xhtml"
-	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
-	xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+		xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+		xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+		xmlns:f="http://xmlns.jcp.org/jsf/core">
 	
+	<f:view contentType="text/html" locale="#{request.locale}">
 	<head>
-		<title>Стартовая страница</title>
+		<title>#{l10n.indexWelcome}</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 	</head>
 	<body>
+		<c:if test="#{currentClient.isAuthorized}">
+			<h2>
+				#{l10n.hello}, #{currentClient.userLogon.user.login}!
+			</h2>
+		</c:if>
 		<h1>#{l10n.indexWelcome}</h1>
 		<c:if test="#{currentClient.isAuthorized}">
-			Вам доступны следующие продукты:
+			<c:if test="#{!currentClient.departmentBranch.isEmpty()}">
+				<p>
+					#{l10n.yourDepartmentIs}:
+					<c:forEach var="department" items="#{currentClient.departmentBranch}">
+						#{department.name} /
+					</c:forEach>
+				</p>
+			</c:if>
+			<ui:include src="WEB-INF/includes/productsInc.xhtml">
+				
+			</ui:include>
 		</c:if>
 		<c:if test="#{!currentClient.isAuthorized}">
 			<p>
@@ -24,4 +40,5 @@
 			</ui:include>
 		</c:if>
 	</body>
+	</f:view>
 </html>

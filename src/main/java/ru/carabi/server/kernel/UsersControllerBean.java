@@ -282,13 +282,4 @@ public class UsersControllerBean {
 	public List<Permission> getUserPermissions(UserLogon logon) {
 		return usersPercistence.getUserPermissions(logon);
 	}
-	
-	public List<SoftwareProduct> getAvailableProduction(UserLogon logon) {
-		return usersPercistence.getAvailableProduction(logon);
-	}
-	
-	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct) {
-		return usersPercistence.getAvailableProduction(logon, currentProduct);
-	}
-	
 }

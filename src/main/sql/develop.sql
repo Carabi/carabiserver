@@ -361,7 +361,7 @@ create table PRODUCT_ON_SCHEMA (
 create table PRODUCT_ON_APPSERVER (
 	PRODUCT_ID integer not null references SOFTWARE_PRODUCTION(PRODUCTION_ID) on delete cascade,
 	APPSERVER_ID integer references APPSERVER (APPSERVER_ID) on delete cascade,
-	primary key (PRODUCT_ID, SCHEMA_ID)
+	primary key (PRODUCT_ID, APPSERVER_ID)
 );
 
 /**
@@ -374,7 +374,8 @@ create table PRODUCT_VERSION (
 	VERSION_NUMBER varchar(64) not null, --Номер версии вида '1.5.2.6'
 	ISSUE_DATE date, --Дата выпуска
 	SINGULARITY varchar(32000), --Особенности данной версии
-	DOWNLOAD_URL varchar(1024), --Где скачать
+	FILE_ID bigint references FILE (FILE_ID), --файл с программой
+	DOWNLOAD_URL varchar(1024), --Где скачать, если не хранится на сервере
 	IS_SIGNIFICANT_UPDATE boolean default false,--Является важным обновлением
 	DESTINATED_FOR_DEPARTMENT integer references DEPARTMENT(DEPARTMENT_ID) on delete cascade, --компания, которой адресована данная сборка
 	DO_NOT_ADVICE_NEWER_COMMON boolean --если заполнено DESTINATED_FOR_DEPARTMENT -- не предлагать обновляться на более свежие версии с DESTINATED_FOR_DEPARTMENT == null 
