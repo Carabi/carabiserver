@@ -72,9 +72,11 @@ public class ProductionBean {
 			productVersion.setSingularity((String) data[3]);
 			productVersion.setDownloadUrl((String) data[4]);
 			Long fileId = (Long) data[5];
-			FileOnServer file = new FileOnServer();
-			file.setId(fileId);
-			productVersion.setFile(file);
+			if (fileId != null) {
+				FileOnServer file = new FileOnServer();
+				file.setId(fileId);
+				productVersion.setFile(file);
+			}
 			productVersion.setIsSignificantUpdate((Boolean) data[6]);
 			productVersion.setDoNotAdviceNewerCommon((Boolean) data[8]);
 			final Integer departmentId = (Integer) data[7];

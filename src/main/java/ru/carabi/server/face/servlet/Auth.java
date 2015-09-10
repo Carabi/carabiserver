@@ -41,6 +41,9 @@ public class Auth extends HttpServlet {
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
+		if ("logout".equals(request.getParameter("action"))) {
+			currentClient.setUserLogon(null);
+		}
 		response.sendRedirect("index.xhtml");
 	}
 
@@ -58,7 +61,14 @@ public class Auth extends HttpServlet {
 		ResourceBundle l10n = ResourceBundle.getBundle("ru.carabi.server.face.Locale", request.getLocale());
 		Map<String, String[]> parameterMap = request.getParameterMap();
 		if (!parameterMap.containsKey("login") || !parameterMap.containsKey("password")) {
-			response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+			//деавторизация, если пользователь авторизован.
+			//ошибка, если не авторизован
+			if (currentClient.getIsAuthorized()) {
+				currentClient.setUserLogon(null);
+				response.sendRedirect("index.xhtml");
+			} else {
+				response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+			}
 			return;
 		}
 		ServletOutputStream outputStream = response.getOutputStream();

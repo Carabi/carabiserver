@@ -65,6 +65,7 @@ public class CurrentProduct implements Serializable {
 	public ProductVersion getLastVersion() throws CarabiException {
 		if (lastVersion == null && product != null) {
 			lastVersion = productionBean.getLastVersion(currentClient.getUserLogon(), product.getSysname(), getDepartment(), false);
+			correctDownloadUrl(lastVersion);
 		}
 		return lastVersion;
 	}
@@ -72,14 +73,17 @@ public class CurrentProduct implements Serializable {
 	public List<ProductVersion> getVersionsList() throws CarabiException {
 		List<ProductVersion> versionsList = productionBean.getVersionsList(currentClient.getUserLogon(), product.getSysname(), getDepartment(), false, false);
 		for (ProductVersion version: versionsList) {
-			//Если заполнено поле "где скачать" -- оставляем URL в чистом виде. Иначе, если
-			//есть файл, генерируем URL с сервлетом.
-			if (version.getDownloadUrl() == null && version.getFile() != null) {
-				version.setDownloadUrl("LoadSoftware?productName=" + product.getSysname() + "&versionNumber=" + version.getVersionNumber());
-			}
-			System.out.println(version.getVersionNumber());
+			correctDownloadUrl(version);
 		}
 		return versionsList;
+	}
+
+	private void correctDownloadUrl(ProductVersion version) {
+		//Если заполнено поле "где скачать" -- оставляем URL в чистом виде. Иначе, если
+		//есть файл, генерируем URL с сервлетом.
+		if (version.getDownloadUrl() == null && version.getFile() != null) {
+			version.setDownloadUrl("LoadSoftware?productName=" + product.getSysname() + "&versionNumber=" + version.getVersionNumber());
+		}
 	}
 	
 	private String getDepartment() {

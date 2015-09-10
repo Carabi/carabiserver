@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html 
+		xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://xmlns.jcp.org/jsf/core"
+		xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+		xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+	<f:view contentType="text/html" locale="#{request.locale}">
+	<head>
+		<title>#{metaTitle}</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+		<link href="css/main.css" rel="stylesheet" type="text/css"/>
+	</head>
+	<body>
+		<div id="header">
+			<a href="index.xhtml"><img id="mainLogo" alt="Carabi logo" src="http://carabi.ru/img/theme_carabi/carabi_logo_grey_red.jpg"/></a>
+			<c:if test="#{currentClient.isAuthorized}">
+				<div id="userHello">
+					<p><strong>#{currentClient.userLogon.user.login}</strong></p>
+					<p><a href="Auth?action=logout">#{l10n.exit}</a></p>
+				</div>
+			</c:if>
+		</div>
+		<ui:insert name="body">Template Body</ui:insert>
+	</body>
+	</f:view>
+</html>
+

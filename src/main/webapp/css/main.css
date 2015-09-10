@@ -1,0 +1,16 @@
+#header {
+	background: antiquewhite;
+	min-height: 100px;
+	width: 100%;
+	position: relative;
+}
+
+#mainLogo {
+	margin: 15px;
+}
+
+#userHello {
+	position: absolute;
+	right: 15px;
+	display: inline-block;
+}

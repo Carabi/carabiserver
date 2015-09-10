@@ -1,22 +1,11 @@
 <?xml version='1.0' encoding='UTF-8' ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html
+<ui:composition template="/WEB-INF/templates/main_frame.xhtml"
 		xmlns="http://www.w3.org/1999/xhtml"
 		xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
-		xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-		xmlns:f="http://xmlns.jcp.org/jsf/core">
-	
-	<f:view contentType="text/html" locale="#{request.locale}">
-	<head>
-		<title>#{l10n.indexWelcome}</title>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-	</head>
-	<body>
-		<c:if test="#{currentClient.isAuthorized}">
-			<h2>
-				#{l10n.hello}, #{currentClient.userLogon.user.login}!
-			</h2>
-		</c:if>
+		xmlns:f="http://xmlns.jcp.org/jsf/core"
+		xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+	<ui:param name="metaTitle" value="#{l10n.indexWelcome}"/>
+	<ui:define name="body">
 		<h1>#{l10n.indexWelcome}</h1>
 		<c:if test="#{currentClient.isAuthorized}">
 			<c:if test="#{!currentClient.departmentBranch.isEmpty()}">
@@ -28,7 +17,7 @@
 				</p>
 			</c:if>
 			<ui:include src="WEB-INF/includes/productsInc.xhtml">
-				
+
 			</ui:include>
 		</c:if>
 		<c:if test="#{!currentClient.isAuthorized}">
@@ -36,9 +25,8 @@
 				#{l10n.pleaseAuth}
 			</p>
 			<ui:include src="WEB-INF/includes/authInc.xhtml">
-				
+
 			</ui:include>
 		</c:if>
-	</body>
-	</f:view>
-</html>
+	</ui:define>
+</ui:composition>
