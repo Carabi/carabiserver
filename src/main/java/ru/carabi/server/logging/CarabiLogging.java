@@ -169,7 +169,7 @@ public abstract class CarabiLogging {
 	}
 
 	private static int openDatabaseLog(Connection connection, UserLogon logon) throws NamingException, SQLException {
-		return 0;//cutted
+		return -1;//cutted
 	}
 	
 	private static final Map<String, Map<String, Logger>> personalLoggers = new ConcurrentHashMap<>();
