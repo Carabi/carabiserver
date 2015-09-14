@@ -255,18 +255,29 @@ public class QueryService {
 		}
 	}
 	
-	private void wrapJson(Holder<ArrayList<QueryParameter>> parameters) {
+	private void wrapJson(Holder<ArrayList<QueryParameter>> parameters) throws SQLException {
 		for (QueryParameter queryParameter: parameters.value) {
 			wrapJson(queryParameter);
 		}
 	}
 	
-	private void wrapJson(QueryParameter queryParameter) {
+	private void wrapJson(QueryParameter queryParameter) throws SQLException {
 		if ("CURSOR".equals(queryParameter.getType())) {
 			Map cursorData = (Map) queryParameter.getValueObject();
 			JsonObjectBuilder cursorObject = Utls.mapToJson(cursorData);
 			cursorObject.add("queryTag", queryParameter.getValue());
 			queryParameter.setValue(cursorObject.build().toString());
+			queryParameter.setValueObject(null);
+		} else if ("CLOB".equals(queryParameter.getType())) {
+			if ("CLOB_AS_VARCHAR".equals(queryParameter.getValue())) {
+				queryParameter.setType("VARCHAR2");
+			} else if ("CLOB_AS_CURSOR".equals(queryParameter.getValue())) {
+				queryParameter.setType("CURSOR");
+			} else {
+				queryParameter.setType("CLOB");
+			}
+			oracle.sql.CLOB clob = (oracle.sql.CLOB)queryParameter.getValueObject();
+			queryParameter.setValue(clob.stringValue());
 			queryParameter.setValueObject(null);
 		}
 	}

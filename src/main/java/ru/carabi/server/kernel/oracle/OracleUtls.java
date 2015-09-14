@@ -3,6 +3,7 @@ package ru.carabi.server.kernel.oracle;
 import ru.carabi.server.entities.QueryParameterEntity;
 import ru.carabi.server.entities.QueryEntity;
 import java.math.BigDecimal;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,18 +32,50 @@ import ru.carabi.server.Utls;
  * @author sasha
  */
 public class OracleUtls {
-	public static void setInputParameter(OraclePreparedStatement statement, QueryEntity queryEntity, QueryParameter inputParameter, QueryParameterEntity parameterEntity) throws SQLException, CarabiException {
-		String type = parameterEntity.getType();
-		if (inputParameter.getIsNull() > 0) {
-			type = "NULL_" + type;
+	
+	/**
+	 * Конвертирование условных наименований SQL-типов, используемых в Carabi Server, в JDBC-номера.
+	 * Используемые наименования:
+	 * <ul>
+	 * <li>CHAR, VARCHAR или VARCHAR2 &mdash; строковые (поведение эквивалентно)
+	 * <li>NUMBER &mdash; числовое
+	 * <li>DATE &mdash; дата
+	 * <li>CLOB &mdash; объёмный текст.
+	 * <ul>
+	 * <li>CLOB_AS_VARCHAR &mdash; при считывании помечается, как строка.
+	 * <li>CLOB_AS_CURSOR &mdash; при считывании помечается, как курсор (текст должен содержать соответствующий JSON для принятия клиентом). Запись игнорируется.
+	 * <li>CURSOR или REFCURSOR &mdash; курсор, считывается в виде ResultSet и сериализуется в JSON с выделенной шапкой.
+	 * </ul>
+	 * </ul>
+	 * @param typeName Название типа
+	 * @return номер типа по стандарту JDBC
+	 * @throws CarabiException неизвестное название
+	 */
+	public static int typeIdByName(String typeName) throws CarabiException {
+		if ("VARCHAR2".equalsIgnoreCase(typeName) || "VARCHAR".equalsIgnoreCase(typeName) || "CHAR".equalsIgnoreCase(typeName)) {
+			return Types.VARCHAR;
+		} else if ("NUMBER".equalsIgnoreCase(typeName)) {
+			return Types.NUMERIC;
+		} else if ("DATE".equalsIgnoreCase(typeName)) {
+			return Types.DATE;
+		} else if ("CLOB".equalsIgnoreCase(typeName) || "CLOB_AS_VARCHAR".equalsIgnoreCase(typeName) || "CLOB_AS_CURSOR".equalsIgnoreCase(typeName)) {
+			return Types.CLOB;
+		} else if ("REFCURSOR".equalsIgnoreCase(typeName) || "CURSOR".equalsIgnoreCase(typeName)) {
+			return OracleTypes.CURSOR;
+		} else {
+			throw new CarabiException("Unknown type: " + typeName);
 		}
-		int ordernumber = parameterEntity.getOrdernumber();
-		if (queryEntity.isSql()) {
-			ordernumber++;
-		}
-		OracleUtls.setInputParameter(statement, type, inputParameter.getValue(), ordernumber);
 	}
 	
+	/**
+	 * Установка входящего параметра в SQL-выражении.
+	 * @param statement выполняемое выражение
+	 * @param typeName название типа из списка в описании {@link #typeIdByName(java.lang.String)} (для NULL-значений -- с префиксом "NULL_")
+	 * @param value строковое представление значения
+	 * @param ordernumber номер параметра в выражении, начиная с 1
+	 * @throws SQLException
+	 * @throws CarabiException неизвестный тип или неверное значение
+	 */
 	public static void setInputParameter(OraclePreparedStatement statement, String typeName, String value, int ordernumber) throws SQLException, CarabiException {
 		Logger.getLogger(OracleUtls.class.getName()).log(Level.FINE, "Input {0}: {1} = {2}", new Object[]{ordernumber, typeName, value});
 		try {
@@ -63,48 +96,59 @@ public class OracleUtls {
 			} else if ("DATE".equalsIgnoreCase(typeName)) {
 				CarabiDate date = new CarabiDate(value);
 				statement.setTimestamp(ordernumber, date);
+			} else if ("CLOB".equalsIgnoreCase(typeName) || "CLOB_AS_VARCHAR".equalsIgnoreCase(typeName)) {
+				Clob clob = statement.getConnection().createClob();
+				clob.setString(1, value);
+				statement.setClob(ordernumber, clob);
+			} else {
+				Logger.getLogger(OracleUtls.class.getName()).warning(value.getClass().getName());
 			}
-		} catch (IllegalArgumentException e) {
+		} catch (IllegalArgumentException | ParseException e) {
 			throw new CarabiException(e, Settings.PARSING_ERROR);
-		} catch (ParseException ex) {
-			throw new CarabiException(ex, Settings.PARSING_ERROR);
 		}
 	}
 	
+	/**
+	 * Вызов {@link #setInputParameter(oracle.jdbc.OraclePreparedStatement, java.lang.String, java.lang.String, int)}
+	 * для массива параметров.
+	 * @param statement выполняемое выражение
+	 * @param parametersInput массив параметров
+	 * @throws SQLException
+	 * @throws CarabiException неизвестный тип или неверное значение
+	 */
 	public static void setInputParameters(OraclePreparedStatement statement, ArrayList<QueryParameter> parametersInput) throws SQLException, CarabiException {
-		for (QueryParameter parameter: parametersInput) {
-			try {
-				if (parameter.getIsNull() > 0) {
-					statement.setNullAtName(parameter.getName(), typeIdByName(parameter.getType()));
-				} else if ("VARCHAR2".equalsIgnoreCase(parameter.getType()) || "VARCHAR".equalsIgnoreCase(parameter.getType()) || "CHAR".equals(parameter.getType())) {
-					statement.setStringAtName(parameter.getName(), parameter.getValue());
-				} else if ("NUMBER".equalsIgnoreCase(parameter.getType())) {
-					BigDecimal bd = new BigDecimal(parameter.getValue());
-					statement.setNUMBERAtName(parameter.getName(), new NUMBER(bd));
-				} else if ("DATE".equalsIgnoreCase(parameter.getType())) {
-					CarabiDate date = new CarabiDate(parameter.getValue());
-					statement.setTimestampAtName(parameter.getName(), date);
-				}
-			} catch (IllegalArgumentException e) {
-				throw new CarabiException(e, Settings.PARSING_ERROR);
-			} catch (ParseException ex) {
-				throw new CarabiException(ex, Settings.PARSING_ERROR);
+		int i = 1;
+		for (QueryParameter inputParameter: parametersInput) {
+			String type = inputParameter.getType();
+			if (inputParameter.getIsNull() > 0) {
+				type = "NULL_" + type;
 			}
+			setInputParameter(statement, type, inputParameter.getValue(), i);
+			i++;
 		}
 	}
 	
-	public static int typeIdByName(String typeName) throws CarabiException {
-		if ("VARCHAR2".equalsIgnoreCase(typeName) || "VARCHAR".equalsIgnoreCase(typeName) || "CHAR".equalsIgnoreCase(typeName)) {
-			return Types.VARCHAR;
-		} else if ("NUMBER".equalsIgnoreCase(typeName)) {
-			return OracleTypes.NUMBER;
-		} else if ("DATE".equalsIgnoreCase(typeName)) {
-			return Types.DATE;
-		} else if ("REFCURSOR".equalsIgnoreCase(typeName) || "CURSOR".equalsIgnoreCase(typeName)) {
-			return OracleTypes.CURSOR;
-		} else {
-			throw new CarabiException("Unknown type: " + typeName);
+	/**
+	 * Вызов {@link #setInputParameter(oracle.jdbc.OraclePreparedStatement, java.lang.String, java.lang.String, int)}
+	 * для хранимых запросов.
+	 * 
+	 * @param statement выполняемое выражение
+	 * @param queryEntity данные о запросе из ядровой БД
+	 * @param inputParameter данные о параметре от клиента
+	 * @param parameterEntity данные о параметре из ядровой БД
+	 * @throws java.sql.SQLException
+	 * @throws ru.carabi.server.CarabiException
+	 */
+	public static void setInputParameter(OraclePreparedStatement statement, QueryEntity queryEntity, QueryParameter inputParameter, QueryParameterEntity parameterEntity) throws SQLException, CarabiException {
+		String type = parameterEntity.getType();
+		if (inputParameter.getIsNull() > 0) {
+			type = "NULL_" + type;
 		}
+		int ordernumber = parameterEntity.getOrdernumber();
+		if (queryEntity.isSql()) {
+			ordernumber++;
+		}
+		OracleUtls.setInputParameter(statement, type, inputParameter.getValue(), ordernumber);
 	}
 	
 	public static void registerOutputParameter(OracleCallableStatement statement, QueryEntity queryEntity, QueryParameterEntity parameterEntity) throws CarabiException, SQLException {
@@ -125,24 +169,43 @@ public class OracleUtls {
 	}
 	
 	public static void readOutputParameter(OracleCallableStatement statement, QueryParameter parameter, int ordernumber) throws CarabiException {
+		QueryParameterEntity parameterEntity = new QueryParameterEntity();
+		parameterEntity.setOrdernumber(ordernumber);
+		readOutputParameter(statement, parameter, parameterEntity);
+	}
+	
+	/**
+	 * Получение выходного параметра из запроса к БД.
+	 * @param statement запрос к БД
+	 * @param parameter объект
+	 * @param parameterEntity
+	 * @throws CarabiException 
+	 */
+	public static void readOutputParameter(OracleCallableStatement statement, QueryParameter parameter, QueryParameterEntity parameterEntity) throws CarabiException {
+		parameter.setName(parameterEntity.getName());
+		int ordernumber = parameterEntity.getOrdernumber();
 		try {
 			Object value = statement.getObject(ordernumber);
 			parameter.setValueObject(value);
 			if (value == null) {
 				parameter.setIsNull(1);
-			} else if (String.class.equals(value.getClass())) {
+				parameter.setValue("");//some clients crash when object does not contain any value
+			} else if (String.class.isInstance(value)) {
 				parameter.setType("VARCHAR2");
 				parameter.setValue((String) value);
-			} else if (java.math.BigDecimal.class.equals(value.getClass())) {
+			} else if (java.math.BigDecimal.class.isInstance(value)) {
 				parameter.setType("NUMBER");
 				parameter.setValue(value.toString());
 			} else if (java.util.Date.class.isInstance(value)) {
 				parameter.setType("DATE");
 				parameter.setValue(new CarabiDate((java.util.Date)value).toString());
-			} else if (oracle.sql.TIMESTAMP.class.equals(value.getClass())) {
+			} else if (oracle.sql.TIMESTAMP.class.isInstance(value)) {
 				parameter.setType("DATE");
 				parameter.setValue(new CarabiDate(((oracle.sql.TIMESTAMP)value).timestampValue()).toString());
-			} else if (java.sql.ResultSet.class.isAssignableFrom(value.getClass())){
+			} else if (oracle.sql.CLOB.class.isInstance(value)) {
+				parameter.setType("CLOB");
+				parameter.setValue(parameterEntity.getType().toUpperCase());// CLOB or CLOB_AS_VARCHAR or CLOB_AS_CURSOR
+			} else if (java.sql.ResultSet.class.isInstance(value)){
 				parameter.setType("CURSOR");
 				parameter.setValue("CURSOR");
 			} else {
@@ -151,13 +214,6 @@ public class OracleUtls {
 			}
 		} catch (SQLException ex) {
 			throw new CarabiException(ex, Settings.SQL_ERROR);
-		}
-	}
-	public static void getOutputParameters(OracleCallableStatement statement, ArrayList<QueryParameter> parametersOutput, ArrayList<String> parameters) throws CarabiException, SQLException {
-		for (QueryParameter parameter: parametersOutput) {
-			int ordernumber = parameters.indexOf(parameter.getName()) + 1;
-			readOutputParameter(statement, parameter, ordernumber);
-			parameter.setValueObject(statement.getObject(ordernumber));
 		}
 	}
 	

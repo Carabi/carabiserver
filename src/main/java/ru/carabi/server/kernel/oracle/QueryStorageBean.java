@@ -99,7 +99,7 @@ public class QueryStorageBean {
 				i = 0;
 				for (QueryParameterEntity parameterEntity: parametersEntities) {
 					if (parameterEntity.getIsOut() > 0) {
-						OracleUtls.readOutputParameter(statement, parameters.get(i), parameterEntity.getOrdernumber());
+						OracleUtls.readOutputParameter(statement, parameters.get(i), parameterEntity);
 					}
 					i++;
 				}
@@ -160,8 +160,7 @@ public class QueryStorageBean {
 				for (QueryParameterEntity parameterEntity: parametersEntities) {
 					if (parameterEntity.getIsOut() > 0) {
 						QueryParameter outParameter = new QueryParameter();
-						outParameter.setName(parameterEntity.getName());
-						OracleUtls.readOutputParameter(statement, outParameter, parameterEntity.getOrdernumber());
+						OracleUtls.readOutputParameter(statement, outParameter, parameterEntity);
 						parameters.put(parameterEntity.getName(), outParameter);
 					}
 				}
