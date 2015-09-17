@@ -18,10 +18,6 @@ create table CONNECTION_SCHEMA (
 	DESCRIPTION varchar(1024)
 );
 
-/*insert into CONNECTION_SCHEMA (JNDI, NAME, SYSNAME) values
-	('jdbc/carabi', 'carabi all', 'carabi'),
-	('jdbc/veneta', 'Венета', 'veneta'),
-;*/
 
 /**
  * Прикладной сервер (Glassfish + Eventer)
@@ -40,10 +36,6 @@ create table APPSERVER (
 	IS_ENABLED integer default 1
 );
 create index APPSERVER_IS_MASTER on APPSERVER(IS_MASTER);
-/*
-INSERT INTO APPSERVER (APPSERVER_ID, NAME, SYSNAME, COMPUTER, CONTEXTROOT) VALUES
-	(1,'develop','office','127.0.0.1','carabiserver');
-*/
 
 /**
  * Пользовательский файл на текущем сервере
@@ -80,8 +72,6 @@ create table USER_STATUS (
 	SYSNAME varchar(256) not null unique,
 	DESCRIPTION varchar(32000)
 );
-insert into USER_STATUS(STATUS_ID, SYSNAME, NAME)
-values(1, 'active', 'Активный'), (2, 'banned', 'Забаненный');
 
 /**
  * Подразделение сотрудников (корпорация, филиал, отдел)
@@ -166,7 +156,6 @@ create table USER_PERMISSION (
 	PARENT_PERMISSION integer references USER_PERMISSION (PERMISSION_ID),
 	ALLOWED_BY_DEFAULT boolean default false
 );
-insert into USER_PERMISSION(NAME, SYSNAME) values('Редактирование расширений чата', 'EDIT_CHAT_MESSAGE_TYPES');
 
 /**
  * Группа пользователей с одинаковыми правами
@@ -211,9 +200,6 @@ create table USER_AT_SERVER_ENTER (
 	NUMBER_OF_ENTERS bigint default 0,
 	primary key (USER_ID, SERVER_ID)
 );
-/*insert into CARABI_USER (LOGIN, FIRSTNAME, MIDDLENAME, LASTNAME, DEFAULT_SCHEMA_ID) values
-	('kop', 'Александр', 'Дмитриевич', 'Копилов', 1),
-;*/
 
 create table PERSONAL_TEMPORARY_CODE (
 	TEMPORARY_CODE varchar(128) primary key,
@@ -231,9 +217,6 @@ create table ALLOWED_SCHEMAS (
 	USER_ID bigint references CARABI_USER (USER_ID) on delete cascade,
 	primary key(SCHEMA_ID, USER_ID)
 );
-/*insert into ALLOWED_SCHEMAS (SCHEMA_ID, USER_ID) values
-	(1, 1), (1, 2)
-;*/
 
 /**
  *Тип телефона
@@ -244,9 +227,6 @@ create table PHONE_TYPE (
 	NAME varchar(256),
 	SYSNAME varchar(256) unique not null
 );
-insert into PHONE_TYPE (PHONE_TYPE_ID, NAME, SYSNAME) values
-	(1, 'IP-телефон', 'SIP'), (2, 'Мобильный', 'mobile'), (3, 'Городской', 'simple')
-;
 
 create sequence phone_id_gen;
 create table PHONE (
@@ -282,11 +262,6 @@ create table USER_LOGON (
 );
 create index USER_LOGON_LASTACTIVE on USER_LOGON(LASTACTIVE);
 create index USER_LOGON_PERMANENT on USER_LOGON(PERMANENT);
-
-insert into USER_LOGON (TOKEN, LASTACTIVE, PERMANENT)
-values ('durfvber74fvqi3447qiviq4vfi73vfdzjycyew673i7q3', '1970-01-01 00:00:00.0', 1);
-
---select * from SYSCS_DIAG.LOCK_TABLE
 
 /**
  * Категории хранимых запросов
@@ -392,16 +367,6 @@ create table MESSAGE_EXTENSION_TYPE (
 	DESCRIPTION varchar(32000),
 	CONTENT_TYPE varchar(256)
 );
-INSERT INTO message_extension_type ("name", sysname, description, content_type) 
-	VALUES ('Задача', 'TASK', NULL, NULL);
-INSERT INTO carabi_kernel.message_extension_type ("name", sysname, description, content_type) 
-	VALUES ('Групповой чат (многопользовательская беседа или "стена")', 'MESSAGES_GROUP', NULL, 'ID или кодовое имя группового чата, к которому относится сообщение');
-INSERT INTO carabi_kernel.message_extension_type ("name", sysname, description, content_type) 
-	VALUES ('Входящий звонок', 'CALL_IN', NULL, NULL);
-INSERT INTO carabi_kernel.message_extension_type ("name", sysname, description, content_type) 
-	VALUES ('Исходящий звонок', 'CALL_OUT', NULL, NULL);
-INSERT INTO carabi_kernel.message_extension_type ("name", sysname, description, content_type) 
-	VALUES ('Пропущенный звонок', 'CALL_SKIP', NULL, NULL);
 
 /**
  * Группы сообщений чата: многопользовательские беседы, "стены"
