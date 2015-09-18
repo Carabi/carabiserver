@@ -69,7 +69,7 @@ public class LoadChatAttach extends HttpServlet {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter token required");
 			return;
 		}
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			Long id = Long.valueOf(request.getParameter("id"));
 			FileOnServer file = chatBean.getMessageAttachement(logon, id);
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + MimeUtility.encodeText(file.getName()) +"\"");
@@ -123,7 +123,7 @@ public class LoadChatAttach extends HttpServlet {
 			return;
 		}
 		String filenameUser = new String(DatatypeConverter.parseBase64Binary(filenameInput), "UTF-8");
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			FileStreamer streamer = new FileStreamer(filenameUser, wrapFileStorage());
 			ServletInputStream inputStream = request.getInputStream();
 			Utls.proxyStreams(inputStream, streamer.getOutputStream());
@@ -202,7 +202,7 @@ public class LoadChatAttach extends HttpServlet {
 		if (StringUtils.isEmpty(comment)) {
 			comment = filenameUser;
 		}
-		try (UserLogon logonSender = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logonSender = uc.tokenAuthorize(token)) {
 			
 			//Определяем сервера
 			CarabiUser receiver = uc.findUser(loginReceiver);

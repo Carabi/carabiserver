@@ -150,7 +150,7 @@ public class UsersAdmin {
 			@DefaultValue("banned") @QueryParam("status") String status,
 			@PathParam("schema") String schemaName
 	) {
-		try (UserLogon administrator = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon administrator = usersController.tokenAuthorize(token)) {
 			if (administrator == null) {
 				return "Unknown token: " + token;
 			}

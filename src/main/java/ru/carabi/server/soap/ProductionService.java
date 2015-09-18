@@ -45,7 +45,7 @@ public class ProductionService {
 			@WebParam(name = "ignoreDepartment") boolean ignoreDepartment,
 			@WebParam(name = "showAllDepartments") boolean showAllDepartments)
 	 throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			return productionBean.getVersionsList(logon, productName, department, ignoreDepartment, showAllDepartments);
 		}
 	}
@@ -75,7 +75,7 @@ public class ProductionService {
 			@WebParam(name = "department") String department,
 			@WebParam(name = "ignoreDepartment") boolean ignoreDepartment 
 	) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			return productionBean.getLastVersion(logon, productName, department, ignoreDepartment);
 		}
 	}

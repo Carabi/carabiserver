@@ -69,7 +69,7 @@ public class UsersRelation {
 		} else {
 			relatedUsersArray = new String[] {relatedUser};
 		}
-		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
+		try (UserLogon logon = usersController.tokenAuthorize(token) ) {
 			CarabiUser mainUser = admin.chooseEditableUser(logon, userLogin);
 			admin.addUserRelations(mainUser, Utls.parametersToJson(relatedUsersArray).build().toString(), relation);
 		} catch (RegisterException e) {
@@ -95,7 +95,7 @@ public class UsersRelation {
 		} else {
 			relatedUsersArray = new String[] {relatedUser};
 		}
-		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
+		try (UserLogon logon = usersController.tokenAuthorize(token) ) {
 			CarabiUser mainUser = admin.chooseEditableUser(logon, userLogin);
 			admin.removeUserRelations(mainUser, Utls.parametersToJson(relatedUsersArray).build().toString(), relation);
 		} catch (CarabiException e) {

@@ -32,7 +32,7 @@ public class ProfileService {
 	public boolean getShowOnlineMode(
 			@WebParam(name = "token") String token
 		) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			return logon.getUser().showOnline();
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -45,7 +45,7 @@ public class ProfileService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "showOnline") boolean showOnline
 		) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			admin.setShowOnlineMode(logon.getUser(), showOnline);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -57,7 +57,7 @@ public class ProfileService {
 	public List<Permission> getPermissions(
 			@WebParam(name = "token") String token
 		) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			return usersController.getUserPermissions(logon);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -70,7 +70,7 @@ public class ProfileService {
 			@WebParam(name = "token") String token, 
 			@WebParam(name = "currentProduct") String currentProduct
 		) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			if (StringUtils.isEmpty(currentProduct)) {
 				return usersPercistence.getAvailableProduction(logon);
 			} else {

@@ -96,7 +96,7 @@ Content-Length: 66
 			receiversArray = new String[] {loginReceiver};
 		}
 		boolean markRead = Boolean.valueOf(markReadStr);
-		try (UserLogon logon = uc.tokenAuthorize(token, false)){
+		try (UserLogon logon = uc.tokenAuthorize(token)){
 			CarabiUser sender = logon.getUser();
 			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, logon);
 			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue, markRead);
@@ -211,7 +211,7 @@ Content-Length: xxx
 			receiversArray = new String[] {loginReceiver};
 		}
 		boolean markRead = Boolean.valueOf(markReadStr);
-		try (UserLogon logon = uc.tokenAuthorize(token, false)){
+		try (UserLogon logon = uc.tokenAuthorize(token)){
 			CarabiUser sender = logon.getUser();
 			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, logon);
 			Long[] sentMessagesId = chatBean.sendToReceivers(sender, receiversArray, messageText, extensionTypeId, extensionValue, markRead);
@@ -294,7 +294,7 @@ Content-Length: xxx
 			@DefaultValue("") @QueryParam("loginReceiver") String loginReceiver,
 			String messageText
 		) {
-		try(UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try(UserLogon logon = uc.tokenAuthorize(token)) {
 			if (logon.isPermanent()) {
 				UserLogon targetLogon = new UserLogon();
 				targetLogon.setUser(uc.findUser(login));

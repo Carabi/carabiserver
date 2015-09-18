@@ -189,20 +189,13 @@ public class UsersControllerBean {
 	 * @return UserLogon - данные регистрации пользователя в системе
 	 * @throws CarabiException если пользователя с заданным токеном нет
 	 */
-	public UserLogon tokenAuthorize(String token, boolean connectToOracle) throws CarabiException {
+	public UserLogon tokenAuthorize(String token) throws CarabiException {
 		UserLogon logon = tokenControl(token);
 		if (!activeUsers.containsKey(token)) {
 			activeUsers.put(token, logon);
 			logger.log(Level.FINEST, "put {0} to activeUsers in TokenAuth", token);
 		}
-//		if (connectToOracle && logon.getSchema() != null) {
-//			logon.getMasterConnection();//предварительная установка связи
-//		}
 		return logon;
-	}
-	
-	public UserLogon tokenAuthorize(String token) throws CarabiException {
-		return tokenAuthorize(token, true);
 	}
 	
 	/**

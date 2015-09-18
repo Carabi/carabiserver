@@ -25,8 +25,10 @@ public class AdminService {
 	@EJB private UsersControllerBean usersController;
 	@EJB private AdminBean admin;
 	private static final Logger logger = CarabiLogging.getLogger(AdminService.class);
+	
 	/**
 	 * Получение списка схем, доступных пользователю.
+	 * @param token
 	 * @param login логин
 	 * @return список псевдонимов схем
 	 * @throws CarabiException если такого пользователя нет
@@ -35,28 +37,8 @@ public class AdminService {
 	@WebMethod(operationName = "getUserAllowedSchemas")
 	public List<String> getUserAllowedSchemas(
 			@WebParam(name = "login") String login
-		) throws CarabiException
-	{
+	) throws CarabiException {
 		return admin.getUserAllowedSchemas(login);
-	}
-	/**
-	 * Получение основной схемы пользователя.
-	 * @param login логин
-	 * @return псевдоним основной схемы
-	 * @throws CarabiException если такого пользователя нет
-	 */
-	public String getMainSchema(String login) throws CarabiException {
-		return admin.getMainSchema(login);
-	}
-	
-	/**
-	 * Изменение основной схемы пользователя.
-	 * @param login логин
-	 * @param schemaAlias псевдоним новой основной схемы
-	 * @throws CarabiException если такого пользователя или схемы нет
-	 */
-	public void setMainSchema(String login, String schemaAlias) throws CarabiException {
-		admin.setMainSchema(login, schemaAlias);
 	}
 
 	/**
@@ -205,7 +187,7 @@ public class AdminService {
 			@WebParam(name = "login") String login,
 			@WebParam(name = "status") String status
 	) throws CarabiException{
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			admin.setUserStatus(logon, login, status);
 		}
 	}
@@ -505,7 +487,7 @@ public class AdminService {
 			@WebParam(name = "relation") String relation,
 			@WebParam(name = "mainUserLogin") String mainUserLogin
 		) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
+		try (UserLogon logon = usersController.tokenAuthorize(token) ) {
 			CarabiUser mainUser = admin.chooseEditableUser(logon, mainUserLogin);
 			admin.addUserRelations(mainUser, relatedUsersList, relation);
 		} catch (CarabiException e) {
@@ -529,7 +511,7 @@ public class AdminService {
 			@WebParam(name = "relation") String relation,
 			@WebParam(name = "mainUserLogin") String mainUserLogin
 		) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false) ) {
+		try (UserLogon logon = usersController.tokenAuthorize(token) ) {
 			CarabiUser mainUser = admin.chooseEditableUser(logon, mainUserLogin);
 			admin.removeUserRelations(mainUser, relatedUsersList, relation);
 		} catch (CarabiException e) {

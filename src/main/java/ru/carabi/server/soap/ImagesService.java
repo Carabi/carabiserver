@@ -33,7 +33,7 @@ public class ImagesService {
 			@WebParam(name = "height") int height,
 			@WebParam(name = "useKernelBase") boolean useKernelBase
 		) {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return imagesBean.getThumbnail(logon, Settings.getMasterServer(), original, width, height, useKernelBase);
 		} catch (CarabiException ex) {
 			Logger.getLogger(ImagesService.class.getName()).log(Level.SEVERE, null, ex);

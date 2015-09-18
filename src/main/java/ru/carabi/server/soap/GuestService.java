@@ -191,7 +191,7 @@ public class GuestService {
 	 */
 	@WebMethod(operationName = "getUserInfo")
 	public String getUserInfo(@WebParam(name = "token") String token) throws CarabiException {
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			JsonObjectBuilder result = Json.createObjectBuilder();
 			result.add("login", logon.getUser().getLogin());
 			ConnectionSchema schema = logon.getSchema();

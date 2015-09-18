@@ -59,7 +59,7 @@ public class ChatService {
 			@WebParam(name = "messageText") String messageText,
 			@WebParam(name = "markRead") boolean markRead
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(tokenSender, false)){
+		try (UserLogon logon = uc.tokenAuthorize(tokenSender)){
 			CarabiUser sender = logon.getUser();
 			return sendMessage(loginReceiver, sender, messageText, null, null, markRead);
 		} catch (CarabiException e) {
@@ -90,7 +90,7 @@ public class ChatService {
 			@WebParam(name = "extensionValue") String extensionValue,
 			@WebParam(name = "markRead") boolean markRead
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(tokenSender, false)){
+		try (UserLogon logon = uc.tokenAuthorize(tokenSender)){
 			CarabiUser sender = logon.getUser();
 			Integer extensionTypeId = chatBean.getExtensionTypeId(extensionType, logon);
 			return sendMessage(loginReceiver, sender, messageText, extensionTypeId, extensionValue, markRead);
@@ -236,7 +236,7 @@ public class ChatService {
 	 */
 	@WebMethod(operationName = "getUnreadMessagesCount")
 	public Long getUnreadMessagesCount(@WebParam(name = "token") String token) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getUnreadMessagesCount(logon);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -252,7 +252,7 @@ public class ChatService {
 	 */
 	@WebMethod(operationName = "getUnreadMessagesSenders")
 	public String getUnreadMessagesSenders(@WebParam(name = "token") String token) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getUnreadMessagesSenders(logon);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -278,7 +278,7 @@ public class ChatService {
 	 */
 	@WebMethod(operationName = "getUnreadMessagesSendersDetailed")
 	public String getUnreadMessagesSendersDetailed(@WebParam(name = "token") String token) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getUnreadMessagesSendersDetailed(logon);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -302,7 +302,7 @@ public class ChatService {
 			@WebParam(name = "messageId") Long messageId,
 			@WebParam(name = "read") boolean read
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getMessage(logon, messageId, read);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -329,7 +329,7 @@ public class ChatService {
 			@WebParam(name = "read") boolean read,
 			@WebParam(name = "crop") int crop
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getMessageDetails(logon, messageId, read, crop);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -354,7 +354,7 @@ public class ChatService {
 			@WebParam(name = "messagesList") String messagesList,
 			@WebParam(name = "read") boolean read
 		) throws CarabiException {
-		try (UserLogon receiverLogon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon receiverLogon = uc.tokenAuthorize(token)) {
 			chatBean.markRead(receiverLogon, messagesList, read);
 			return true;
 		} catch (CarabiException e) {
@@ -388,7 +388,7 @@ public class ChatService {
 			@WebParam(name = "loginSender") String loginSender,
 			@WebParam(name = "timestamp") String timestamp
 		) throws CarabiException {
-		try (UserLogon receiverLogon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon receiverLogon = uc.tokenAuthorize(token)) {
 			CarabiUser sender = uc.findUser(loginSender);
 			return chatBean.markReadPrevios(receiverLogon, sender, timestamp);
 		} catch (CarabiException e) {
@@ -432,7 +432,7 @@ public class ChatService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "search") String search
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getContactList(logon, search);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -456,7 +456,7 @@ public class ChatService {
 			@WebParam(name = "relations") String relations,
 			@WebParam(name = "conjunction") boolean conjunction
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getRelatedUsersList(logon, relations, conjunction);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -475,7 +475,7 @@ public class ChatService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "login") String login
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getContact(logon, login);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -498,7 +498,7 @@ public class ChatService {
 			@WebParam(name = "afterDate") String afterDate,
 			@WebParam(name = "search") String search
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getLastInterlocutors(logon, size, afterDate, search);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -523,7 +523,7 @@ public class ChatService {
 			@WebParam(name = "search") String search,
 			@WebParam(name = "crop") int crop
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getDialog(logon, uc.findUser(interlocutor), afterDate, search, crop);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -542,7 +542,7 @@ public class ChatService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "messagesList") String messagesList
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.deleteMessages(logon, messagesList);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -568,7 +568,7 @@ public class ChatService {
 			Logger.getLogger(ChatService.class.getName()).log(Level.SEVERE, null, ex);
 			throw new CarabiException("token incorrect");
 		}
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			chatBean.fireUserState(logon, online);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -596,7 +596,7 @@ public class ChatService {
 			Logger.getLogger(ChatService.class.getName()).log(Level.SEVERE, null, ex);
 			throw new CarabiException("token incorrect");
 		}
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			return chatBean.getMessageAttachement(logon, messageId);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
@@ -616,7 +616,7 @@ public class ChatService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "messagesGroupSysname") String messagesGroupSysname,
 			@WebParam(name = "messageText") String messageText) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			MessagesGroup messagesGroup = chatBean.findOrCreateMessagesGroup(logon, messagesGroupSysname, true);
 			chatBean.writeToMessageGroup(logon, messagesGroup, messageText);
 		}
@@ -639,7 +639,7 @@ public class ChatService {
 			@WebParam(name = "afterDate") String afterDate,
 			@WebParam(name = "search") String search,
 			@WebParam(name = "crop") int crop) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			MessagesGroup messagesGroup = chatBean.findOrCreateMessagesGroup(logon, messagesGroupSysname, false);
 			if (messagesGroup == null) {
 				throw new CarabiException(" Messages group " + messagesGroupSysname + "not found");

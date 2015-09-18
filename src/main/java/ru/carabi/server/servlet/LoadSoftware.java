@@ -65,7 +65,7 @@ public class LoadSoftware extends HttpServlet {
 		} else {
 			token = request.getParameter("token");
 		}
-		try (UserLogon logon = usersController.tokenAuthorize(token, false)){
+		try (UserLogon logon = usersController.tokenAuthorize(token)){
 			//загрузка по ID версии или по названию и номеру версии
 			String versionIDStr = request.getParameter("versionID");
 			if (versionIDStr != null) {//загрузка по ID версии 

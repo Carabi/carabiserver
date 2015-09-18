@@ -80,7 +80,7 @@ public class LoadAvatar extends HttpServlet {
 		int width = parceIntParam(request, response, -1, "width", "w");
 		//высота масштабирования (по умолчанию без масштабирования)
 		int height = parceIntParam(request, response, -1, "height", "h");
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			String login = request.getParameter("login");
 			if (StringUtils.isEmpty(login)) {
 				login = logon.getUser().getLogin();
@@ -196,7 +196,7 @@ public class LoadAvatar extends HttpServlet {
 			return;
 		}
 		String filenameUser = new String(DatatypeConverter.parseBase64Binary(filenameInput), "UTF-8");
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			FileStreamer streamer = new FileStreamer(filenameUser, wrapFileStorage(logon, uc.findUser(filenameUser)));
 			InputStream inputStream;
 			boolean isMultipartContent = ServletFileUpload.isMultipartContent(request);
@@ -314,7 +314,7 @@ public class LoadAvatar extends HttpServlet {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter token required");
 			return;
 		}
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			if (login == null) {
 				login = logon.userLogin();
 			}

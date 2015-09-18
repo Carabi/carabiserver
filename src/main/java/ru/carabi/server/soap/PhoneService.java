@@ -105,7 +105,7 @@ public class PhoneService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "login") String login
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			CarabiUser user;
 			if (StringUtils.isEmpty(login)) {
 				user = logon.getUser();
@@ -153,7 +153,7 @@ public class PhoneService {
 	public String getMySip(
 			@WebParam(name = "token") String token
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			CarabiUser user = logon.getUser();
 			if (user == null) {
 				return null;
@@ -190,7 +190,7 @@ public class PhoneService {
 			@WebParam(name = "phoneFromId") Long phoneFromId,
 			@WebParam(name = "phoneToId") Long phoneToId
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			Phone phoneFrom = em.find(Phone.class, phoneFromId);
 			Phone phoneTo = em.find(Phone.class, phoneToId);
 			logger.log(Level.INFO, "init call from {0} to {1}", new Object[]{phoneFrom.toString(), phoneTo.toString()});
@@ -212,7 +212,7 @@ public class PhoneService {
 			@WebParam(name = "phoneFromId") Long phoneFromId,
 			@WebParam(name = "phoneToId") Long phoneToId
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			Phone phoneFrom = em.find(Phone.class, phoneFromId);
 			Phone phoneTo = em.find(Phone.class, phoneToId);
 			logger.log(Level.INFO, "redirect call from {0} to {1}", new Object[]{phoneFrom.toString(), phoneTo.toString()});
@@ -232,7 +232,7 @@ public class PhoneService {
 			@WebParam(name = "token") String token,
 			@WebParam(name = "phoneId") Long phoneId
 		) throws CarabiException {
-		try (UserLogon logon = uc.tokenAuthorize(token, false)) {
+		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			Phone phone = em.find(Phone.class, phoneId);
 			logger.log(Level.INFO, "terminate call on {0}", phone.toString());
 		}

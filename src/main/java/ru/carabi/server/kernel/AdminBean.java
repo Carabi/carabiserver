@@ -108,24 +108,6 @@ public class AdminBean {
 		return schemasList;
 	}
 	
-	public String getMainSchema(String login) throws CarabiException {
-		final CarabiUser user = uc.findUser(login);
-		final ConnectionSchema defaultSchema = user.getDefaultSchema();
-		if (defaultSchema != null) {
-			return defaultSchema.getSysname();
-		} else {
-			return null;
-		}
-	}
-	
-	public void setMainSchema(String login, String schemaAlias) throws CarabiException {
-		CarabiUser user = uc.findUser(login);
-		final ConnectionSchema mainSchema = cg.getConnectionSchemaByAlias(schemaAlias);
-		user.setDefaultSchema(mainSchema);
-		em.merge(user);
-		close();
-	}
-	
 	/**
 	 * Возвращает список пользователей с указанным статусом из ядровой базы.
 	 * Если статус не указан, он игнорируется/
