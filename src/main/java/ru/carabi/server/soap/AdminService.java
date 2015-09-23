@@ -36,9 +36,12 @@ public class AdminService {
 	
 	@WebMethod(operationName = "getUserAllowedSchemas")
 	public List<String> getUserAllowedSchemas(
+			@WebParam(name = "token") String token,
 			@WebParam(name = "login") String login
 	) throws CarabiException {
-		return admin.getUserAllowedSchemas(login);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getUserAllowedSchemas(logon, login);
+		}
 	}
 
 	/**
@@ -60,8 +63,9 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "getUsersList")
 	public String getUsersList(@WebParam(name = "token") String token) throws CarabiException {
-		UserLogon logon = usersController.tokenControl(token);
-		return admin.getUsersList(logon, null);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getUsersList(logon, null);
+		}
 	}
 	
 	/**
@@ -71,8 +75,9 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "getActiveUsersList")
 	public String getActiveUsersList(@WebParam(name = "token") String token) throws CarabiException {
-		UserLogon logon = usersController.tokenControl(token);
-		return admin.getUsersList(logon, "active");
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getUsersList(logon, "active");
+		}
 	}
 	
 	/**
@@ -133,8 +138,9 @@ public class AdminService {
 	public String getUser(@WebParam(name = "token") String token, @WebParam(name = "id") Long id) 
 			throws CarabiException
 	{
-		usersController.tokenControl(token);
-		return admin.getUser(id);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getUser(logon, id);
+		}
 	}
 	
 	/**
@@ -169,8 +175,9 @@ public class AdminService {
 	public Long saveUser(@WebParam(name = "token") String token, @WebParam(name = "strUser") String strUser) 
 			throws CarabiException
 	{
-		usersController.tokenControl(token);
-		return admin.saveUser(strUser);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.saveUser(logon, strUser);
+		}
 	}
 	
 	/**
@@ -206,8 +213,9 @@ public class AdminService {
 	public void deleteUser(@WebParam(name = "token") String token, @WebParam(name = "login") String login) 
 			throws CarabiException
 	{
-		UserLogon logon = usersController.tokenControl(token);
-		admin.deleteUser(logon, login);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.deleteUser(logon, login);
+		}
 	}	
 	
 	/**
@@ -234,8 +242,9 @@ public class AdminService {
 	 */	
 	@WebMethod(operationName = "getSchemasList")
 	public String getSchemasList(@WebParam(name = "token") String token) throws CarabiException {
-		usersController.tokenControl(token);
-		return admin.getSchemasList();
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getSchemasList(logon);
+		}
 	}
 	
 
@@ -257,8 +266,9 @@ public class AdminService {
 	public String getSchema(@WebParam(name = "token") String token, @WebParam(name = "id") Integer id) 
 			throws CarabiException
 	{
-		usersController.tokenControl(token);
-		return admin.getSchema(id);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getSchema(logon, id);
+		}
 	}
 	
 	/**
@@ -280,8 +290,9 @@ public class AdminService {
 	public Integer saveSchema(@WebParam(name = "token") String token, @WebParam(name = "strSchema") String strSchema) 
 			throws CarabiException
 	{
-		usersController.tokenControl(token);
-		return admin.saveSchema(strSchema);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.saveSchema(logon, strSchema);
+		}
 	}
 
 	/**
@@ -299,8 +310,9 @@ public class AdminService {
 	public void deleteSchema(@WebParam(name = "token") String token, @WebParam(name = "id") Integer id) 
 			throws CarabiException 
 	{
-		usersController.tokenControl(token);
-		admin.deleteSchema(id);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.deleteSchema(logon, id);
+		}
 	}
 	
 	/**
@@ -321,8 +333,9 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "getCategoriesList")
 	public String getCategoriesList(@WebParam(name = "token") String token) throws CarabiException {
-		usersController.tokenControl(token);
-		return admin.getCategoriesList();
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getCategoriesList(logon);
+		}
 	}
 	
 	/**
@@ -338,8 +351,9 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "saveCategory")
 	public Long saveCategory(@WebParam(name = "token") String token, @WebParam(name = "strCategory") String strCategory) throws CarabiException {
-		usersController.tokenControl(token);
-		return admin.saveCategory(strCategory);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.saveCategory(logon, strCategory);
+		}
 	}
 
 	/**
@@ -350,8 +364,9 @@ public class AdminService {
 	 */
 	@WebMethod(operationName = "deleteCategory")
 	public void deleteCategory(@WebParam(name = "token") String token, @WebParam(name = "id") Integer id) throws CarabiException {
-		usersController.tokenControl(token);
-		admin.deleteCategory(id);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.deleteCategory(logon, id);
+		}
 	}
 
 	/**
@@ -382,8 +397,9 @@ public class AdminService {
 	public String getQueriesList(
 			@WebParam(name = "token") String token,
 			@WebParam(name = "categoryId") int categoryId) throws CarabiException {
-		usersController.tokenControl(token);
-		return admin.getQueriesList(categoryId);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getQueriesList(logon, categoryId);
+		}
 	}
 	
 
@@ -411,8 +427,9 @@ public class AdminService {
 	public String getQuery(@WebParam(name = "token") String token, @WebParam(name = "id") Long id) 
 			throws CarabiException
 	{
-		usersController.tokenControl(token);
-		return admin.getQuery(id);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getQuery(logon, id);
+		}
 	}
 	
 	/**
@@ -432,8 +449,9 @@ public class AdminService {
 	public Long saveQuery(@WebParam(name = "token") String token, @WebParam(name = "strQuery") String strQuery) 
 			throws CarabiException
 	{
-		usersController.tokenControl(token);
-		return admin.saveQuery(strQuery);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.saveQuery(logon, strQuery);
+		}
 	}
 	
 	/**
@@ -450,8 +468,9 @@ public class AdminService {
 	public void deleteQuery(@WebParam(name = "token") String token, @WebParam(name = "id") Long id) 
 			throws CarabiException
 	{
-		usersController.tokenControl(token);
-		admin.deleteQuery(id);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.deleteQuery(logon, id);
+		}
 	}
 	
 	/**
@@ -468,8 +487,9 @@ public class AdminService {
 			@WebParam(name = "id") Long id,
 			@WebParam(name = "isDeprecated") boolean isDeprecated
 		) throws CarabiException {
-		usersController.tokenControl(token);
-		admin.setQueryDeprecated(id, isDeprecated);
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.setQueryDeprecated(logon, id, isDeprecated);
+		}
 	}
 	
 	/**

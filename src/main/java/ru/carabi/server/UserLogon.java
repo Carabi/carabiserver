@@ -700,4 +700,17 @@ public class UserLogon implements Serializable, AutoCloseable {
 	public int getConnectionKey(Connection connection) {
 		return connection.hashCode();
 	}
+	
+	/**
+	 * Проверка, что текущий пользователь может выполнять некоторое действие.
+	 * Для этого он должен иметь указанное право,
+	 * иначе кидается исключение.
+	 * @param permissionSysname Требуемое право
+	 * @throws ru.carabi.server.CarabiException Если право не найдено или отсутствует у пользователя
+	 */
+	public void assertAllowed(String permissionSysname) throws CarabiException {
+		if (!usersController.userHavePermission(this, permissionSysname)) {
+			throw new PermissionException(this, permissionSysname);
+		}
+	}
 }

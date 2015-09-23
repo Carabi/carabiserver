@@ -21,7 +21,6 @@ import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.Permission;
-import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.kernel.oracle.CursorFetcherBean;
 import ru.carabi.server.logging.CarabiLogging;
 
@@ -157,7 +156,7 @@ public class UsersControllerBean {
 	}
 	/**
 	 * Проверка наличия токена в системе,
-	 * получение учётки без подключения к Oracle
+	 * получение учётки без сохранения в кеше
 	 * @param token
 	 * @return
 	 * @throws CarabiException 
@@ -183,8 +182,6 @@ public class UsersControllerBean {
 	 * Авторизация по токену.
 	 * Поиск пользователя с данным токеном среди активных и в служебной БД.
 	 * Продление активности и срока действия токена.
-	 * создание сессии Oracle, если была сброшена с указанием о повторном
-	 * создании, если требовалась долгоживущая.
 	 * @param token
 	 * @return UserLogon - данные регистрации пользователя в системе
 	 * @throws CarabiException если пользователя с заданным токеном нет

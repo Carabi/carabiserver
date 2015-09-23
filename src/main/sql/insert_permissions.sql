@@ -1,0 +1,108 @@
+﻿create or replace function INSERT_INTO_USER_PERMISSION()
+	returns integer as
+$BODY$
+
+declare
+	ADMINISTRATING_ID$ INTEGER;
+
+	ADMINISTRATING_USERS_ID$ INTEGER;
+	ADMINISTRATING_USERS_VIEW_ID$ INTEGER;
+	ADMINISTRATING_USERS_EDIT_ID$ INTEGER;
+
+	ADMINISTRATING_SCHEMAS_ID$ INTEGER;
+	ADMINISTRATING_SCHEMAS_VIEW_ID$ INTEGER;
+	ADMINISTRATING_SCHEMAS_EDIT_ID$ INTEGER;
+
+	ADMINISTRATING_QUERIES_ID$ INTEGER;
+	ADMINISTRATING_QUERIES_VIEW_ID$ INTEGER;
+	ADMINISTRATING_QUERIES_EDIT_ID$ INTEGER;
+
+	ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$ INTEGER;
+
+	ADMINISTRATOR_ID$ INTEGER;
+	count$ INTEGER;
+begin
+	set SEARCH_PATH to CARABI_KERNEL;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION)
+	values(DEFAULT, 'Администрирование системы', 'ADMINISTRATING', 'Использование методов AdminBean')
+	returning PERMISSION_ID into ADMINISTRATING_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Управление пользователями', 'ADMINISTRATING-USERS', 'Просмотр и редактирование любых учётных записей', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_USERS_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просматривать пользователей', 'ADMINISTRATING-USERS-VIEW', 'Просматривать учётные записи любых пользователей', ADMINISTRATING_USERS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_USERS_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактировать пользователей', 'ADMINISTRATING-USERS-EDIT', 'Редактировать учётные записи любых пользователей', ADMINISTRATING_USERS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_USERS_EDIT_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Управление схемами подключения', 'ADMINISTRATING-SCHEMAS', 'Просмотр и редактирование схемы подключения к неядровым БД', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_SCHEMAS_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просматривать схемы подключения', 'ADMINISTRATING-SCHEMAS-VIEW', 'Просматривать схемы подключения к неядровым БД', ADMINISTRATING_SCHEMAS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_SCHEMAS_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактировать схемы подключения', 'ADMINISTRATING-SCHEMAS-EDIT', 'Редактировать схемы подключения к неядровым БД', ADMINISTRATING_SCHEMAS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_SCHEMAS_EDIT_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Управление запросами', 'ADMINISTRATING-QUERIES', 'Просмотр и редактирование хранимых запросов, их параметры и категорий', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_QUERIES_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просматривать запросы', 'ADMINISTRATING-QUERIES-VIEW', 'Просматривать хранимые запросы, их параметры и категории', ADMINISTRATING_QUERIES_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_QUERIES_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактировать запросы', 'ADMINISTRATING-QUERIES-EDIT', 'Редактировать хранимые запросы, их параметры и категории', ADMINISTRATING_QUERIES_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_QUERIES_EDIT_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Работать с расширениями чата', 'ADMINISTRATING-CHAT_MESSAGE_TYPES', '', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Создавать расширения чата налету', 'ADMINISTRATING-CHAT_MESSAGE_TYPES-AUTOCREATE', 'Создавать расширения чата при отправке сообщений с неизвестным типом расширения', ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$);
+
+-------------------------------------------------
+
+	insert into USER_ROLE(ROLE_ID, NAME, SYSNAME, DESCRIPTION)
+	values(DEFAULT, 'Администратор', 'ADMINISTRATOR', 'Полный доступ к настройкам системы и учётным записям')
+	returning ROLE_ID into ADMINISTRATOR_ID$;
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_EDIT_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_SCHEMAS_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_SCHEMAS_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_SCHEMAS_EDIT_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_QUERIES_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_QUERIES_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_QUERIES_EDIT_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$);
+	
+	select count(*) into count$ from USER_PERMISSION;
+	return count$;
+end;
+
+$BODY$
+	LANGUAGE PLPGSQL VOLATILE;
+
+
+SELECT INSERT_INTO_USER_PERMISSION();
+
+set SEARCH_PATH to DEFAULT;
+
+DROP FUNCTION INSERT_INTO_USER_PERMISSION();

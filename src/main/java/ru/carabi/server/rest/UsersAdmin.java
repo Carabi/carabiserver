@@ -26,6 +26,7 @@ import ru.carabi.server.Utls;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.ConnectionsGateBean;
 import ru.carabi.server.kernel.UsersControllerBean;
+import ru.carabi.server.kernel.UsersPercistenceBean;
 
 /**
  * Сервис для управления пользовательской базой из Oracle
@@ -38,6 +39,7 @@ public class UsersAdmin {
 	@EJB private AdminBean admin;
 	@EJB private ConnectionsGateBean cg;
 	@EJB private UsersControllerBean usersController;
+	@EJB private UsersPercistenceBean usersPercistence;
 	
 	@GET
 	@Produces("text/plain")
@@ -52,7 +54,7 @@ public class UsersAdmin {
 		if (!administrator.isPermanent()) {
 			return "not permanent token, operation not allowed";
 		}
-		return "" + admin.getUserID(login);
+		return "" + usersPercistence.getUserID(login);
 	}
 	
 	@POST 
@@ -67,8 +69,8 @@ public class UsersAdmin {
 			@PathParam("schema") String schemaName
 		) {
 		//Проверка клиента
-		UserLogon administrator = usersController.getUserLogon(token);
-		if (administrator == null) {
+		UserLogon logon = usersController.getUserLogon(token);
+		if (logon == null) {
 			return "Unknown token: " + token;
 		}
 		//Проверка схемы
@@ -86,7 +88,7 @@ public class UsersAdmin {
 		String login = userData.getString("login");
 		JsonObjectBuilder userDataNew = Utls.jsonObjectToBuilder(userData);
 		//если редактируемый пользователь с таким логином существует -- проверка, что нет коллизии между базами
-		long userID = admin.getUserID(login);
+		long userID = usersPercistence.getUserID(login);
 		boolean userIsNew = userID == -1;
 		if (!userIsNew) {
 			try {
@@ -104,7 +106,7 @@ public class UsersAdmin {
 		allowedSchemaIds.add(schemaID);
 		userDataNew.add("allowedSchemaIds", allowedSchemaIds.build());
 		try {
-			return admin.saveUser(userDataNew.build().toString(), userIsNew).toString();
+			return admin.saveUser(logon, userDataNew.build().toString(), userIsNew).toString();
 		} catch (Exception ex) {
 			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
 			return ex.getMessage();

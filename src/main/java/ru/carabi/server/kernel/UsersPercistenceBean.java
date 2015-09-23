@@ -124,6 +124,22 @@ public class UsersPercistenceBean {
 	}
 	
 	/**
+	 * Получение ID пользователя Carabi.
+	 * @param login логин пользователя
+	 * @return ID пользователя. -1, если нет пользователя с таким логином.
+	 */
+	public Long getUserID(String login) {
+		final Query query = em.createNamedQuery("findUser");
+		query.setParameter("login", login);
+		final List resultList = query.getResultList();
+		if (resultList.isEmpty()) {
+			return -1L;
+		} else {
+			return (Long) resultList.get(0);
+		}
+	}
+
+	/**
 	 * Поиск пользователя по логину
 	 * @param login логин
 	 * @return найденный пользователь
@@ -202,12 +218,16 @@ public class UsersPercistenceBean {
 		if (Settings.PERMISSIONS_TRUST) {
 			return true;
 		}
-		String sql = "select * from appl_permissions.user_has_permission(?, ?)";
-		Query query = em.createNativeQuery(sql);
-		query.setParameter(1, user.getId());
-		query.setParameter(2, permission);
-		Object result = query.getSingleResult();
-		return (Boolean) result;
+		try {
+			String sql = "select * from appl_permissions.user_has_permission(?, ?)";
+			Query query = em.createNativeQuery(sql);
+			query.setParameter(1, user.getId());
+			query.setParameter(2, permission);
+			Object result = query.getSingleResult();
+			return (Boolean) result;
+		} catch (Exception e) {
+			throw new CarabiException(e);
+		}
 	}
 	
 	public List<Permission> getUserPermissions(UserLogon logon) {

@@ -46,7 +46,7 @@ public class ProfileService {
 			@WebParam(name = "showOnline") boolean showOnline
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			admin.setShowOnlineMode(logon.getUser(), showOnline);
+			admin.setShowOnlineMode(logon, logon.getUser(), showOnline);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;

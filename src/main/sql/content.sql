@@ -13,8 +13,6 @@ INSERT INTO APPSERVER (APPSERVER_ID, NAME, SYSNAME, COMPUTER, CONTEXTROOT) VALUE
 insert into USER_STATUS(STATUS_ID, SYSNAME, NAME)
 values(1, 'active', 'Активный'), (2, 'banned', 'Забаненный');
 
-insert into USER_PERMISSION(NAME, SYSNAME) values('Редактирование расширений чата', 'EDIT_CHAT_MESSAGE_TYPES');
-
 insert into CARABI_USER (LOGIN, FIRSTNAME, MIDDLENAME, LASTNAME, DEFAULT_SCHEMA_ID) values
 	('kop', 'Александр', 'Дмитриевич', 'Копилов', 1),
 ;

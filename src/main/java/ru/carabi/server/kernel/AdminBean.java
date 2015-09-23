@@ -13,8 +13,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -67,30 +65,17 @@ public class AdminBean {
 	private @EJB EventerBean eventer;
 	private @EJB ImagesBean images;
 	private @EJB UsersControllerBean uc;
-	/**
-	 * Получение ID пользователя Carabi.
-	 * @param login логин пользователя
-	 * @return ID пользователя. -1, если нет пользователя с таким логином.
-	 */
-	public Long getUserID(String login) {
-		final Query query = em.createNamedQuery("findUser");
-		query.setParameter("login", login);
-		final List resultList = query.getResultList();
-		close();
-		if (resultList.isEmpty()) {
-			return -1L;
-		} else {
-			return (Long) resultList.get(0);
-		}
-	}
-
+	
 	/**
 	 * Получение списка схем, доступных пользователю.
+	 * @param logon текущий пользователь
 	 * @param login логин
 	 * @return список псевдонимов схем
-	 * @throws CarabiException если такого пользователя нет
+	 * @throws CarabiException если такого пользователя нет или текущий пользователь не имеет право смотреть других
 	 */
-	public List<String> getUserAllowedSchemas(String login) throws CarabiException {
+	public List<String> getUserAllowedSchemas(UserLogon logon, String login) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
+		
 		logger.log(Level.FINEST,
 		                "package ru.carabi.server.kernel.AdminBean"
 		                    +".getUserAllowedSchemas(String login)"
@@ -120,9 +105,12 @@ public class AdminBean {
 		 ]}
 	 * </code>
 	 * @param logon сессия текущего пользователя
+	 * @param statusSysname искомый статус
 	 * @return строка c Json-объектом
+	 * @throws ru.carabi.server.CarabiException если текущий пользователь не имеет право смотреть других
 	 */
-	public String getUsersList(UserLogon logon, String statusSysname) {
+	public String getUsersList(UserLogon logon, String statusSysname) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
 		Query query;
 		if (statusSysname != null) {
 			query = em.createNamedQuery("getSchemaUsersWithStatusList");
@@ -160,7 +148,8 @@ public class AdminBean {
 		return result.build().toString();
 	}
 	
-	public String getUser(Long id) throws CarabiException {
+	public String getUser(UserLogon logon, Long id) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
 		final CarabiUser carabiUser = em.find(CarabiUser.class, id);
 		if (null == carabiUser) {
 			final CarabiException e = new CarabiException(
@@ -258,8 +247,8 @@ public class AdminBean {
 	 * @return ID пользователя
 	 * @throws CarabiException
 	 */
-	public Long saveUser(String strUser) throws CarabiException {
-		return saveUser(strUser, true);
+	public Long saveUser(UserLogon logon, String strUser) throws CarabiException {
+		return saveUser(logon, strUser, true);
 	}
 	
 	
@@ -270,7 +259,8 @@ public class AdminBean {
 	 * @return ID пользователя
 	 * @throws CarabiException
 	 */
-	public Long saveUser(String strUser, boolean updateSchemas) throws CarabiException {
+	public Long saveUser(UserLogon logon, String strUser, boolean updateSchemas) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 		// parse url string and obtain json object
 		final String nonUrlNewData = strUser.replace("&quot;", "\"");
 		JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
@@ -415,6 +405,7 @@ public class AdminBean {
 	 * @throws CarabiException 
 	 */
 	public void deleteUser(UserLogon logon, String login) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 		if (login == null) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
 					+ "пользователя, т.к. не задан login удаляемой записи.");
@@ -432,7 +423,8 @@ public class AdminBean {
 		}
 	}
 	
-	public String getSchemasList() {
+	public String getSchemasList(UserLogon logon) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-SCHEMAS-VIEW");
 		// gets oracle databases from kernel db
 		final TypedQuery query = em.createQuery(
 				"select CS from ConnectionSchema CS order by CS.name", 
@@ -478,7 +470,8 @@ public class AdminBean {
 		return jsonSchemaDetails;
 	}
 
-	public String getSchema(Integer id) throws CarabiException {
+	public String getSchema(UserLogon logon, Integer id) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-SCHEMAS-VIEW");
 		final ConnectionSchema schema = em.find(ConnectionSchema.class, id);
 		if (null == schema) {
 			CarabiException e = new CarabiException("Cхема подключения не "
@@ -494,8 +487,8 @@ public class AdminBean {
 		return jsonSchema.build().toString();
 	}	
 	
-	@SuppressWarnings("IncompatibleEquals")
-	public Integer saveSchema(String strSchema) throws CarabiException {
+	public Integer saveSchema(UserLogon logon, String strSchema) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-SCHEMAS-EDIT");
 		// parse url string and obtain json object
 		final String nonUrlStrSchema = strSchema.replace("&quot;", "\"");
 		final JsonReader jsonSchemaReader = Json.createReader(new StringReader(nonUrlStrSchema));
@@ -531,8 +524,8 @@ public class AdminBean {
 		return schema.getId();
 	}
 	
-	public void deleteSchema(Integer id) throws CarabiException
-	{
+	public void deleteSchema(UserLogon logon, Integer id) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-SCHEMAS-EDIT");
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
 					+ "схему подключения, т.к. не задан ID удаляемой записи.");
@@ -550,7 +543,8 @@ public class AdminBean {
 		}
 	}
 	
-	public String getCategoriesList() {
+	public String getCategoriesList(UserLogon logon) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-VIEW");
 		final TypedQuery query = em.createQuery(
 				"select Q from QueryCategory Q order by Q.name",
 				QueryCategory.class);
@@ -580,7 +574,8 @@ public class AdminBean {
 		return result.build().toString();
 	}
 
-	public Long saveCategory(String strCategory) throws CarabiException {
+	public Long saveCategory(UserLogon logon, String strCategory) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-EDIT");
 		// log the call
 		logger.log(Level.INFO, "package ru.carabi.server.kernel"
 		                      +".AdminBean.saveCategory(String strCategory)"
@@ -624,7 +619,8 @@ public class AdminBean {
 		return queryCategory.getId();
 	}
 
-	public void deleteCategory(Integer id) throws CarabiException {
+	public void deleteCategory(UserLogon logon, Integer id) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-EDIT");
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
 					+ "категорию запросов, т.к. не задан ID удаляемой записи.");
@@ -642,7 +638,8 @@ public class AdminBean {
 		}
 	}
 
-	public String getQueriesList(int categoryId) throws CarabiException {
+	public String getQueriesList(UserLogon logon, int categoryId) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-VIEW");
 		TypedQuery query;
 		if (categoryId >= 0) {
 			query = em.createNamedQuery("selectCategoryQueries", QueryEntity.class);
@@ -690,7 +687,8 @@ public class AdminBean {
 		return result.build().toString();
 	}
 	
-	public String getQuery(Long id) throws CarabiException {
+	public String getQuery(UserLogon logon, Long id) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-VIEW");
 		final QueryEntity queryEntity = em.find(QueryEntity.class, id);
 		if (queryEntity == null) {
 			final CarabiException e = new CarabiException(
@@ -732,7 +730,8 @@ public class AdminBean {
 		return jsonQuery.build().toString();
 	}
 	
-	public Long saveQuery(String strQuery) throws CarabiException {
+	public Long saveQuery(UserLogon logon, String strQuery) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-EDIT");
 		// log the call
 		logger.log(Level.INFO, "package ru.carabi.server.kernel"
 		                      +".AdminBean.saveQuery(String strQuery)"
@@ -832,7 +831,8 @@ public class AdminBean {
 		return queryEntity.getId();
 	}
 	
-	public void deleteQuery(Long id) throws CarabiException {
+	public void deleteQuery(UserLogon logon, Long id) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-EDIT");
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
 					+ "хранимый запрос, т.к. не задан ID удаляемой записи.");
@@ -850,7 +850,8 @@ public class AdminBean {
 		}
 	}
 	
-	public void setQueryDeprecated(Long id, boolean isDeprecated) throws CarabiException {
+	public void setQueryDeprecated(UserLogon logon, Long id, boolean isDeprecated) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-EDIT");
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно обработать "
 					+ "хранимый запрос, т.к. не задан ID записи.");
@@ -882,6 +883,7 @@ public class AdminBean {
 		if (targetUser == null) {
 			user = logon.getUser();
 		} else {
+			logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 			user = targetUser;
 		}
 		String login = user.getLogin();
@@ -917,7 +919,6 @@ public class AdminBean {
 		em.flush();
 	}
 	
-	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
 	public void addUserRelations(CarabiUser mainUser, String relatedUsersListStr, String relationName) throws CarabiException {
 		List<CarabiUser> relatedUsersList = makeRelatedUsersList(relatedUsersListStr);
 		UserRelationType relationType = getUserRelationType(relationName);
@@ -1042,15 +1043,16 @@ public class AdminBean {
 		if (StringUtils.isEmpty(userLogin)) {
 			mainUser = logon.getUser();
 		} else {
-			if (!logon.isPermanent()) {
-				throw new CarabiException("You can not edit another user");
-			}
+			logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 			mainUser= uc.findUser(userLogin);
 		}
 		return mainUser;
 	}
 
-	public void setShowOnlineMode(CarabiUser user, boolean showOnline) throws CarabiException {
+	public void setShowOnlineMode(UserLogon logon, CarabiUser user, boolean showOnline) throws CarabiException {
+		if (!user.equals(logon.getUser())) {
+			logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
+		}
 		user.setShowOnline(showOnline);
 		em.merge(user);
 		try {
@@ -1074,6 +1076,7 @@ public class AdminBean {
 	 * @throws CarabiException 
 	 */
 	public void setUserStatus(UserLogon logon, String login, String statusSysname) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 		CarabiUser user = uc.findUser(login);
 		try {
 			TypedQuery<UserStatus> getUserStatus = em.createNamedQuery("getUserStatus", UserStatus.class);
