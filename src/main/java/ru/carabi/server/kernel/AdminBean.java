@@ -74,7 +74,9 @@ public class AdminBean {
 	 * @throws CarabiException если такого пользователя нет или текущий пользователь не имеет право смотреть других
 	 */
 	public List<String> getUserAllowedSchemas(UserLogon logon, String login) throws CarabiException {
-		logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
+		if (!logon.getUser().getLogin().equals(login)) {
+			logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
+		}
 		
 		logger.log(Level.FINEST,
 		                "package ru.carabi.server.kernel.AdminBean"
@@ -149,7 +151,9 @@ public class AdminBean {
 	}
 	
 	public String getUser(UserLogon logon, Long id) throws CarabiException {
-		logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
+		if (!logon.getUser().getId().equals(id)) {
+			logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
+		}
 		final CarabiUser carabiUser = em.find(CarabiUser.class, id);
 		if (null == carabiUser) {
 			final CarabiException e = new CarabiException(
@@ -980,7 +984,6 @@ public class AdminBean {
 	 * @throws CarabiException 
 	 */
 	private List<CarabiUser> makeRelatedUsersList(String relatedUsersListStr) throws CarabiException {
-		//		ctx.setRollbackOnly();
 		List<String> relatedUsersLoginList = new LinkedList<>();
 		try {
 			JsonReader usersListReader = Json.createReader(new StringReader(relatedUsersListStr));
