@@ -106,7 +106,7 @@ public class UsersAdmin {
 		allowedSchemaIds.add(schemaID);
 		userDataNew.add("allowedSchemaIds", allowedSchemaIds.build());
 		try {
-			return admin.saveUser(logon, userDataNew.build().toString(), userIsNew).toString();
+			return admin.saveUser(logon, userDataNew.build(), userIsNew).toString();
 		} catch (Exception ex) {
 			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
 			return ex.getMessage();

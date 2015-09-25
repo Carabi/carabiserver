@@ -30,11 +30,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrBuilder;
 import ru.carabi.libs.CarabiEventType;
 import ru.carabi.server.CarabiException;
+import ru.carabi.server.EntityManagerTool;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.ConnectionSchema;
+import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.entities.Phone;
 import ru.carabi.server.entities.PhoneType;
@@ -246,48 +248,34 @@ public class AdminBean {
 	}
 	
 	/**
-	 * Редактирование или создание пользовател Carabi из Web-сервиса.
+	 * Редактирование или создание пользователя Carabi из Web-сервиса.
+	 * @param logon сессия текущего пользователя
 	 * @param strUser Информация о пользователе в JSON
 	 * @return ID пользователя
 	 * @throws CarabiException
 	 */
 	public Long saveUser(UserLogon logon, String strUser) throws CarabiException {
-		return saveUser(logon, strUser, true);
+		final String nonUrlNewData = strUser.replace("&quot;", "\"");
+		JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
+		return saveUser(logon, jsonReader.readObject(), true);
 	}
 	
-	
 	/**
-	 * Редактирование или создание пользовател Carabi из Web-сервиса.
-	 * @param strUser Информация о пользователе в JSON
+	 * Редактирование или создание пользователя Carabi из Web-сервиса.
+	 * @param logon сессия текущего пользователя
+	 * @param userDetails Информация о пользователе
 	 * @param updateSchemas обновлять данные о доступе к схемам (если редактируем имевшегося пользователя из Oracle -- то нет)
 	 * @return ID пользователя
 	 * @throws CarabiException
 	 */
-	public Long saveUser(UserLogon logon, String strUser, boolean updateSchemas) throws CarabiException {
+	public Long saveUser(UserLogon logon, JsonObject userDetails, boolean updateSchemas) throws CarabiException {
 		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 		// parse url string and obtain json object
-		final String nonUrlNewData = strUser.replace("&quot;", "\"");
-		JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
-		final JsonObject userDetails = jsonReader.readObject();
 		
 		// create or fetch user
-		CarabiUser user;
-		if (!userDetails.containsKey("id") || "".equals(Utls.getNativeJsonString(userDetails,"id"))) {
-			user = new CarabiUser();
-		} else {
-			Long userId;
-			try {
-				userId = Long.decode(Utls.getNativeJsonString(userDetails,"id"));
-			} catch (NumberFormatException nfe) {
-				final CarabiException e = new CarabiException(
-						"Неверный формат ID пользователя. "
-						+ "Ожидется: java.lang.Long", nfe);
-				logger.log(Level.WARNING, "" , e);
-				throw e;
-			}
-			user = em.find(CarabiUser.class, userId);
-		}
-				
+		String idStr = Utls.getNativeJsonString(userDetails,"id");
+		final EntityManagerTool<CarabiUser, Long> entityManagerTool = new EntityManagerTool<>();
+		CarabiUser user = entityManagerTool.createOrFind(em, CarabiUser.class, Long.class, idStr);
 		// set simple user fields
 		user.setFirstname(userDetails.getString("firstName"));
 		user.setMiddlename(userDetails.getString("middleName"));
@@ -400,7 +388,7 @@ public class AdminBean {
 		close();
 		
 		return user.getId();
-	}	
+	}
 	
 	/**
 	 * Удаление пользователя из ядровой БД
@@ -746,25 +734,9 @@ public class AdminBean {
 		JsonReader queryReader = Json.createReader(new StringReader(nonUrlStrQuery));
 		final JsonObject jsonQuery = queryReader.readObject();
 		
-		// create or fetch query
-		QueryEntity queryEntity;
-		if (!jsonQuery.containsKey("id")) {
-			queryEntity = new QueryEntity();
-		} else {
-			// получение запроса 
-			long queryId;
-			try {
-				queryId = jsonQuery.getJsonNumber("id").longValueExact();
-			} catch (NumberFormatException nfe) {
-				final CarabiException e = new CarabiException("Неверный формат ID. "
-						+ "Ожидется: java.lang.Long", nfe);
-				logger.log(Level.WARNING, "" , e);
-				throw e;
-			}
-			
-			queryEntity = em.find(QueryEntity.class, 
-				queryId);
-		}
+		final EntityManagerTool<QueryEntity, Long> entityManagerTool = new EntityManagerTool<>();
+		String queryId = jsonQuery.getString("id");
+		QueryEntity queryEntity = entityManagerTool.createOrFind(em, QueryEntity.class, Long.class, queryId);
 		
 		// получение схемы запроса
 		int schemaId;

@@ -362,10 +362,16 @@ public class Utls {
 	
 	public static String getNativeJsonString(JsonObject object, String property) {
 		JsonValue jsonValue = object.get(property);
+		if (jsonValue == null) {
+			return null;
+		}
 		return getNativeJsonString(jsonValue);
 	}
 	
 	public static String getNativeJsonString(JsonValue jsonValue) {
+		if (jsonValue == null) {
+			return null;
+		}
 		if (jsonValue.getValueType().equals(JsonValue.ValueType.STRING)) {
 			return ((JsonString)jsonValue).getString();
 		} else if (jsonValue.getValueType().equals(JsonValue.ValueType.NUMBER)) {
