@@ -278,24 +278,4 @@ public class UsersPercistenceBean {
 		}
 		return result;
 	}
-
-	public List<Department> getDepartmentBranch(UserLogon userLogon) {
-		String sql = "select * from appl_department.get_departments_branch_detailed(?, null)";
-		Query query = em.createNativeQuery(sql);
-		query.setParameter(1, userLogon.getToken());
-		List resultList = query.getResultList();
-		int i = resultList.size();
-		Department[] result = new Department[i];
-		for (Object row: resultList) {
-			i--;
-			Object[] data = (Object[])row;
-			Department department = new Department();
-			department.setId((Integer) data[0]);
-			department.setName((String) data[1]);
-			department.setSysname((String) data[2]);
-			department.setDescription((String) data[3]);
-			result[i] = department;
-		}
-		return Arrays.asList(result);
-	}
 }

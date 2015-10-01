@@ -47,14 +47,17 @@ public class UsersAdmin {
 			@QueryParam("token") String token,
 			@DefaultValue("") @QueryParam("login") String login
 		) {
-		UserLogon administrator = usersController.getUserLogon(token);
-		if (administrator == null) {
+		UserLogon logon = usersController.getUserLogon(token);
+		if (logon == null) {
 			return "Unknown token: " + token;
 		}
-		if (!administrator.isPermanent()) {
-			return "not permanent token, operation not allowed";
+		try {
+			logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
+			return "" + usersPercistence.getUserID(login);
+		} catch (CarabiException ex) {
+			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
 		}
-		return "" + usersPercistence.getUserID(login);
+		return null;
 	}
 	
 	@POST 
@@ -152,11 +155,11 @@ public class UsersAdmin {
 			@DefaultValue("banned") @QueryParam("status") String status,
 			@PathParam("schema") String schemaName
 	) {
-		try (UserLogon administrator = usersController.tokenAuthorize(token)) {
-			if (administrator == null) {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			if (logon == null) {
 				return "Unknown token: " + token;
 			}
-			admin.setUserStatus(administrator, login, status);
+			admin.setUserStatus(logon, login, status);
 			return login + " " + status;
 		} catch (CarabiException ex) {
 			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);

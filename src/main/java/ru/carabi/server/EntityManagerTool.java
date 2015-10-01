@@ -3,7 +3,6 @@ package ru.carabi.server;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.EntityManager;
-import ru.carabi.server.entities.AbstractEntity;
 
 /**
  * Типовые операции с JPA-сущностями.
@@ -23,14 +22,17 @@ public class EntityManagerTool<E, K> {
 	 */
 	public E createOrFind(EntityManager em, Class<E> eType, K key) {
 		E entity = null;
-		if (key == null) {
-			try {
+		try {
+			if (key == null) {
 				entity = eType.newInstance();
-			} catch (InstantiationException | IllegalAccessException ex) {
-				Logger.getLogger(EntityManagerTool.class.getName()).log(Level.SEVERE, null, ex);
+			} else {
+				entity = em.find(eType, key);
+				if (entity == null) {
+					entity = eType.newInstance();
+				}
 			}
-		} else {
-			entity = em.find(eType, key);
+		} catch (InstantiationException | IllegalAccessException ex) {
+			Logger.getLogger(EntityManagerTool.class.getName()).log(Level.SEVERE, null, ex);
 		}
 		return entity;
 	}

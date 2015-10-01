@@ -9,6 +9,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
@@ -19,6 +21,10 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name="DEPARTMENT")
+@NamedQueries({
+	@NamedQuery(name="getDepartmantInfo",
+		query = "select D from Department D where D.sysname = :sysname")
+})
 public class Department extends AbstractEntity implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
@@ -30,6 +36,14 @@ public class Department extends AbstractEntity implements Serializable {
 	private String name;
 	private String sysname;
 	private String description;
+	
+	@Column(name="PARENT_DEPARTMENT_ID")
+	private Integer parentDepartmentId;
+	
+	@ManyToOne
+	@JoinColumn(name="DEFAULT_SCHEMA_ID")
+	//Основная неядровая БД
+	private ConnectionSchema defaultSchema;
 	
 	@ManyToOne
 	@JoinColumn(name="MAIN_SERVER_ID")
@@ -69,6 +83,22 @@ public class Department extends AbstractEntity implements Serializable {
 	
 	public void setDescription(String description) {
 		this.description = description;
+	}
+	
+	public Integer getParentDepartmentId() {
+		return parentDepartmentId;
+	}
+	
+	public void setParentDepartmentId(Integer parentDepartmentId) {
+		this.parentDepartmentId = parentDepartmentId;
+	}
+	
+	public ConnectionSchema getDefaultSchema() {
+		return defaultSchema;
+	}
+	
+	public void setDefaultSchema(ConnectionSchema defaultSchema) {
+		this.defaultSchema = defaultSchema;
 	}
 	
 	public CarabiAppServer getMainServer() {

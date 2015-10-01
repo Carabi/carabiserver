@@ -29,8 +29,10 @@ import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrBuilder;
 import ru.carabi.libs.CarabiEventType;
+import ru.carabi.libs.CarabiFunc;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.EntityManagerTool;
+import ru.carabi.server.PermissionException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
@@ -67,6 +69,7 @@ public class AdminBean {
 	private @EJB EventerBean eventer;
 	private @EJB ImagesBean images;
 	private @EJB UsersControllerBean uc;
+	private @EJB DepartmentsPercistenceBean departmentsPercistence;
 	
 	/**
 	 * Получение списка схем, доступных пользователю.
@@ -304,10 +307,11 @@ public class AdminBean {
 		int phoneOrderNumber = 1;
 		for (String phoneStr: phones) {
 			String[] phoneElements = phoneStr.split("\\|");
-			Phone phone = new Phone();
-			if (phoneElements.length > 0) {
-				phone.parse(phoneElements[0]);
+			if (phoneElements.length == 0 || StringUtils.isEmpty(phoneElements[0])) {
+				continue;
 			}
+			Phone phone = new Phone();
+			phone.parse(phoneElements[0]);
 			PhoneType phoneType = null;
 			if (phoneElements.length > 1 && !" ".equals(phoneElements[1])) {
 				final String phoneTypeName = phoneElements[1];
@@ -413,6 +417,88 @@ public class AdminBean {
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}
+	}
+	
+	/**
+	 * Создание или редактирование подразделения.
+	 * Параметр departmentData должен содержать поля:
+	 * <ul>
+	 * <li>id &mdash; первичный ключ (пустой при создании нового объекта)</li>
+	 * <li>name &mdash; название</li>
+	 * <li>description &mdash; описание</li>
+	 * <li>sysname &mdash; кодовое имя (генерируется и возвращается, если не задано)</li>
+	 * <li>parent_id &mdash; первичный ключ родительского подразделения или</li>
+	 * <li>parent_sysname &mdash; кодовое имя родительского подразделения</li>
+	 * </ul>
+	 * Если на вход нет ни sysname, ни id &ndash; создаётся новый объект, sysname генерируется
+	 * Иначе ищется соответствующий объект или создаётся новый.
+	 * <p>
+	 * При генерации sysname если на вход подан parent_sysname (а не parent_id) &ndash;
+	 * предполагается, что клиент не может оперировать уникальной связкой "parent_id + sysname",
+	 * поэтому parent_sysname дописывается в текущий для обеспечения уникальности.
+	 * <p>
+	 * Пользователь, имеющий право "ADMINISTRATING-DEPARTMENTS-EDIT", может создать или изменить любое подразделение.
+	 * Пользователь, имеющий право "MANAGING-DEPARTMENTS-EDIT" &mdash только с подконтрольным ему parent.
+	 * @param logon Сессия текущего пользователя
+	 * @param departmentData данные о подразделении
+	 * @return 
+	 * @throws ru.carabi.server.CarabiException 
+	 */
+	public Department saveDepartment(UserLogon logon, JsonObject departmentData) throws CarabiException {
+		Department parentDepartment = null;
+		//Создавать вложенные подразделения может менеджер, корневые -- только администратор
+		boolean addParentSysname = false;
+		if (departmentData.containsKey("parent_sysname") && !StringUtils.isEmpty(departmentData.getString("parent_sysname"))) {
+			addParentSysname = true;
+			logon.assertAllowedAny(new String[]{"ADMINISTRATING-DEPARTMENTS-EDIT", "MANAGING-DEPARTMENTS-EDIT"});
+			String parentSysname = departmentData.getString("parent_sysname");
+			parentDepartment = departmentsPercistence.getDepartment(parentSysname);
+			if (!(uc.userHavePermission(logon, "ADMINISTRATING-DEPARTMENTS-EDIT") || departmentsPercistence.isDepartmentAvailable(logon, parentDepartment))) {
+				throw new PermissionException(logon, "User " + logon.getUser().getLogin() + " can not use department " + parentSysname + " as parent");
+			}
+		} else if (departmentData.containsKey("parent_id") && !StringUtils.isEmpty(departmentData.getString("parent_id"))) {
+			logon.assertAllowedAny(new String[]{"ADMINISTRATING-DEPARTMENTS-EDIT", "MANAGING-DEPARTMENTS-EDIT"});
+			String parentID = departmentData.getString("parent_id");
+			parentDepartment = em.find(Department.class, Integer.valueOf(parentID));
+			if (!(uc.userHavePermission(logon, "ADMINISTRATING-DEPARTMENTS-EDIT") || departmentsPercistence.isDepartmentAvailable(logon, parentDepartment))) {
+				throw new PermissionException(logon, "User " + logon.getUser().getLogin() + " can not use department " + parentID + " as parent");
+			}
+		} else {
+			logon.assertAllowed("ADMINISTRATING-DEPARTMENTS-EDIT");
+		}
+		//Создание или поиск объекта в зависимости от поданных идентификаторов
+		Department department;
+		if (!(departmentData.containsKey("id") || departmentData.containsKey("sysname"))) {
+			department = new Department();
+		} else if (departmentData.containsKey("id")) {
+			String idStr = departmentData.getString("id");
+			final EntityManagerTool<Department, Integer> entityManagerTool = new EntityManagerTool<>();
+			department = entityManagerTool.createOrFind(em, Department.class, Integer.class, idStr);
+			department.setId(Integer.valueOf(idStr));
+		} else {
+			department = departmentsPercistence.findDepartment(departmentData.getString("sysname"));
+			if (department == null) {
+				department = new Department();
+			}
+		}
+		
+		
+		department.setName(departmentData.getString("name"));
+		department.setDescription(departmentData.getString("description"));
+		if (departmentData.containsKey("sysname")) {
+			department.setSysname(departmentData.getString("sysname"));
+		} else {
+			String sysname = CarabiFunc.cyrillicToAscii(department.getName());
+			if (parentDepartment != null && addParentSysname) {
+				sysname = parentDepartment.getSysname() + "-" + sysname;
+			}
+			department.setSysname(sysname);
+		}
+		if (parentDepartment != null) {
+			department.setParentDepartmentId(parentDepartment.getId());
+		}
+		department = em.merge(department);
+		return department;
 	}
 	
 	public String getSchemasList(UserLogon logon) throws CarabiException {

@@ -26,9 +26,9 @@ import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.entities.ProductVersion;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.face.injectable.CurrentClient;
+import ru.carabi.server.kernel.DepartmentsPercistenceBean;
 import ru.carabi.server.kernel.ProductionBean;
 import ru.carabi.server.kernel.UsersControllerBean;
-import ru.carabi.server.kernel.UsersPercistenceBean;
 import ru.carabi.server.logging.CarabiLogging;
 import ru.carabi.server.rest.RestException;
 
@@ -44,7 +44,7 @@ public class LoadSoftware extends HttpServlet {
 	private static final Logger logger = CarabiLogging.getLogger(LoadSoftware.class);
 	@Inject private CurrentClient currentClient;
 	@EJB private UsersControllerBean usersController;
-	@EJB private UsersPercistenceBean usersPercistence;
+	@EJB private DepartmentsPercistenceBean departmentsPercistence;
 	@EJB private ProductionBean productionBean;
 	
 	/**
@@ -80,7 +80,7 @@ public class LoadSoftware extends HttpServlet {
 				//в ктором работает текущий пользователь -- отказ
 				//ToDo: Проверить, что у пользователя есть право на сам продукт
 				if (destinatedForDepartment != null) {
-					List<Department> userDepartmentBranch = usersPercistence.getDepartmentBranch(logon);
+					List<Department> userDepartmentBranch = departmentsPercistence.getDepartmentBranch(logon);
 					if (!userDepartmentBranch.contains(destinatedForDepartment)) {
 						sendError(response, HttpServletResponse.SC_FORBIDDEN, "Product is not allowed for you, destinated for department " + destinatedForDepartment.getSysname());
 						return;

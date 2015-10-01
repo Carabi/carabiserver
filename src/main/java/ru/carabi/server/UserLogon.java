@@ -713,4 +713,38 @@ public class UserLogon implements Serializable, AutoCloseable {
 			throw new PermissionException(this, permissionSysname);
 		}
 	}
+	
+	/**
+	 * Проверка, что текущий пользователь может выполнять некоторое действие.
+	 * Для этого он должен иметь хотя бы одно указанное право,
+	 * иначе кидается исключение.
+	 * @param permissionsSysname Требуемые права
+	 * @throws ru.carabi.server.CarabiException Если право не найдено или отсутствует у пользователя
+	 */
+	public void assertAllowedAny(String[] permissionsSysname) throws CarabiException {
+		if (permissionsSysname.length == 0) {
+			return;
+		}
+		for (String permissionSysname: permissionsSysname) {
+			if (usersController.userHavePermission(this, permissionSysname)) {
+				return;
+			}
+		}
+		throw new PermissionException(this, permissionsSysname[0]);
+	}
+	
+	/**
+	 * Проверка, что текущий пользователь может выполнять некоторое действие.
+	 * Для этого он должен иметь все указанные права,
+	 * иначе кидается исключение.
+	 * @param permissionsSysname Требуемые права
+	 * @throws ru.carabi.server.CarabiException Если право не найдено или отсутствует у пользователя
+	 */
+	public void assertAllowedAll(String[] permissionsSysname) throws CarabiException {
+		for (String permissionSysname: permissionsSysname) {
+			if (!usersController.userHavePermission(this, permissionSysname)) {
+				throw new PermissionException(this, permissionSysname);
+			}
+		}
+	}
 }

@@ -1,5 +1,5 @@
-create schema CARABI_KERNEL;
-set SEARCH_PATH to CARABI_KERNEL;
+create schema CARABI_KERNEL_TEST;
+set SEARCH_PATH to CARABI_KERNEL_TEST;
 
 CREATE VIEW dual as select 0 as dummy;
 
@@ -80,14 +80,15 @@ create sequence department_id_gen;
 create table DEPARTMENT (
 	DEPARTMENT_ID integer primary key default nextval('department_id_gen'),
 	NAME varchar(256) not null,
-	SYSNAME varchar(256) not null unique,
+	SYSNAME varchar(256) not null,
 	DESCRIPTION varchar(32000),
 	--Основная БД Oracle
 	DEFAULT_SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) on delete set null,
 	--Основной сервер с БД для чата
 	MAIN_SERVER_ID integer references APPSERVER (APPSERVER_ID) on delete set null,
 	--вышестоящее подразделение
-	PARENT_DEPARTMENT_ID integer references DEPARTMENT (DEPARTMENT_ID)
+	PARENT_DEPARTMENT_ID integer references DEPARTMENT (DEPARTMENT_ID),
+	unique(SYSNAME, PARENT_DEPARTMENT_ID)
 );
 
 /**

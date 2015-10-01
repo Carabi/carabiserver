@@ -9,6 +9,14 @@ declare
 	ADMINISTRATING_USERS_VIEW_ID$ INTEGER;
 	ADMINISTRATING_USERS_EDIT_ID$ INTEGER;
 
+	ADMINISTRATING_DEPARTMENTS_ID$ INTEGER;
+	ADMINISTRATING_DEPARTMENTS_VIEW_ID$ INTEGER;
+	ADMINISTRATING_DEPARTMENTS_EDIT_ID$ INTEGER;
+
+	MANAGING_DEPARTMENTS_ID$ INTEGER;
+	MANAGING_DEPARTMENTS_VIEW_ID$ INTEGER;
+	MANAGING_DEPARTMENTS_EDIT_ID$ INTEGER;
+
 	ADMINISTRATING_SCHEMAS_ID$ INTEGER;
 	ADMINISTRATING_SCHEMAS_VIEW_ID$ INTEGER;
 	ADMINISTRATING_SCHEMAS_EDIT_ID$ INTEGER;
@@ -20,6 +28,7 @@ declare
 	ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$ INTEGER;
 
 	ADMINISTRATOR_ID$ INTEGER;
+	MANAGER_ID$ INTEGER;
 	count$ INTEGER;
 begin
 	set SEARCH_PATH to CARABI_KERNEL;
@@ -39,6 +48,30 @@ begin
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Редактировать пользователей', 'ADMINISTRATING-USERS-EDIT', 'Редактировать учётные записи любых пользователей', ADMINISTRATING_USERS_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_USERS_EDIT_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Управление подразделениями', 'ADMINISTRATING-DEPARTMENTS', 'Просмотр и редактирование любых подразделений', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_DEPARTMENTS_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просматривать подразделения', 'ADMINISTRATING-DEPARTMENTS-VIEW', 'Просматривать данные о любых подразделениях', ADMINISTRATING_DEPARTMENTS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_DEPARTMENTS_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактировать подразделения', 'ADMINISTRATING-DEPARTMENTS-EDIT', 'Редактировать данные о любых подразделениях', ADMINISTRATING_DEPARTMENTS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_DEPARTMENTS_EDIT_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Ограниченное управление подразделениями', 'MANAGING-DEPARTMENTS', 'Просмотр и редактирование подразделений, дочерних в основном', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into MANAGING_DEPARTMENTS_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просматривать доступные подразделения', 'MANAGING-DEPARTMENTS-VIEW', 'Просматривать данные о подразделениях, дочерних в основном', MANAGING_DEPARTMENTS_ID$)
+	returning PERMISSION_ID into MANAGING_DEPARTMENTS_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактировать доступные подразделения', 'MANAGING-DEPARTMENTS-EDIT', 'Редактировать данные о подразделениях, дочерних в основном', MANAGING_DEPARTMENTS_ID$)
+	returning PERMISSION_ID into MANAGING_DEPARTMENTS_EDIT_ID$;
 
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Управление схемами подключения', 'ADMINISTRATING-SCHEMAS', 'Просмотр и редактирование схемы подключения к неядровым БД', ADMINISTRATING_ID$)
@@ -77,11 +110,23 @@ begin
 	values(DEFAULT, 'Администратор', 'ADMINISTRATOR', 'Полный доступ к настройкам системы и учётным записям')
 	returning ROLE_ID into ADMINISTRATOR_ID$;
 
+	insert into USER_ROLE(ROLE_ID, NAME, SYSNAME, DESCRIPTION)
+	values(DEFAULT, 'Менеджер', 'MANAGER', 'Доступ к настройкам системы и учётным записям в пределах своего подразделения')
+	returning ROLE_ID into MANAGER_ID$;
+
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_ID$);
 
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_VIEW_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_EDIT_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_DEPARTMENTS_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_DEPARTMENTS_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_DEPARTMENTS_EDIT_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_DEPARTMENTS_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_DEPARTMENTS_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_DEPARTMENTS_EDIT_ID$);
 
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_SCHEMAS_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_SCHEMAS_VIEW_ID$);

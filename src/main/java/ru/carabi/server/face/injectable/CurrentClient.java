@@ -9,6 +9,7 @@ import javax.inject.Named;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.SoftwareProduct;
+import ru.carabi.server.kernel.DepartmentsPercistenceBean;
 import ru.carabi.server.kernel.UsersPercistenceBean;
 
 /**
@@ -23,6 +24,7 @@ public class CurrentClient implements Serializable {
 	private Properties properties = new Properties();
 	
 	@EJB private UsersPercistenceBean usersPercistence;
+	@EJB private DepartmentsPercistenceBean departmentsPercistence;
 	
 	private UserLogon userLogon;
 	
@@ -53,7 +55,7 @@ public class CurrentClient implements Serializable {
 	private List<Department> departmentBranch;
 	public List<Department> getDepartmentBranch() {
 		if (departmentBranch == null) {
-			departmentBranch = usersPercistence.getDepartmentBranch(userLogon);
+			departmentBranch = departmentsPercistence.getDepartmentBranch(userLogon);
 		}
 		return departmentBranch;
 	}
