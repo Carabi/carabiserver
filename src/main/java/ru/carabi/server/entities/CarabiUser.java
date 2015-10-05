@@ -81,13 +81,27 @@ public class CarabiUser implements Serializable {
 	private String email;
 	
 	@ManyToOne
+	@JoinColumn(name="CORPORATION_ID")
+	private Department corporation;
+	
+	@ManyToOne
 	@JoinColumn(name="DEPARTMENT_ID")
 	private Department department;
+	
+	@ManyToMany
+	@JoinTable(
+		name="USER_DEPARTMENT_RELATION",
+		joinColumns=
+			@JoinColumn(name="USER_ID", referencedColumnName="USER_ID"),
+		inverseJoinColumns=
+			@JoinColumn(name="DEPARTMENT_ID", referencedColumnName="DEPARTMENT_ID")
+	)
+	private Collection<Department> relatedDepartments;
 	
 	@Column(name="ROLE")
 	private String carabiRole;
 	@Column(name="DEPARTMENT")
-	private String carabiDepartment;
+	private String carabiDepartment;//данные о подразделении из неядровой БД в ненормализованном текстовом формате (уст.)
 	
 	@ManyToOne
 	@JoinColumn(name="DEFAULT_SCHEMA_ID")
@@ -195,12 +209,28 @@ public class CarabiUser implements Serializable {
 		this.email = email;
 	}
 	
+	public Department getCorporation() {
+		return corporation;
+	}
+	
+	public void setCorporation(Department corporation) {
+		this.corporation = corporation;
+	}
+	
 	public Department getDepartment() {
 		return department;
 	}
 	
 	public void setDepartment(Department department) {
 		this.department = department;
+	}
+	
+	public Collection<Department> getRelatedDepartments() {
+		return relatedDepartments;
+	}
+	
+	public void setRelatedDepartments(Collection<Department> relatedDepartments) {
+		this.relatedDepartments = relatedDepartments;
 	}
 	
 	public String getCarabiRole() {

@@ -273,8 +273,6 @@ public class AdminBean {
 	 */
 	public Long saveUser(UserLogon logon, JsonObject userDetails, boolean updateSchemas) throws CarabiException {
 		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
-		// parse url string and obtain json object
-		
 		// create or fetch user
 		String idStr = Utls.getNativeJsonString(userDetails,"id");
 		final EntityManagerTool<CarabiUser, Long> entityManagerTool = new EntityManagerTool<>();
@@ -285,8 +283,21 @@ public class AdminBean {
 		user.setLastname(userDetails.getString("lastName"));
 		user.setLogin(userDetails.getString("login"));
 		user.setPassword(userDetails.getString("password"));
+		
+		//deprecated fields
 		user.setCarabiDepartment(userDetails.getString("department"));
 		user.setCarabiRole(userDetails.getString("role"));
+		
+		//update corporation/department if inputed
+		if (userDetails.containsKey("corporationSysname")) {
+			Department corporation = departmentsPercistence.findDepartment(userDetails.getString("corporationSysname"));
+			user.setCorporation(corporation);
+		}
+		
+		if (userDetails.containsKey("departmentSysname")) {
+			Department department = departmentsPercistence.findDepartment(userDetails.getString("departmentSysname"));
+			user.setDepartment(department);
+		}
 		
 		// update phones
 		if (user.getPhonesList() != null) {
@@ -488,7 +499,7 @@ public class AdminBean {
 		if (departmentData.containsKey("sysname")) {
 			department.setSysname(departmentData.getString("sysname"));
 		} else {
-			String sysname = CarabiFunc.cyrillicToAscii(department.getName());
+			String sysname = CarabiFunc.cyrillicToAscii(department.getName()).replace(' ', '_');
 			if (parentDepartment != null && addParentSysname) {
 				sysname = parentDepartment.getSysname() + "-" + sysname;
 			}
@@ -499,6 +510,28 @@ public class AdminBean {
 		}
 		department = em.merge(department);
 		return department;
+	}
+	
+	public void addUserDepartmentRelation(UserLogon logon, String userLogin, String departmentSysname) throws CarabiException {
+		logon.assertAllowedAll(new String[] {"ADMINISTRATING-USERS-EDIT", "ADMINISTRATING-DEPARTMENTS-EDIT"});
+		CarabiUser user = uc.findUser(userLogin);
+		Department department = departmentsPercistence.getDepartment(departmentSysname);
+		Collection<Department> relatedDepartments = user.getRelatedDepartments();
+		if (!relatedDepartments.contains(department)) {
+			relatedDepartments.add(department);
+			em.merge(user);
+		}
+	}
+	
+	public void removeUserDepartmentRelation(UserLogon logon, String userLogin, String departmentSysname) throws CarabiException {
+		logon.assertAllowedAll(new String[] {"ADMINISTRATING-USERS-EDIT", "ADMINISTRATING-DEPARTMENTS-EDIT"});
+		CarabiUser user = uc.findUser(userLogin);
+		Department department = departmentsPercistence.getDepartment(departmentSysname);
+		Collection<Department> relatedDepartments = user.getRelatedDepartments();
+		if (relatedDepartments.contains(department)) {
+			relatedDepartments.remove(department);
+			em.merge(user);
+		}
 	}
 	
 	public String getSchemasList(UserLogon logon) throws CarabiException {

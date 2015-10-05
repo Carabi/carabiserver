@@ -130,6 +130,7 @@ public class UsersAdmin {
 			@DefaultValue("") @FormParam("middleName") String middleName,
 			@DefaultValue("") @FormParam("lastName") String lastName,
 			@DefaultValue("") @FormParam("department") String department,
+			@DefaultValue("") @FormParam("department_sysname") String departmentSysname,
 			@DefaultValue("") @FormParam("role") String role,
 			@DefaultValue("") @FormParam("phones") String phones,
 			@PathParam("schema") String schemaName
@@ -142,6 +143,7 @@ public class UsersAdmin {
 				.add("middleName", middleName)
 				.add("lastName", lastName)
 				.add("department", department)
+				.add("departmentSysname", departmentSysname)
 				.add("role", role)
 				.add("phones", phones);
 		return addUserJson(token, userData.build(), schemaName);

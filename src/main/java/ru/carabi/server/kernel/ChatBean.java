@@ -204,12 +204,12 @@ public class ChatBean {
 	 * @return 
 	 */
 	private CarabiAppServer getTargetUserServer(CarabiUser user) {
-		CarabiAppServer userServer = user.getMainServer();//проверяем индивидуальные настройкинастрой
+		CarabiAppServer userServer = user.getMainServer();//проверяем индивидуальные настройки
 		if (userServer == null) {
-			Department department = user.getDepartment();//если индивидуальных нет -- возвращаем настройки корпорации
+			Department department = user.getDepartment();//если индивидуальных нет -- возвращаем настройки подразделения
 			if (department != null && department.getMainServer() != null) {
 				return department.getMainServer();
-			}//если нет настроек корпорации -- ставим основным текущий и возвращаеи
+			}//если нет настроек подразделения -- ставим основным текущий и возвращаем
 			userServer = Settings.getCurrentServer();
 			user.setMainServer(userServer);
 			user = emKernel.merge(user);

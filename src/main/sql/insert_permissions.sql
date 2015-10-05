@@ -115,6 +115,7 @@ begin
 	returning ROLE_ID into MANAGER_ID$;
 
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, ADMINISTRATING_ID$);
 
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_VIEW_ID$);

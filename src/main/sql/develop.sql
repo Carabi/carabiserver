@@ -1,5 +1,5 @@
-create schema CARABI_KERNEL_TEST;
-set SEARCH_PATH to CARABI_KERNEL_TEST;
+create schema CARABI_KERNEL;
+set SEARCH_PATH to CARABI_KERNEL;
 
 CREATE VIEW dual as select 0 as dummy;
 
@@ -104,9 +104,13 @@ create table CARABI_USER (
 	MIDDLENAME varchar(1024), --отчество
 	LASTNAME varchar(1024), --фамилия
 	EMAIL varchar(1024), --фамилия
+	--отдел в компании, где непосредственно работает сотрудник
 	DEPARTMENT_ID integer references DEPARTMENT (DEPARTMENT_ID) on delete set null,
+	--компания -- ссылка на верхний по рекурсии PARENT_DEPARTMENT_ID от текущей
+	--DEPARTMENT_ID  -- для ускорения поиска сотрудников "под одной крышей"
+	CORPORATION_ID integer references DEPARTMENT (DEPARTMENT_ID),
 	ROLE varchar(1024), --описание роли в компании/системе
-	DEPARTMENT varchar(1024), --подразделение
+	DEPARTMENT varchar(1024), --подразделение (устар.)
 	--Основная БД Oracle
 	DEFAULT_SCHEMA_ID integer references CONNECTION_SCHEMA (SCHEMA_ID) on delete set null,
 	--основной сервер с БД для чата
@@ -140,9 +144,18 @@ create table USER_RELATION_TYPE (
 );
 
 create table RELATION_HAS_TYPE (
-	USER_RELATION_ID bigint,
-	RELATION_TYPE_ID integer,
+	USER_RELATION_ID bigint references USER_RELATION (USER_RELATION_ID) on delete cascade,
+	RELATION_TYPE_ID integer references USER_RELATION_TYPE (RELATION_TYPE_ID) on delete cascade,
 	primary key(USER_RELATION_ID, RELATION_TYPE_ID)
+);
+
+/**
+ * Доступ пользователей к подразделениям,помимо основного подразделения
+ */
+create table USER_DEPARTMENT_RELATION (
+	USER_ID bigint not null references CARABI_USER (USER_ID) on delete cascade,
+	DEPARTMENT_ID integer references DEPARTMENT (DEPARTMENT_ID) on delete cascade,
+	primary key(USER_ID, DEPARTMENT_ID)
 );
 
 /**

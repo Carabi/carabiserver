@@ -3,6 +3,7 @@ package ru.carabi.server;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.EntityManager;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Типовые операции с JPA-сущностями.
@@ -48,6 +49,9 @@ public class EntityManagerTool<E, K> {
 	 */
 	
 	public E createOrFind (EntityManager em, Class<E> eType, Class<K> keyType,String keyStr) throws CarabiException{
+		if (StringUtils.isEmpty(keyStr)) {
+			return createOrFind(em, eType, null);
+		}
 		Object key;
 		try {
 			switch (keyType.getSimpleName()) {

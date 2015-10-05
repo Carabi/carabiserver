@@ -1,7 +1,10 @@
 set SEARCH_PATH to CARABI_KERNEL;
 
+drop table MESSAGES_GROUP;
 drop table MESSAGE_EXTENSION_TYPE;
 drop table PRODUCT_VERSION;
+drop table PRODUCT_ON_APPSERVER;
+drop table PRODUCT_ON_SCHEMA;
 drop table SOFTWARE_PRODUCTION;
 drop table ORACLE_PARAMETER;
 drop table ORACLE_QUERY;
@@ -17,6 +20,7 @@ drop table ROLE_HAS_PERMISSION;
 drop table USER_HAS_PERMISSION;
 drop table USER_ROLE;
 drop table USER_PERMISSION;
+drop table USER_DEPARTMENT_RELATION;
 drop table RELATION_HAS_TYPE;
 drop table USER_RELATION_TYPE;
 drop table USER_RELATION;
@@ -47,6 +51,7 @@ drop sequence parameter_id_gen;
 drop sequence production_id_gen;
 drop sequence product_version_id_gen;
 drop sequence extension_type_id_gen;
+drop sequence messages_group_id_gen;
 
 drop schema CARABI_KERNEL restrict;
 commit;
