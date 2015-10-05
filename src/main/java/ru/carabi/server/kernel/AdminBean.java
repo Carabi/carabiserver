@@ -854,7 +854,7 @@ public class AdminBean {
 		final JsonObject jsonQuery = queryReader.readObject();
 		
 		final EntityManagerTool<QueryEntity, Long> entityManagerTool = new EntityManagerTool<>();
-		String queryId = jsonQuery.getString("id");
+		String queryId = Utls.getNativeJsonString(jsonQuery, "id");
 		QueryEntity queryEntity = entityManagerTool.createOrFind(em, QueryEntity.class, Long.class, queryId);
 		
 		// получение схемы запроса
