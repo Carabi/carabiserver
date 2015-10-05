@@ -283,8 +283,10 @@ create index USER_LOGON_PERMANENT on USER_LOGON(PERMANENT);
 create sequence category_id_gen;
 create table QUERY_CATEGORY (
 	CATEGORY_ID integer primary key default nextval('category_id_gen'),
-	NAME varchar(1024) not null unique, --название категории
-	DESCRIPTION varchar(32000) --Описание
+	NAME varchar(1024) not null, --название категории
+	DESCRIPTION varchar(32000), --Описание
+	PARENT_ID integer references QUERY_CATEGORY (CATEGORY_ID),
+	unique (name, parent_id)
 );
 
 /**

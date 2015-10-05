@@ -663,11 +663,12 @@ public class AdminBean {
 		final List resultList = query.getResultList();
 		close();
 		JsonArrayBuilder categories = Json.createArrayBuilder();
-		final JsonObjectBuilder jsonFieldsAll = Json.createObjectBuilder();
+		/*final JsonObjectBuilder jsonFieldsAll = Json.createObjectBuilder();
 		jsonFieldsAll.add("id", -1);
 		jsonFieldsAll.add("name", "Все");
 		jsonFieldsAll.add("description", "Все запросы из всех категорий");
-		categories.add(jsonFieldsAll);
+		jsonFieldsAll.addNull("parentId");
+		categories.add(jsonFieldsAll);*/
 		final Iterator<QueryCategory> categoryIterator = resultList.iterator();
 		while (categoryIterator.hasNext()) {
 			final QueryCategory queryCategory = categoryIterator.next();
@@ -678,6 +679,11 @@ public class AdminBean {
 				jsonFields.addNull("description");
 			} else {
 				jsonFields.add("description", queryCategory.getDescription());
+			}
+			if (queryCategory.getParentId() == null) {
+				jsonFields.addNull("parentId");
+			} else {
+				jsonFields.add("parentId", queryCategory.getParentId());
 			}
 			categories.add(jsonFields);
 		}
@@ -721,8 +727,9 @@ public class AdminBean {
 
 		// установка полей схемы
 		queryCategory.setName(jsonCategory.getString("name"));
-		queryCategory.setDescription(jsonCategory.getString("name")); // note: in the current implementation category name== category decription.
-			// this is because the description field in becoming obsolete, as we are not using it in the interfaces.
+		queryCategory.setDescription(jsonCategory.getString("name")); // note: in the current implementation 'category name'=='category decription'. this is because the description field in becoming obsolete, as we are not using it in the interfaces.
+		if (!jsonCategory.get("parentId").equals(JsonValue.NULL))
+			queryCategory.setParentId(jsonCategory.getInt("parentId"));
 
 		// save user data
 		queryCategory = em.merge(queryCategory);
@@ -731,7 +738,7 @@ public class AdminBean {
 		return queryCategory.getId();
 	}
 
-	public void deleteCategory(UserLogon logon, Integer id) throws CarabiException {
+	public Integer deleteCategory(UserLogon logon, Integer id) throws CarabiException {
 		logon.assertAllowed("ADMINISTRATING-QUERIES-EDIT");
 		if (null == id) {
 			final CarabiException e = new CarabiException("Невозможно удалить "
@@ -739,15 +746,26 @@ public class AdminBean {
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}
-
-		final Query query = em.createQuery("DELETE FROM QueryCategory qc WHERE qc.id = :id");
-		int deletedCount = query.setParameter("id", id).executeUpdate();
+		// check if category contains other categories
+		final Query countCategoriesQuery = em.createQuery("select count(C) from QueryCategory C where C.parentId = :parentId");
+		countCategoriesQuery.setParameter("parentId", id);
+		if ((long) countCategoriesQuery.getSingleResult() > 0)
+			return -1;
+		// check if category contains queries
+		final Query countQueriesQuery = em.createQuery("select count(Q) from QueryEntity Q where Q.category.id = :categoryId");
+		countQueriesQuery.setParameter("categoryId", id);
+		if ((long) countQueriesQuery.getSingleResult() > 0)
+			return -2;
+		// try to delete record
+		final Query deleteQuery = em.createQuery("DELETE FROM QueryCategory qc WHERE qc.id = :id");
+		int deletedCount = deleteQuery.setParameter("id", id).executeUpdate();
 		if (deletedCount != 1) {
 			final CarabiException e = new CarabiException("Нет записи с таким id. Ошибка удаления "
 					+ "категории запросов при выполнении JPA-запроса.");
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}
+		return 0;
 	}
 
 	public String getQueriesList(UserLogon logon, int categoryId) throws CarabiException {
@@ -919,6 +937,7 @@ public class AdminBean {
 			param.setQueryEntity(queryEntity);
 			queryEntity.getParameters().add(param);
 		}
+
 		
 		// save user data
 		queryEntity = em.merge(queryEntity);
@@ -955,7 +974,15 @@ public class AdminBean {
 			throw e;
 		}
 		
-		final Query query = em.createNativeQuery("update ORACLE_QUERY set IS_DEPRECATED = ? where QUERY_ID = ?");
+		//final Query query = em.createNativeQuery("update ORACLE_QUERY set IS_DEPRECATED = ? where QUERY_ID = ?");
+		final Query query = em.createNativeQuery( // here the hardcoded parent_id=-901 means the id of 'Удаленные' category
+				"update oracle_query " +
+				"set is_deprecated= ?, " +
+					"category_id=(select category_id "
+								+ "from carabi_kernel.query_category "
+								+ "where name = 'Удаленные' and parent_id is null) " +
+				"where query_id= ? "
+			);
 		query.setParameter(1, isDeprecated);
 		query.setParameter(2, id);
 		query.executeUpdate();

@@ -23,6 +23,9 @@ public class QueryCategory implements Serializable {
 	private String name;
 	private String description;
 	
+	@Column(name="PARENT_ID")
+	private Integer parentId;
+	
 	public Long getId() {
 		return id;
 	}
@@ -45,5 +48,13 @@ public class QueryCategory implements Serializable {
 
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	public Integer getParentId() {
+		return parentId;
+	}
+	
+	public void setParentId(Integer parentId) {
+		this.parentId = parentId;
 	}
 }

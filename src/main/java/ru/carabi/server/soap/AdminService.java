@@ -72,6 +72,9 @@ public class AdminService {
 	 * Получение списка активных пользователей.
 	 * Аналогично {@link #getUsersList(java.lang.String)}, но возвращает только 
 	 * активных пользователей (с {@link CarabiUser#status} == "active").
+	 * @param token
+	 * @return 
+	 * @throws CarabiException
 	 */
 	@WebMethod(operationName = "getActiveUsersList")
 	public String getActiveUsersList(@WebParam(name = "token") String token) throws CarabiException {
@@ -360,12 +363,13 @@ public class AdminService {
 	 * Удаление категории по id.
 	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе.
 	 * @param id - идентификатор удаляемой категории
+	 * @return код ошибки: 0 - все ок, -1 - категория используется в качестве родительской, -2 - категория содержит запросы
 	 * @throws CarabiException - серверная ошибка, ошибка обращения к базе данных
 	 */
 	@WebMethod(operationName = "deleteCategory")
-	public void deleteCategory(@WebParam(name = "token") String token, @WebParam(name = "id") Integer id) throws CarabiException {
+	public Integer deleteCategory(@WebParam(name = "token") String token, @WebParam(name = "id") Integer id) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			admin.deleteCategory(logon, id);
+			return admin.deleteCategory(logon, id);
 		}
 	}
 
