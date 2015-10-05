@@ -24,6 +24,7 @@ import javax.json.JsonValue;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
+import javax.persistence.PersistenceException;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
@@ -961,9 +962,14 @@ public class AdminBean {
 	}
 
 	
-	private void close() {
-		em.flush();
-		em.clear();
+	private void close() throws CarabiException {
+		try {
+			em.flush();
+			em.clear();
+		} catch (PersistenceException e) {
+			logger.log(Level.SEVERE, null, e);
+			throw new CarabiException(e.getMessage(), e);
+		}
 	}
 	
 	/**
