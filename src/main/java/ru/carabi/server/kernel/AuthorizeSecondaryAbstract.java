@@ -1,6 +1,5 @@
 package ru.carabi.server.kernel;
 
-import java.io.Serializable;
 import java.sql.Connection;
 import java.util.HashMap;
 import ru.carabi.server.UserLogon;

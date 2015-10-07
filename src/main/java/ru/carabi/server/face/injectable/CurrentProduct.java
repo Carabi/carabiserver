@@ -14,10 +14,10 @@ import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import ru.carabi.server.CarabiException;
-import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.ProductVersion;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.kernel.ProductionBean;
+import ru.carabi.server.logging.CarabiLogging;
 
 /**
  * Данные о продукте, просматриваемые на портале
@@ -64,34 +64,18 @@ public class CurrentProduct implements Serializable {
 	
 	public ProductVersion getLastVersion() throws CarabiException {
 		if (lastVersion == null && product != null) {
-			lastVersion = productionBean.getLastVersion(currentClient.getUserLogon(), product.getSysname(), getDepartment(), false);
-			correctDownloadUrl(lastVersion);
+			lastVersion = productionBean.getLastVersion(currentClient.getUserLogon(), product.getSysname(), ProductionTool.getDepartment(currentClient), false);
+			ProductionTool.correctDownloadUrl(product, lastVersion);
 		}
 		return lastVersion;
 	}
 	
 	public List<ProductVersion> getVersionsList() throws CarabiException {
-		List<ProductVersion> versionsList = productionBean.getVersionsList(currentClient.getUserLogon(), product.getSysname(), getDepartment(), false, false);
+		List<ProductVersion> versionsList = productionBean.getVersionsList(currentClient.getUserLogon(), product.getSysname(), ProductionTool.getDepartment(currentClient), false, false);
 		for (ProductVersion version: versionsList) {
-			correctDownloadUrl(version);
+			ProductionTool.correctDownloadUrl(product, version);
 		}
 		return versionsList;
 	}
 
-	private void correctDownloadUrl(ProductVersion version) {
-		//Если заполнено поле "где скачать" -- оставляем URL в чистом виде. Иначе, если
-		//есть файл, генерируем URL с сервлетом.
-		if (version.getDownloadUrl() == null && version.getFile() != null) {
-			version.setDownloadUrl("LoadSoftware?productName=" + product.getSysname() + "&versionNumber=" + version.getVersionNumber());
-		}
-	}
-	
-	private String getDepartment() {
-		List<Department> departmentBranch = currentClient.getDepartmentBranch();
-		if (departmentBranch.isEmpty()) {
-			return null;
-		} else {
-			return departmentBranch.get(departmentBranch.size() - 1).getSysname();
-		}
-	}
 }

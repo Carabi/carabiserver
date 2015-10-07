@@ -36,6 +36,7 @@ import me.lima.ThreadSafeDateParser;
 import oracle.jdbc.OracleConnection;
 import ru.carabi.server.kernel.oracle.CarabiDate;
 import ru.carabi.server.kernel.oracle.QueryParameter;
+import ru.carabi.server.logging.CarabiLogging;
 
 /**
  * Полезные методы для применения откуда угодно
@@ -556,6 +557,45 @@ public class Utls {
 		int indexOfEnd = message.indexOf(messageEnd);
 		message = message.substring(0, indexOfEnd);
 		return message.trim();
+	}
+	
+	/**
+	 * Вывод объёма данных в подходящих единицах.
+	 * Вывод байтах, если объём меньше 1024, в кибибайтах с округлением, если мешьше 1024K,
+	 * в мебибайтах, если меньше 1024M
+	 * @param contentLength объём данных в байтах
+	 * @return Строка вида "1023 MiB"
+	 */
+	public static String formatContentLength(Long contentLength) {
+		if (contentLength <= 1024) {
+			return "" + contentLength + " B";
+		}
+		contentLength /= 1024;
+		if (contentLength <= 1024) {
+			return "" + contentLength + " kiB";
+		}
+		contentLength /= 1024;
+		if (contentLength <= 1024) {
+			return "" + contentLength + " MiB";
+		}
+		contentLength /= 1024;
+		if (contentLength <= 1024) {
+			return "" + contentLength + " GiB";
+		}
+		contentLength /= 1024;
+		if (contentLength <= 1024) {
+			return "" + contentLength + " TiB";
+		}
+		contentLength /= 1024;
+		return "" + contentLength + " PiB";
+	}
+	
+	public String nl2br(String text) {
+		CarabiLogging.getLogger(Utls.class).info(text);
+//		return text.replaceAll("\n", "<br/>");
+		text = text.replaceAll("\n", "<br/>");
+		CarabiLogging.getLogger(Utls.class).info(text);
+		return text;
 	}
 }
 

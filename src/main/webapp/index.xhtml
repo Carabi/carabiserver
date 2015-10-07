@@ -15,17 +15,15 @@
 					</c:forEach>
 				</p>
 			</c:if>
-			<ui:include src="WEB-INF/includes/productsInc.xhtml">
-
-			</ui:include>
+			<c:if test="#{currentClient.availableProduction.size() > 0}">
+				<ui:include src="WEB-INF/includes/productsInc.xhtml"/>
+			</c:if>
 		</c:if>
 		<c:if test="#{!currentClient.isAuthorized}">
 			<p>
 				#{l10n.pleaseAuth}
 			</p>
-			<ui:include src="WEB-INF/includes/authInc.xhtml">
-
-			</ui:include>
+			<ui:include src="WEB-INF/includes/authInc.xhtml"/>
 		</c:if>
 	</ui:define>
 </ui:composition>

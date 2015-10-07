@@ -2,5 +2,44 @@
 	xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:ui="http://java.sun.com/jsf/facelets"
 	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
-	<a href="#{versionDisplaying.downloadUrl}">#{versionDisplaying.versionNumber}</a>
+	<c:if test="#{!empty(versionDisplaying.downloadUrl)}">
+		<c:if test="#{insideTable}">
+			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{versionDisplaying.versionNumber}&#160;</a></td>
+			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{productionTool.formatFileSize(versionDisplaying)}&#160;</a></td>
+			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{productionTool.formatIssueDate(versionDisplaying)}&#160;</a></td>
+			<td class="dashedSpace"></td>
+			<td>
+				<c:if test="#{!empty(versionDisplaying.singularity)}">
+					<a class="wholecell" href="#" style="text-align: center;" onclick="dalert.alert('#{utls.nl2br(versionDisplaying.singularity)}', '#{l10n.whatsNew}'); return false;" title="#{versionDisplaying.singularity}"> &#160;&#10043;&#160;</a>
+				</c:if>
+			</td>
+		</c:if>
+		
+		<c:if test="#{!insideTable}">
+			<a href="#{versionDisplaying.downloadUrl}">
+				#{versionDisplaying.versionNumber}
+				(#{productionTool.formatFileSize(versionDisplaying)}<c:if test="#{!empty(productionTool.formatFileSize(versionDisplaying))}">, </c:if>#{productionTool.formatIssueDate(versionDisplaying)})
+			</a>
+		</c:if>
+	</c:if>
+	
+	
+	<c:if test="#{empty(versionDisplaying.downloadUrl)}">
+		<c:if test="#{insideTable}">
+			<td>#{versionDisplaying.versionNumber}</td>
+			<td>#{productionTool.formatFileSize(versionDisplaying)}</td>
+			<td>#{productionTool.formatIssueDate(versionDisplaying)}</td>
+			<td class="dashedSpace"></td>
+			<td>
+				<c:if test="#{!empty(versionDisplaying.singularity)}">
+					<a class="wholecell" href="#" style="text-align: center;" onclick="dalert.alert('#{utls.nl2br(versionDisplaying.singularity)}', '#{l10n.whatsNew}'); return false;" title="#{versionDisplaying.singularity}"> &#160;&#10043;&#160;</a>
+				</c:if>
+			</td>
+		</c:if>
+		
+		<c:if test="#{!insideTable}">
+			#{versionDisplaying.versionNumber}
+			(#{productionTool.formatFileSize(versionDisplaying)}<c:if test="#{!empty(productionTool.formatFileSize(versionDisplaying))}">, </c:if>#{productionTool.formatIssueDate(versionDisplaying)})
+		</c:if>
+	</c:if>
 </ui:composition>

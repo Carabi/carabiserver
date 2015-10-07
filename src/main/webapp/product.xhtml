@@ -7,8 +7,8 @@
 	<ui:define name="body">
 		<c:if test="#{currentProduct.exists and currentClient.isAuthorized}">
 			<h1>#{currentProduct.name}</h1>
-			<p>#{l10n.codeName}: #{currentProduct.sysname}</p>
 			<p>#{currentProduct.description}</p>
+			<p>#{l10n.codeName}: #{currentProduct.sysname}</p>
 			
 			<c:if test="#{currentProduct.lastVersion != null}">
 				<p>
@@ -18,15 +18,23 @@
 					</ui:include>
 				</p>
 				#{l10n.allVersions}
-				<ul>
+				<table class="versionListingTable">
+				<tr>
+					<th>#{l10n.number}</th>
+					<th>#{l10n.fileSize}</th>
+					<th>#{l10n.issueDate}</th>
+					<th id="versionWhatnewSpace"></th>
+					<th><abbr title="#{l10n.whatsNew}" class="fonticon">&#160;&#9997;&#160;</abbr></th>
+				</tr>
 				<c:forEach var="version" items="#{currentProduct.versionsList}">
-					<li>
+					<tr>
 						<ui:include src="WEB-INF/includes/displayVersion.xhtml">
 							<ui:param name="versionDisplaying" value="#{version}"/>
+							<ui:param name="insideTable" value="true"/>
 						</ui:include>
-					</li>
+					</tr>
 				</c:forEach>
-				</ul>
+			</table>
 			</c:if>
 		</c:if>
 		<c:if test="#{!currentProduct.exists}">

@@ -28,10 +28,6 @@ public class CurrentClient implements Serializable {
 	
 	private UserLogon userLogon;
 	
-//	public UserLogon getUserLogon() {
-//		return userLogon;
-//	}
-	
 	public boolean getIsAuthorized() {
 		return userLogon != null;
 	}

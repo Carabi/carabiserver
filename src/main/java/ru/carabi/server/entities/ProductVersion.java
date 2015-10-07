@@ -13,6 +13,8 @@ import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
+import ru.carabi.server.Utls;
+import ru.carabi.server.logging.CarabiLogging;
 
 /**
  * Сведения о версии продукта Караби. Для хранения в базе через JPA и выдачу через SOAP
@@ -119,6 +121,7 @@ public class ProductVersion implements Serializable {
 	}
 	
 	public String getSingularity() {
+		CarabiLogging.getLogger(this).info("getSingularity: " + singularity);
 		return singularity;
 	}
 	
