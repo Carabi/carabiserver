@@ -1,0 +1,13 @@
+<ui:composition
+	xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+	<c:if test="#{showPopup}">
+		<c:if test="#{!empty(versionDisplaying.singularity)}">
+			<a class="wholecell" href="#" style="text-align: center;" onclick="dalert.alert('#{utls.nl2br(versionDisplaying.singularity)}', '#{l10n.whatsNew}'); return false;" title="#{l10n.whatsNew}: #{versionDisplaying.singularity}"> &#160;&#10043;&#160;</a>
+		</c:if>
+	</c:if>
+	<c:if test="#{!showPopup}">
+		#{utls.nl2br(versionDisplaying.singularity)}
+	</c:if>
+</ui:composition>
