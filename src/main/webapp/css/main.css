@@ -52,6 +52,10 @@ footer {
 	margin: 10px 10px 0 10px;
 }
 
+.clear {
+	clear: both;
+}
+
 .tableHeaderSpace {
 	width: 50px;
 }

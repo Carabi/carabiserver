@@ -22,7 +22,7 @@
 		<div id="wrapper">
 			<div id="body">
 				<header>
-					<a href="index.xhtml"><img id="mainLogo" alt="Carabi logo" src="http://carabi.ru/img/theme_carabi/carabi_logo_grey_red.jpg"/></a>
+					<a href="index.xhtml"><img id="mainLogo" alt="Carabi logo" src="images/carabi_logo_grey_red.jpg"/></a>
 					<c:if test="#{currentClient.isAuthorized}">
 						<div id="userHello">
 							<p><strong>#{currentClient.userLogon.user.login}</strong></p>
@@ -36,7 +36,11 @@
 		</div>
 		<footer>
 			<div id="copyright">
-				CarabiServer
+				<a href="http://carabi.ru/">CarabiServer <img src="images/carabi-ico.png" alt="(Logo)"/></a>
+				&#160;
+				<a href="https://github.com/Kopilov/carabiserver">Get the free version<img src="images/octocat-ico.png" alt="on GitHub"/></a>
+				&#160;
+				<a href="https://glassfish.java.net/">Powered by GlassFish<img src="images/glassfish-ico.png" alt="(Logo)"/></a>
 			</div>
 		</footer>
 	</body>
