@@ -5,12 +5,12 @@
 	<c:if test="#{!empty(versionDisplaying.downloadUrl)}">
 		<c:if test="#{insideTable}">
 			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{versionDisplaying.versionNumber}&#160;</a></td>
-			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{productionTool.formatFileSize(versionDisplaying)}&#160;</a></td>
-			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{productionTool.formatIssueDate(versionDisplaying)}&#160;</a></td>
+			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{formatTool.formatVersionFileSize(versionDisplaying)}&#160;</a></td>
+			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{formatTool.formatVersionIssueDate(versionDisplaying)}&#160;</a></td>
 			<td class="dashedSpace"></td>
 			<td>
 				<c:if test="#{!empty(versionDisplaying.singularity)}">
-					<a class="wholecell" href="#" style="text-align: center;" onclick="dalert.alert('#{utls.nl2br(versionDisplaying.singularity)}', '#{l10n.whatsNew}'); return false;" title="#{versionDisplaying.singularity}"> &#160;&#10043;&#160;</a>
+					<a class="wholecell" href="#" style="text-align: center;" onclick="dalert.alert('#{utls.nl2br(versionDisplaying.singularity)}', '#{l10n.whatsNew}'); return false;" title="#{l10n.whatsNew}: #{versionDisplaying.singularity}"> &#160;&#10043;&#160;</a>
 				</c:if>
 			</td>
 		</c:if>
@@ -18,7 +18,7 @@
 		<c:if test="#{!insideTable}">
 			<a href="#{versionDisplaying.downloadUrl}">
 				#{versionDisplaying.versionNumber}
-				(#{productionTool.formatFileSize(versionDisplaying)}<c:if test="#{!empty(productionTool.formatFileSize(versionDisplaying))}">, </c:if>#{productionTool.formatIssueDate(versionDisplaying)})
+				(#{formatTool.formatVersionFileSize(versionDisplaying)}<c:if test="#{!empty(formatTool.formatVersionFileSize(versionDisplaying))}">, </c:if>#{formatTool.formatVersionIssueDate(versionDisplaying)})
 			</a>
 		</c:if>
 	</c:if>
@@ -27,19 +27,19 @@
 	<c:if test="#{empty(versionDisplaying.downloadUrl)}">
 		<c:if test="#{insideTable}">
 			<td>#{versionDisplaying.versionNumber}</td>
-			<td>#{productionTool.formatFileSize(versionDisplaying)}</td>
-			<td>#{productionTool.formatIssueDate(versionDisplaying)}</td>
+			<td>#{formatTool.formatVersionFileSize(versionDisplaying)}</td>
+			<td>#{formatTool.formatVersionIssueDate(versionDisplaying)}</td>
 			<td class="dashedSpace"></td>
 			<td>
 				<c:if test="#{!empty(versionDisplaying.singularity)}">
-					<a class="wholecell" href="#" style="text-align: center;" onclick="dalert.alert('#{utls.nl2br(versionDisplaying.singularity)}', '#{l10n.whatsNew}'); return false;" title="#{versionDisplaying.singularity}"> &#160;&#10043;&#160;</a>
+					<a class="wholecell" href="#" style="text-align: center;" onclick="dalert.alert('#{utls.nl2br(versionDisplaying.singularity)}', '#{l10n.whatsNew}'); return false;" title="#{l10n.whatsNew}: #{versionDisplaying.singularity}"> &#160;&#10043;&#160;</a>
 				</c:if>
 			</td>
 		</c:if>
 		
 		<c:if test="#{!insideTable}">
 			#{versionDisplaying.versionNumber}
-			(#{productionTool.formatFileSize(versionDisplaying)}<c:if test="#{!empty(productionTool.formatFileSize(versionDisplaying))}">, </c:if>#{productionTool.formatIssueDate(versionDisplaying)})
+			(#{formatTool.formatVersionFileSize(versionDisplaying)}<c:if test="#{!empty(formatTool.formatVersionFileSize(versionDisplaying))}">, </c:if>#{formatTool.formatVersionIssueDate(versionDisplaying)})
 		</c:if>
 	</c:if>
 </ui:composition>

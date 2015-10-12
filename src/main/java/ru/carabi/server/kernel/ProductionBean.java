@@ -1,24 +1,31 @@
 package ru.carabi.server.kernel;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
+import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.FileOnServer;
+import ru.carabi.server.entities.Permission;
 import ru.carabi.server.entities.ProductVersion;
+import ru.carabi.server.entities.Publication;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.logging.CarabiLogging;
 
@@ -33,6 +40,38 @@ public class ProductionBean {
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManager em;
 	
+	@EJB private UsersPercistenceBean usersPercistence;
+			
+	public List<SoftwareProduct> getAvailableProduction(UserLogon logon) {
+		return getAvailableProduction(logon, null);
+	}
+	
+	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct) {
+		String sql;
+		if (StringUtils.isEmpty(currentProduct)) {
+			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?)";
+		} else {
+			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?, ?)";
+		}
+		Query query = em.createNativeQuery(sql);
+		query.setParameter(1, logon.getToken());
+		if (!StringUtils.isEmpty(currentProduct)) {
+			query.setParameter(2, currentProduct);
+		}
+		List resultList = query.getResultList();
+		List<SoftwareProduct> result = new ArrayList<>(resultList.size());
+		for (Object row: resultList) {
+			Object[] data = (Object[])row;
+			SoftwareProduct product = new SoftwareProduct();
+			product.setId((Integer) data[0]);
+			product.setName((String) data[1]);
+			product.setSysname((String) data[2]);
+			product.setHomeUrl((String) data[3]);
+			product.setParentProductId((Integer) data[4]);
+			result.add(product);
+		}
+		return result;
+	}
 	public SoftwareProduct getProductInfo(String productSysname) {
 		TypedQuery<SoftwareProduct> findSoftwareProduct = em.createNamedQuery("findSoftwareProduct", SoftwareProduct.class);
 		findSoftwareProduct.setParameter("productName", productSysname);
@@ -175,11 +214,20 @@ public class ProductionBean {
 	
 	/**
 	 * Возвращает данные о версии софта по ID
-	 * @param versionID версия
+	 * @param versionID id версии
 	 * @return экземпляр ProductVersion, если найден, иначе null
 	 */
 	public ProductVersion getProductVersion(long versionID) {
 		return em.find(ProductVersion.class, versionID);
+	}
+	
+	/**
+	 * Возвращает данные о публикации по ID
+	 * @param publicationID id публикации
+	 * @return экземпляр Publication, если найден, иначе null
+	 */
+	public Publication getPublication(long publicationID) {
+		return em.find(Publication.class, publicationID);
 	}
 	
 	/**
@@ -202,6 +250,55 @@ public class ProductionBean {
 		}
 		List departmentsBranch = getDepartmentsBranch(logon, null);
 		return selectRelevantVersion(resultList, departmentsBranch);
+	}
+	
+	public List<Publication> getAvailablePublication(UserLogon logon) {
+		CarabiUser user = logon.getUser();
+		TypedQuery<Publication> getUserPublications = em.createNamedQuery("getUserPublications", Publication.class);
+		getUserPublications.setParameter("user", user);
+		getUserPublications.setParameter("department", user.getDepartment());
+		getUserPublications.setParameter("corporation", user.getCorporation());
+		List<Publication> resultList = getUserPublications.getResultList();
+		//после получения потенциально доступных публикаций проверим, какие
+		//адресованы лично пользователю, а на что он должен иметь права
+		final ArrayList<Publication> result = new ArrayList<>();
+		Collection<Permission> userPermissions = usersPercistence.getUserPermissions(logon);
+		for (Publication publication: resultList) {
+			if (user.equals(publication.getDestinatedForUser())) {
+				result.add(publication);
+				continue;
+			}
+			if (publication.getPermissionToRead() == null || userPermissions.contains(publication.getPermissionToRead())) {
+				result.add(publication);
+			}
+		}
+		return result;
+	}
+	
+	/**
+	 * Проверка, что пользователь может читать публикацию.
+	 * Да, если:
+	 * <ul>
+	 * <li>публикация адресована лично пользователю
+	 * <li>публикация адресована подразделению пользователя и он имеет право, если указано
+	 * <li>публикация не имеет конкретных адресатов. Пользователь должен иметь право, если указано
+	 * </ul>
+	 * @param user пользователь
+	 * @param userPermissions права пользователя (при вызове в цикле рекомендуется считать заранее)
+	 * @param publication публикация
+	 * @return Может ли пользователь читать публикацию
+	 */
+	public boolean allowedForUser(CarabiUser user, Collection<Permission> userPermissions, Publication publication) {
+		if (user.equals(publication.getDestinatedForUser())) {
+			return true;
+		}
+		if (userPermissions == null) {
+			userPermissions = usersPercistence.getUserPermissions(user);
+		}
+		if (publication.getPermissionToRead() == null || userPermissions.contains(publication.getPermissionToRead())) {
+			return true;
+		}
+		return false;
 	}
 	
 	private static class VersionComparator implements Comparator<ProductVersion> {

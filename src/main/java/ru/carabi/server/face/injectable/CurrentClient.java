@@ -8,13 +8,14 @@ import javax.enterprise.context.SessionScoped;
 import javax.inject.Named;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.Department;
-import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.kernel.DepartmentsPercistenceBean;
-import ru.carabi.server.kernel.UsersPercistenceBean;
 
 /**
- * Данные о клиенте, использующем сервер через браузер.
- * @author sasha
+ * Основные о клиенте, использующем сервер через браузер.
+ * Это SessionScoped Bean, используемый для авторизации, объект сохраняет данные
+ * (прежде всего UserLogon) между запросами. Для некешируемых данных использовать
+ * RequestScoped элементы.
+ * @author sasha<kopilov.ad@gmail.com>
  */
 
 @Named(value = "currentClient")
@@ -23,7 +24,6 @@ public class CurrentClient implements Serializable {
 	
 	private Properties properties = new Properties();
 	
-	@EJB private UsersPercistenceBean usersPercistence;
 	@EJB private DepartmentsPercistenceBean departmentsPercistence;
 	
 	private UserLogon userLogon;
@@ -44,15 +44,29 @@ public class CurrentClient implements Serializable {
 		this.userLogon = userLogon;
 	}
 	
-	public List<SoftwareProduct> getAvailableProduction() {
-		return usersPercistence.getAvailableProduction(userLogon);
-	}
-	
 	private List<Department> departmentBranch;
 	public List<Department> getDepartmentBranch() {
 		if (departmentBranch == null) {
 			departmentBranch = departmentsPercistence.getDepartmentBranch(userLogon);
 		}
 		return departmentBranch;
+	}
+	
+	String departmentBranchStr;
+	public String getDepartmentBranchStr() {
+		if (departmentBranchStr == null) {
+			boolean first = true;
+			StringBuilder stringBuilder = new StringBuilder();
+			for (Department department: getDepartmentBranch()) {
+				if (first) {
+					first = false;
+				} else {
+					stringBuilder.append(" / ");
+				}
+				stringBuilder.append(department.getName());
+			}
+			departmentBranchStr = stringBuilder.toString();
+		}
+		return departmentBranchStr;
 	}
 }

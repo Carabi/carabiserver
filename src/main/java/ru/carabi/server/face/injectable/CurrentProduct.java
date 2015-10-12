@@ -17,11 +17,10 @@ import ru.carabi.server.CarabiException;
 import ru.carabi.server.entities.ProductVersion;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.kernel.ProductionBean;
-import ru.carabi.server.logging.CarabiLogging;
 
 /**
  * Данные о продукте, просматриваемые на портале
- * @author sasha
+ * @author sasha<kopilov.ad@gmail.com>
  */
 @Named(value = "currentProduct")
 @RequestScoped
@@ -64,16 +63,16 @@ public class CurrentProduct implements Serializable {
 	
 	public ProductVersion getLastVersion() throws CarabiException {
 		if (lastVersion == null && product != null) {
-			lastVersion = productionBean.getLastVersion(currentClient.getUserLogon(), product.getSysname(), ProductionTool.getDepartment(currentClient), false);
-			ProductionTool.correctDownloadUrl(product, lastVersion);
+			lastVersion = productionBean.getLastVersion(currentClient.getUserLogon(), product.getSysname(), FormatTool.getDepartment(currentClient), false);
+			FormatTool.correctDownloadUrl(product, lastVersion);
 		}
 		return lastVersion;
 	}
 	
 	public List<ProductVersion> getVersionsList() throws CarabiException {
-		List<ProductVersion> versionsList = productionBean.getVersionsList(currentClient.getUserLogon(), product.getSysname(), ProductionTool.getDepartment(currentClient), false, false);
+		List<ProductVersion> versionsList = productionBean.getVersionsList(currentClient.getUserLogon(), product.getSysname(), FormatTool.getDepartment(currentClient), false, false);
 		for (ProductVersion version: versionsList) {
-			ProductionTool.correctDownloadUrl(product, version);
+			FormatTool.correctDownloadUrl(product, version);
 		}
 		return versionsList;
 	}

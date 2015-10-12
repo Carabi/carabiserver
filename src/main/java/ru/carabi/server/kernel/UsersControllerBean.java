@@ -268,8 +268,4 @@ public class UsersControllerBean {
 	public boolean userHavePermission(CarabiUser user, String permission) throws CarabiException {
 		return usersPercistence.userHavePermission(user, permission);
 	}
-	
-	public List<Permission> getUserPermissions(UserLogon logon) {
-		return usersPercistence.getUserPermissions(logon);
-	}
 }

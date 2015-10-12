@@ -1,8 +1,34 @@
-#header {
+html, body
+{
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+#wrapper {
+	margin-bottom: -100px;
+	min-height: 100%;
+	height: auto;
+}
+
+header {
 	background: antiquewhite;
 	min-height: 100px;
 	width: 100%;
 	position: relative;
+}
+
+#footerPlaceholder {
+	height: 100px;
+}
+
+footer {
+	height: 100px;
+	position: relative;
+}
+
+#body {
+	padding: 10px;
 }
 
 #mainLogo {
@@ -15,19 +41,26 @@
 	display: inline-block;
 }
 
-#nameVersionSpace {
-	width: 70px;
+#copyright {
+	position: absolute;
+	right: 100px;
+	bottom: 10px;
 }
 
-#versionWhatnewSpace {
+.floatingTableBlock {
+	float: left;
+	margin: 10px 10px 0 10px;
+}
+
+.tableHeaderSpace {
 	width: 50px;
 }
 
-table.versionListingTable tr th {
+table.documentsListingTable tr th {
 	padding: 5px;
 }
 
-table.versionListingTable tr td {
+table.documentsListingTable tr td {
 	padding-left: 0px;
 	padding-right: 0px;
 	padding-top: 5px;

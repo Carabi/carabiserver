@@ -394,4 +394,20 @@ create table MESSAGES_GROUP (
 	SERVER_ID integer references APPSERVER (APPSERVER_ID)
 );
 
+
+/**
+ * Публикация для отображения в Face.
+ */
+create sequence publication_id_gen;
+create table PUBLICATION (
+	PUBLICATION_ID bigint primary key default nextval('publication_id_gen'),
+	NAME varchar(1024) not null,
+	DESCRIPTION varchar(32000),
+	ATTACHMENT_ID bigint references FILE(FILE_ID) on delete cascade, --приложенный файл
+	DESTINATED_FOR_DEPARTMENT integer references DEPARTMENT(DEPARTMENT_ID) on delete cascade, --подразделение, в котором должны видеть публикацию
+	DESTINATED_FOR_USER bigint references CARABI_USER (USER_ID) on delete cascade, --пользователь, которому адресована публикация
+	-- Если не заполнены DESTINATED_FOR_DEPARTMENT и DESTINATED_FOR_USER  --отображается у всех пользователей.
+	PERMISSION_TO_READ integer references USER_PERMISSION (PERMISSION_ID), --право, необходимое, чтобы увидеть публикацию, если она не адресована лично пользователю
+	ISSUE_DATE date
+);
 --commit;

@@ -1,5 +1,6 @@
 package ru.carabi.server.soap;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,6 +14,7 @@ import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.Permission;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.kernel.AdminBean;
+import ru.carabi.server.kernel.ProductionBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.kernel.UsersPercistenceBean;
 import ru.carabi.server.logging.CarabiLogging;
@@ -25,6 +27,7 @@ import ru.carabi.server.logging.CarabiLogging;
 public class ProfileService {
 	@EJB private UsersControllerBean usersController;
 	@EJB private UsersPercistenceBean usersPercistence;
+	@EJB private ProductionBean productionBean;
 	@EJB private AdminBean admin;
 	Logger logger = CarabiLogging.getLogger(ProfileService.class);
 	
@@ -54,11 +57,11 @@ public class ProfileService {
 	}
 	
 	@WebMethod(operationName = "getPermissions")
-	public List<Permission> getPermissions(
+	public Collection<Permission> getPermissions(
 			@WebParam(name = "token") String token
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			return usersController.getUserPermissions(logon);
+			return usersPercistence.getUserPermissions(logon);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;
@@ -66,15 +69,15 @@ public class ProfileService {
 	}
 	
 	@WebMethod(operationName = "getAvailableProduction")
-	public List<SoftwareProduct> getAvailableProduction(
+	public Collection<SoftwareProduct> getAvailableProduction(
 			@WebParam(name = "token") String token, 
 			@WebParam(name = "currentProduct") String currentProduct
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			if (StringUtils.isEmpty(currentProduct)) {
-				return usersPercistence.getAvailableProduction(logon);
+				return productionBean.getAvailableProduction(logon);
 			} else {
-				return usersPercistence.getAvailableProduction(logon, currentProduct);
+				return productionBean.getAvailableProduction(logon, currentProduct);
 			}
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);

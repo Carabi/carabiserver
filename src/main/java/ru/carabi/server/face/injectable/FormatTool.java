@@ -13,16 +13,17 @@ import ru.carabi.server.Utls;
 import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.entities.ProductVersion;
+import ru.carabi.server.entities.Publication;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.kernel.ProductionBean;
 
 /**
- *
- * @author sasha
+ * Методы для форматирования данных при выводе в Face
+ * @author sasha<kopilov.ad@gmail.com>
  */
-@Named(value = "productionTool")
+@Named(value = "formatTool")
 @Dependent
-public class ProductionTool {
+public class FormatTool {
 	@Inject private CurrentClient currentClient;
 	@EJB private ProductionBean productionBean;
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
@@ -51,7 +52,7 @@ public class ProductionTool {
 		}
 	}
 	
-	public String formatFileSize(ProductVersion version) {
+	public String formatVersionFileSize(ProductVersion version) {
 		if (version == null || version.getFile() == null) {
 			return "";
 		}
@@ -63,10 +64,33 @@ public class ProductionTool {
 		return Utls.formatContentLength(contentLength);
 	}
 	
-	public String formatIssueDate(ProductVersion version) {
+	public String formatVersionIssueDate(ProductVersion version) {
 		if (version == null || version.getIssueDate() == null) {
 			return "";
 		}
 		return me.lima.ThreadSafeDateParser.format(version.getIssueDate(), "dd.MM.yyyy");
+	}
+	
+	public String formatPublicationFileSize(Publication publication) {
+		if (publication == null || publication.getAttachment()== null) {
+			return "";
+		}
+		Long contentLength = publication.getAttachment().getContentLength();
+		return Utls.formatContentLength(contentLength);
+	}
+	
+	public String formatPublicationIssueDate(Publication publication) {
+		if (publication == null || publication.getIssueDate() == null) {
+			return "";
+		}
+		return me.lima.ThreadSafeDateParser.format(publication.getIssueDate(), "dd.MM.yyyy");
+	}
+	
+	public String formatPublicationDownloadUrl(Publication publication) {
+		if (publication != null) {
+			return "LoadPublication?publication_id=" + publication.getId();
+		} else {
+			return "";
+		}
 	}
 }

@@ -1482,9 +1482,7 @@ public class ChatBean {
 		try {
 			return (ChatExtendedMessageType) query.getSingleResult();
 		} catch (NoResultException e) {
-			if (!uc.userHavePermission(logon, "ADMINISTRATING-CHAT_MESSAGE_TYPES-AUTOCREATE")) {
-				throw new PermissionException(logon, "ADMINISTRATING-CHAT_MESSAGE_TYPES-AUTOCREATE");
-			}
+			logon.assertAllowed("ADMINISTRATING-CHAT_MESSAGE_TYPES-AUTOCREATE");
 			ChatExtendedMessageType extensionType = new ChatExtendedMessageType();
 			extensionType.setName(extensionTypeName);
 			extensionType.setSysname(extensionTypeName);

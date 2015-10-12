@@ -591,10 +591,7 @@ public class Utls {
 	}
 	
 	public String nl2br(String text) {
-		CarabiLogging.getLogger(Utls.class).info(text);
-//		return text.replaceAll("\n", "<br/>");
 		text = text.replaceAll("\n", "<br/>");
-		CarabiLogging.getLogger(Utls.class).info(text);
 		return text;
 	}
 }

@@ -2,10 +2,12 @@ package ru.carabi.server.kernel;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.GregorianCalendar;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.Schedule;
@@ -23,9 +25,7 @@ import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
-import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.Permission;
-import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
@@ -230,12 +230,12 @@ public class UsersPercistenceBean {
 		}
 	}
 	
-	public List<Permission> getUserPermissions(UserLogon logon) {
+	public Collection<Permission> getUserPermissions(CarabiUser user) {
 		String sql = "select permission_id, name, sysname, parent_permission from appl_permissions.get_user_permissions(?)";
 		Query query = em.createNativeQuery(sql);
-		query.setParameter(1, logon.getUser().getId());
+		query.setParameter(1, user.getId());
 		List resultList = query.getResultList();
-		List<Permission> result = new ArrayList<>(resultList.size());
+		Set<Permission> result = new HashSet<>();
 		for (Object row: resultList) {
 			Object[] data = (Object[])row;
 			Permission permission = new Permission();
@@ -247,35 +247,7 @@ public class UsersPercistenceBean {
 		}
 		return result;
 	}
-	
-	public List<SoftwareProduct> getAvailableProduction(UserLogon logon) {
-		return getAvailableProduction(logon, null);
-	}
-	
-	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct) {
-		String sql;
-		if (StringUtils.isEmpty(currentProduct)) {
-			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?)";
-		} else {
-			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?, ?)";
-		}
-		Query query = em.createNativeQuery(sql);
-		query.setParameter(1, logon.getToken());
-		if (!StringUtils.isEmpty(currentProduct)) {
-			query.setParameter(2, currentProduct);
-		}
-		List resultList = query.getResultList();
-		List<SoftwareProduct> result = new ArrayList<>(resultList.size());
-		for (Object row: resultList) {
-			Object[] data = (Object[])row;
-			SoftwareProduct product = new SoftwareProduct();
-			product.setId((Integer) data[0]);
-			product.setName((String) data[1]);
-			product.setSysname((String) data[2]);
-			product.setHomeUrl((String) data[3]);
-			product.setParentProductId((Integer) data[4]);
-			result.add(product);
-		}
-		return result;
+	public Collection<Permission> getUserPermissions(UserLogon logon) {
+		return getUserPermissions(logon.getUser());
 	}
 }

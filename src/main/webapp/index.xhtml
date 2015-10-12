@@ -9,14 +9,18 @@
 		<c:if test="#{currentClient.isAuthorized}">
 			<c:if test="#{!currentClient.departmentBranch.isEmpty()}">
 				<p>
-					#{l10n.yourDepartmentIs}:
-					<c:forEach var="department" items="#{currentClient.departmentBranch}">
-						#{department.name} /
-					</c:forEach>
+					#{l10n.yourDepartmentIs}: #{currentClient.departmentBranchStr}
 				</p>
 			</c:if>
-			<c:if test="#{currentClient.availableProduction.size() > 0}">
-				<ui:include src="WEB-INF/includes/productsInc.xhtml"/>
+			<c:if test="#{clientData.availableProduction.size() > 0}">
+				<div class="floatingTableBlock">
+					<ui:include src="WEB-INF/includes/productsInc.xhtml"/>
+				</div>
+			</c:if>
+			<c:if test="#{clientData.availablePublication.size() > 0}">
+				<div class="floatingTableBlock">
+					<ui:include src="WEB-INF/includes/publicationsInc.xhtml"/>
+				</div>
 			</c:if>
 		</c:if>
 		<c:if test="#{!currentClient.isAuthorized}">
