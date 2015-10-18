@@ -129,6 +129,7 @@ public class Utls {
 	 * Получение списка названий столбцов из SQL-выборки.
 	 * @param resultSet SQL-выборка
 	 * @return Массив названий столбцов
+	 * @throws java.sql.SQLException
 	 */
 	public static ArrayList<String> getResultSetColumnsNames(ResultSet resultSet) throws SQLException {
 		int colN = resultSet.getMetaData().getColumnCount();
@@ -143,6 +144,7 @@ public class Utls {
 	 * Получение шапки из SQL-выборки.
 	 * @param resultSet SQL-выборка
 	 * @return Массив названий и типов столбцов
+	 * @throws java.sql.SQLException
 	 */
 	public static ArrayList<ArrayList<String>> getResultSetColumns(ResultSet resultSet) throws SQLException {
 		int colN = resultSet.getMetaData().getColumnCount();
@@ -254,6 +256,9 @@ public class Utls {
 	 * Рекурсивное приведение карты к формату JSON.
 	 * Предполагается, что к вложенные карты при их наличии так же будут содержать
 	 * только строковые ключи.
+	 * @param mapObject Исходные данные
+	 * @param putToList список полей, добавляемых в JSON-объект
+	 * @return
 	 */
 	public static JsonObjectBuilder mapToJson(Map<String, ?> mapObject, String[] putToList) {
 		JsonObjectBuilder jsonObject = Json.createObjectBuilder();
@@ -508,6 +513,10 @@ public class Utls {
 	
 	/**
 	 * Запись входного потока в файл.
+	 * @param inputStream поток данных
+	 * @param filename имя файла в ФС
+	 * @return созданный объект File
+	 * @throws java.io.IOException
 	 */
 	public static File saveStreamToFile(InputStream inputStream, String filename) throws IOException {
 		File file = new File(filename);
@@ -522,6 +531,7 @@ public class Utls {
 	 * @param inputStream Входной поток
 	 * @param outputStreams Выходной поток
 	 * @return Объём переданных данных
+	 * @throws java.io.IOException
 	 */
 	public static long proxyStreams(InputStream inputStream, OutputStream... outputStreams) throws IOException {
 		int bs = 1024 * 1024;
@@ -539,7 +549,9 @@ public class Utls {
 	
 	/**
 	 * Пропуск HTTP-заголовков ответа для получения основной части потока
-	 * @param inputStream 
+	 * @param inputStream входной HTTP-поток
+	 * @return считанные заголовки
+	 * @throws java.io.IOException 
 	 */
 	public static List<String> skipHttpHeaders(InputStream inputStream) throws IOException {
 		//надо читать поток до последовательности сброса строки (байты 13 и/или 10)
