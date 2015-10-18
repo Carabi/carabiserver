@@ -57,6 +57,10 @@ public class Settings implements ServletContextListener {
 	 * каталог, в котором хранятся миниатюры аватаров
 	 */
 	public static String THUMBNAILS_LOCATION = settings.getString("THUMBNAILS_LOCATION");
+	/**
+	 * каталог, в котором хранятся публикации
+	 */
+	public static String PUBLICATIONS_LOCATION = settings.getString("PUBLICATIONS_LOCATION");
 	
 	/**
 	 * Максимальный объём оригинала аватара

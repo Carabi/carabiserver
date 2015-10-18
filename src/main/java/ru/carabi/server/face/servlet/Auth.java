@@ -87,7 +87,12 @@ public class Auth extends HttpServlet {
 			guest.registerUserLight(user, passwordHash, request.getHeader("UserAgent"), false, true, new Properties(), schema, token);
 			UserLogon userLogon = usersController.getUserLogon(token.value);
 			currentClient.setUserLogon(userLogon);
-			response.sendRedirect("index.xhtml");
+			String targetPageAfterAuth = "index.xhtml";
+			if (currentClient.getProperties().containsKey("targetPageAfterAuth")) {
+				targetPageAfterAuth = currentClient.getProperties().getProperty("targetPageAfterAuth");
+				currentClient.getProperties().remove("targetPageAfterAuth");
+			}
+			response.sendRedirect(targetPageAfterAuth);
 		} catch (RegisterException e) {
 			currentClient.getProperties().setProperty("authMessage", l10n.getString("badLoginOrPassword"));
 			response.sendRedirect("auth.xhtml");

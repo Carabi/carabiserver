@@ -3,6 +3,7 @@ package ru.carabi.server.kernel;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -234,6 +235,10 @@ public class UsersControllerBean {
 		for (String userToken: usersTokens) {
 			removeUserLogon(userToken, false);
 		}
+	}
+	
+	public Collection<Permission> getUserPermissions(UserLogon logon) {
+		return usersPercistence.getUserPermissions(logon);
 	}
 	
 	/**

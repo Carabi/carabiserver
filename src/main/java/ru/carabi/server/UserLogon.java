@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -26,6 +27,7 @@ import javax.persistence.Transient;
 import ru.carabi.server.entities.ConnectionSchema;
 import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
+import ru.carabi.server.entities.Permission;
 import ru.carabi.server.kernel.AuthorizeSecondary;
 import ru.carabi.server.kernel.AuthorizeSecondaryAbstract;
 import ru.carabi.server.kernel.ConnectionsGateBean;
@@ -153,6 +155,12 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	@Transient
 	private Date logonDate = new Date(); // дата и время создания сессии
+	
+	@Transient
+	private Collection<Permission> permissions;
+	
+	@Transient
+	private Map<String, Boolean> userHavePermission = new ConcurrentHashMap<>();
 	
 	@Transient
 	private AuthorizeSecondary authorizeSecondary = new AuthorizeSecondaryAbstract();
@@ -476,6 +484,12 @@ public class UserLogon implements Serializable, AutoCloseable {
 		authorizeSecondary.authorizeUser(connection, this);
 	}
 	
+	public Collection<Permission> getPermissions() {
+		if (permissions == null) {
+			permissions = usersController.getUserPermissions(this);
+		}
+		return permissions;
+	}
 	/**
 	 * Проверка, имеет ли текущий пользователь указанное право.
 	 * Принцип действия:
@@ -490,7 +504,31 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * @return 
 	 */
 	public boolean havePermission(String permission) throws CarabiException {
-		return usersController.userHavePermission(this, permission);
+		if (!userHavePermission.containsKey(permission)) {
+			userHavePermission.put(permission, usersController.userHavePermission(this, permission));
+		}
+		return userHavePermission.get(permission);
+	}
+	
+	public boolean haveAnyPermission(String... permissions) throws CarabiException {
+		if (permissions.length == 0) {
+			return true;
+		}
+		for (String permissionSysname: permissions) {
+			if (havePermission(permissionSysname)) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean haveAllPermissions(String... permissions) throws CarabiException {
+		for (String permissionSysname: permissions) {
+			if (!havePermission(permissionSysname)) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 	public void closeAllConnections() throws SQLException {
@@ -542,7 +580,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	private Connection checkConnection(Connection connection, boolean openedFromPool) {
 		try {
-		//	logger.log(Level.INFO, "checkConnection: connection.isClosed():{0}, connection.isValid(10): {1}, checkCarabiLog(): {2}", new Object[]{connection.isClosed(), connection.isValid(10), checkCarabiLog()} );
 			boolean ok = connection != null && !connection.isClosed() && connection.isValid(10);
 			if (ok) {
 				int currentUserID = selectUserID();
@@ -709,7 +746,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * @throws ru.carabi.server.CarabiException Если право не найдено или отсутствует у пользователя
 	 */
 	public void assertAllowed(String permissionSysname) throws CarabiException {
-		if (!usersController.userHavePermission(this, permissionSysname)) {
+		if (!havePermission(permissionSysname)) {
 			throw new PermissionException(this, permissionSysname);
 		}
 	}

@@ -25,22 +25,24 @@ $BODY$
 
 /**
  * Проверка, доступен ли пользователю программный продукт.
- * Чтобы продукт был доступен, необходимо подключение к содержащей его схеме (если продукт зависит от схемы)
- * и право на использование (если такое право существует).
- * Доступность продукта на сервере пока не проверяется.
+ * Чтобы продукт был доступен, текущий пользователь должен иметь право на
+ * его использование (если такое право существует) и подключение к содержащей
+ * его схеме и серверу (если продукт от них зависит).
+ * Доступность продукта на схеме и сервере можно не проверять.
  */
-CREATE OR REPLACE FUNCTION appl_production.production_is_available(token$ CHARACTER VARYING, production_sysname$ CHARACTER VARYING)
+CREATE OR REPLACE FUNCTION appl_production.production_is_available(token$ CHARACTER VARYING, production_sysname$ CHARACTER VARYING, control_resources$ BOOLEAN)
 	RETURNS BOOLEAN AS
 $BODY$
 DECLARE
 	user_id$ BIGINT;
 	schema_id$ INTEGER;
+	appserver_id$ INTEGER;
 BEGIN
-	SELECT user_id, schema_id into user_id$, schema_id$ FROM carabi_kernel.user_logon WHERE token = token$;
+	SELECT user_id, schema_id, appserver_id into user_id$, schema_id$, appserver_id$ FROM carabi_kernel.user_logon WHERE token = token$;
 	IF user_id$ IS NULL THEN
 		RAISE EXCEPTION 'Unknown token: %', token$;
 	END IF;
-	RETURN appl_production.production_is_available(user_id$, schema_id$, appl_production.get_production_by_sysname(production_sysname$));
+	RETURN appl_production.production_is_available(user_id$, schema_id$, appserver_id$, appl_production.get_production_by_sysname(production_sysname$), control_resources$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
@@ -48,11 +50,12 @@ $BODY$
 
 /**
  * Проверка, доступен ли пользователю программный продукт.
- * Чтобы продукт был доступен, необходимо подключение к содержащей его схеме (если продукт зависит от схемы)
- * и право на использование (если такое право существует).
- * Доступность продукта на сервере пока не проверяется.
+ * Чтобы продукт был доступен, текущий пользователь должен иметь право на
+ * его использование (если такое право существует) и подключение к содержащей
+ * его схеме и серверу (если продукт от них зависит).
+ * Доступность продукта на схеме и сервере можно не проверять.
  */
-CREATE OR REPLACE FUNCTION appl_production.production_is_available(user_id$ BIGINT, schema_id$ INTEGER, production_id$ INTEGER)
+CREATE OR REPLACE FUNCTION appl_production.production_is_available(user_id$ BIGINT, schema_id$ INTEGER, appserver_id$ INTEGER, production_id$ INTEGER, control_resources$ BOOLEAN)
 	RETURNS BOOLEAN AS
 $BODY$
 DECLARE
@@ -75,16 +78,22 @@ BEGIN
 			RETURN FALSE;
 		END IF;
 	END IF;
-	IF NOT schema_independent$ THEN --если продукт может не работать на текущей схеме -- смотрим, работает ли
+	IF control_resources$ AND NOT schema_independent$ THEN --если продукт может не работать на текущей схеме -- смотрим, работает ли
 		SELECT count(*) INTO count_records$ FROM carabi_kernel.product_on_schema
 		WHERE product_on_schema.product_id = production_id$ AND product_on_schema.schema_id = schema_id$;
 		IF count_records$ = 0 THEN --записи о работоспособности нет
 			RETURN FALSE;
 		END IF;
 	END IF;
-	/*Работоспособность на сервере временно игнорируется*/
+	IF control_resources$ AND NOT appserver_independent$ THEN --если продукт может не работать на текущем сервере -- смотрим, работает ли
+		SELECT count(*) INTO count_records$ FROM carabi_kernel.product_on_appserver
+		WHERE product_on_appserver.product_id = production_id$ AND product_on_appserver.appserver_id = appserver_id$;
+		IF count_records$ = 0 THEN --записи о работоспособности нет
+			RETURN FALSE;
+		END IF;
+	END IF;
 	--Последнее условие: доступность родительского продукта
-	RETURN appl_production.parent_production_is_available(user_id$, schema_id$, production_id$);
+	RETURN appl_production.parent_production_is_available(user_id$, schema_id$, appserver_id$, production_id$, control_resources$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
@@ -95,7 +104,7 @@ $BODY$
  * Для parent_production, если оно есть, вызывается функция production_is_available.
  * Если нет -- возвращается true.
  */
-CREATE OR REPLACE FUNCTION appl_production.parent_production_is_available(user_id$ BIGINT, schema_id$ INTEGER, production_id$ INTEGER)
+CREATE OR REPLACE FUNCTION appl_production.parent_production_is_available(user_id$ BIGINT, schema_id$ INTEGER, appserver_id$ INTEGER, production_id$ INTEGER, control_resources$ BOOLEAN)
 	RETURNS BOOLEAN AS
 $BODY$
 DECLARE
@@ -105,7 +114,7 @@ BEGIN
 	IF parent_production$ IS NULL THEN
 		RETURN TRUE;
 	ELSE
-		RETURN appl_production.production_is_available(user_id$, schema_id$, parent_production$);
+		RETURN appl_production.production_is_available(user_id$, schema_id$, appserver_id$, parent_production$, control_resources$);
 	END IF;
 END;
 $BODY$
@@ -115,7 +124,7 @@ $BODY$
 /**
  * Возвращает все продукты ПО, доступные пользователю в данный момент
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(user_id$ BIGINT, schema_id$ INTEGER)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(user_id$ BIGINT, schema_id$ INTEGER, appserver_id$ INTEGER, control_resources$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
@@ -128,15 +137,15 @@ DECLARE
 	parent_production$ INTEGER;
 BEGIN
 	OPEN root_productions FOR --Выбираем видимые родительские продукты
-		SELECT true as has_next, production_id, name, sysname, home_url$, parent_production
+		SELECT true as has_next, production_id, name, sysname, home_url, parent_production
 		FROM carabi_kernel.software_production WHERE parent_production IS NULL AND visible;
 	FETCH root_productions INTO has_next$, production_id$, name$, sysname$, home_url$, parent_production$;
 	WHILE has_next$ LOOP
-		IF appl_production.production_is_available(user_id$, schema_id$, production_id$) THEN
+		IF appl_production.production_is_available(user_id$, schema_id$, appserver_id$, production_id$, control_resources$) THEN
 			RETURN NEXT (production_id$, name$, sysname$, parent_production$, home_url$);
-			RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, production_id$);
+			RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$);
 		END IF;
-		FETCH root_productions INTO has_next$, production_id$, name$, sysname$, parent_production$;
+		FETCH root_productions INTO has_next$, production_id$, name$, sysname$, home_url$, parent_production$;
 	END LOOP;
 END;
 $BODY$
@@ -146,7 +155,7 @@ $BODY$
 /**
  * Возвращает все дочерние продукты ПО под данным родительским
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(user_id$ BIGINT, schema_id$ INTEGER, parent_production_id$ INTEGER)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(user_id$ BIGINT, schema_id$ INTEGER, appserver_id$ INTEGER, parent_production_id$ INTEGER, control_resources$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
@@ -163,9 +172,9 @@ BEGIN
 		FROM carabi_kernel.software_production WHERE parent_production = parent_production_id$ AND visible;
 	FETCH child_productions INTO has_next$, production_id$, name$, sysname$, home_url$, parent_production$;
 	WHILE has_next$ LOOP
-		IF appl_production.production_is_available(user_id$, schema_id$, production_id$) THEN
+		IF appl_production.production_is_available(user_id$, schema_id$, appserver_id$, production_id$, control_resources$) THEN
 			RETURN NEXT (production_id$, name$, sysname$, parent_production$, home_url$);
-			RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, production_id$);
+			RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$);
 		END IF;
 		FETCH child_productions INTO has_next$, production_id$, name$, sysname$, home_url$, parent_production$;
 	END LOOP;
@@ -177,19 +186,20 @@ $BODY$
 /**
  * Возвращает все продукты ПО, доступные пользователю в данный момент
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, control_resources$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
 	user_id$ BIGINT;
 	schema_id$ INTEGER;
+	appserver_id$ INTEGER;
 BEGIN
-	--Из сессии берём пользователя и текущую схему
-	SELECT user_id, schema_id into user_id$, schema_id$ FROM carabi_kernel.user_logon WHERE token = token$;
+	--Из сессии берём пользователя и текущую схему с сервером
+	SELECT user_id, schema_id, appserver_id into user_id$, schema_id$, appserver_id$ FROM carabi_kernel.user_logon WHERE token = token$;
 	IF user_id$ IS NULL THEN
 		RAISE EXCEPTION 'Unknown token: %', token$;
 	END IF;
-	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$);
+	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, control_resources$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
@@ -198,40 +208,42 @@ $BODY$
 /**
  * Возвращает все дочерние продукты ПО под данным родительским, доступные пользователю в данный момент
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, production_sysname$ CHARACTER VARYING)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, production_sysname$ CHARACTER VARYING, control_resources$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
 	user_id$ BIGINT;
 	schema_id$ INTEGER;
+	appserver_id$ INTEGER;
 BEGIN
-	--Из сессии берём пользователя и текущую схему
-	SELECT user_id, schema_id into user_id$, schema_id$ FROM carabi_kernel.user_logon WHERE token = token$;
+	--Из сессии берём пользователя и текущую схему с сервером
+	SELECT user_id, schema_id, appserver_id into user_id$, schema_id$, appserver_id$ FROM carabi_kernel.user_logon WHERE token = token$;
 	IF user_id$ IS NULL THEN
 		RAISE EXCEPTION 'Unknown token: %', token$;
 	END IF;
-	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appl_production.get_production_by_sysname(production_sysname$));
+	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, appl_production.get_production_by_sysname(production_sysname$), control_resources$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
 
 
 /**
- * Возвращает все дочерние продукты ПО под данным родительским, доступные пользователю в данный момент
+ * Возвращает все дочерние продукты ПО под данным родительским, доступные пользователю.
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, production_id$ INTEGER)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, production_id$ INTEGER, control_resources$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
 	user_id$ BIGINT;
 	schema_id$ INTEGER;
+	appserver_id$ INTEGER;
 BEGIN
-	--Из сессии берём пользователя и текущую схему
-	SELECT user_id, schema_id into user_id$, schema_id$ FROM carabi_kernel.user_logon WHERE token = token$;
+	--Из сессии берём пользователя и текущую схему с сервером
+	SELECT user_id, schema_id, appserver_id into user_id$, schema_id$, appserver_id$ FROM carabi_kernel.user_logon WHERE token = token$;
 	IF user_id$ IS NULL THEN
 		RAISE EXCEPTION 'Unknown token: %', token$;
 	END IF;
-	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, production_id$);
+	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;

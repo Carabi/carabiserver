@@ -17,8 +17,8 @@ import ru.carabi.server.entities.Department;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
- *
- * @author sasha
+ * Управление данными о компаниях и подразделениях.
+ * @author sasha<kopilov.ad@gmail.com>
  */
 @Stateless
 public class DepartmentsPercistenceBean {
@@ -42,7 +42,7 @@ public class DepartmentsPercistenceBean {
 		} catch (NoResultException ex) {
 			return null;
 		} catch (NonUniqueResultException ex) {
-			final CarabiException e = new CarabiException("Wore than one department with sysname " + sysname);
+			final CarabiException e = new CarabiException("More than one department with sysname " + sysname);
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}

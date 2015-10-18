@@ -1,0 +1,50 @@
+<ui:composition template="/WEB-INF/templates/main_frame.xhtml"
+		xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+	<ui:param name="metaTitle" value="#{l10n.addPublication}"/>
+	<ui:define name="body">
+		#{currentClient.authControl}
+		<c:if test="#{currentClient.haveAnyPermission('ADMINISTRATING-PUBLICATIONS-EDIT', 'MANAGING-PUBLICATIONS-EDIT')}">
+			<h1>#{l10n.addPublication}</h1>
+			<form method="post" enctype="multipart/form-data" action="load_publication" id="sendPublicationForm">
+				<label>#{l10n.name_thing}: <input type="text" name="name"/></label><br/>
+				<label>#{l10n.description}: <input type="text" name="description"/></label><br/>
+				#{l10n.department}:
+				<select name="departmentDestinationId">
+					<c:forEach var="department" items="#{clientData.availableDepartments}">
+						<option value="#{department.id}">#{department.name}</option>
+					</c:forEach>
+				</select><br/>
+				#{l10n.selectFile}: <input type="file" name="attachment"/>
+			</form>
+			<button id="submitter">Send</button>
+			<script type="text/javascript" language="javascript">
+				$(document).ready(function() {
+					$("#submitter").click(function() {
+						var form = document.getElementById("sendPublicationForm");
+						var formData = new FormData(form);
+						var ajax = new XMLHttpRequest();
+						ajax.open('POST', form.action, true);
+						ajax.onload = function() {
+							var result = JSON.parse(this.responseText);
+							if (result.status === "ok") {
+								window.location.href = "index.xhtml";
+							} else if (result.status === "error") {
+								alert (status.details);
+							}
+						};
+						ajax.send(formData);
+					});
+				});
+			</script>
+		</c:if>
+		<c:if test="#{!currentClient.haveAnyPermission('ADMINISTRATING-PUBLICATIONS-EDIT', 'MANAGING-PUBLICATIONS-EDIT')}">
+			<ui:include src="WEB-INF/includes/error.xhtml">
+				<ui:param name="errorDisplayTitle" value="Permission denied"/>
+				<ui:param name="errorDisplayDescription" value="You are not able to manage publications"/>
+			</ui:include>
+		</c:if>
+	</ui:define>
+	
+</ui:composition>

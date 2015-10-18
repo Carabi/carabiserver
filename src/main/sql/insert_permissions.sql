@@ -27,6 +27,13 @@ declare
 
 	ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$ INTEGER;
 
+	ADMINISTRATING_PUBLICATIONS_ID$ INTEGER;
+	ADMINISTRATING_PUBLICATIONS_VIEW_ID$ INTEGER;
+	ADMINISTRATING_PUBLICATIONS_EDIT_ID$ INTEGER;
+
+	MANAGING_PUBLICATIONS_ID$ INTEGER;
+	MANAGING_PUBLICATIONS_EDIT_ID$ INTEGER;
+
 	ADMINISTRATOR_ID$ INTEGER;
 	MANAGER_ID$ INTEGER;
 	count$ INTEGER;
@@ -104,6 +111,26 @@ begin
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Создавать расширения чата налету', 'ADMINISTRATING-CHAT_MESSAGE_TYPES-AUTOCREATE', 'Создавать расширения чата при отправке сообщений с неизвестным типом расширения', ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$);
 
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Управление всеми публикациями', 'ADMINISTRATING-PUBLICATIONS', 'Доступ к любым публикациям', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_PUBLICATIONS_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просмотр всех публикаций', 'ADMINISTRATING-PUBLICATIONS-VIEW', 'Просматривать публикации, доступные кому угодно', ADMINISTRATING_PUBLICATIONS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_PUBLICATIONS_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактирование всех публикаций', 'ADMINISTRATING-PUBLICATIONS-EDIT', 'Создавать, удалять и редактировать публикации, доступные кому угодно', ADMINISTRATING_PUBLICATIONS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_PUBLICATIONS_EDIT_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Управление публикациями для своего подразделения', 'MANAGING-PUBLICATIONS', 'Доступ к публикациям подразделения, где являешься менеджером', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into MANAGING_PUBLICATIONS_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактирование публикаций для своего подразделения', 'MANAGING-PUBLICATIONS-EDIT', 'Создавать, удалять и редактировать публикации, доступные пользователям подразделения, где являешься менеджером', MANAGING_PUBLICATIONS_ID$)
+	returning PERMISSION_ID into MANAGING_PUBLICATIONS_EDIT_ID$;
+
 -------------------------------------------------
 
 	insert into USER_ROLE(ROLE_ID, NAME, SYSNAME, DESCRIPTION)
@@ -138,7 +165,14 @@ begin
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_QUERIES_EDIT_ID$);
 
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$);
-	
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_PUBLICATIONS_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_PUBLICATIONS_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_PUBLICATIONS_EDIT_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_PUBLICATIONS_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_PUBLICATIONS_EDIT_ID$);
+
 	select count(*) into count$ from USER_PERMISSION;
 	return count$;
 end;

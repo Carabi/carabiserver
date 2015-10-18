@@ -12,15 +12,9 @@
 					#{l10n.yourDepartmentIs}: #{currentClient.departmentBranchStr}
 				</p>
 			</c:if>
-			<c:if test="#{clientData.availableProduction.size() > 0}">
-				<div class="floatingTableBlock">
-					<ui:include src="WEB-INF/includes/productsInc.xhtml"/>
-				</div>
-			</c:if>
-			<c:if test="#{clientData.availablePublication.size() > 0}">
-				<div class="floatingTableBlock">
-					<ui:include src="WEB-INF/includes/publicationsInc.xhtml"/>
-				</div>
+			<ui:include src="WEB-INF/includes/productsInc.xhtml"/>
+			<c:if test="#{clientData.productionIsAllowed('carabiserver-face-publications')}">
+				<ui:include src="WEB-INF/includes/publicationsInc.xhtml"/>
 			</c:if>
 			<div class="clear"></div>
 		</c:if>

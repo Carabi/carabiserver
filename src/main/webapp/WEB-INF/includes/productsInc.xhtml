@@ -2,35 +2,40 @@
 	xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:ui="http://java.sun.com/jsf/facelets"
 	xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
-	<p>
-		#{l10n.youAreAllowedForThoseProducts}
-	</p>
-	<table class="documentsListingTable">
-		<tr>
-			<th rowspan="2">#{l10n.name_thing}<br/>#{l10n.clickToViewDetails}</th>
-			<th rowspan="2" class="tableHeaderSpace"></th>
-			<th colspan="3">#{l10n.productLastVersionLink}</th>
-			<th rowspan="2"></th>
-			<th rowspan="2" class="tableHeaderSpace"></th>
-			<th rowspan="2">#{l10n.comment}</th>
-		</tr>
-		<tr>
-			<th>#{l10n.number}</th>
-			<th>#{l10n.fileSize}</th>
-			<th>#{l10n.issueDate}</th>
-		</tr>
-		<c:forEach var="product" items="#{clientData.availableProduction}">
-		<tr>
-			<td>
-				<a class="wholecell" href="product.xhtml?product=#{product.sysname}">#{product.name}</a>
-			</td>
-			<td class="dashedSpace"></td>
-			<ui:include src="displayVersion.xhtml">
-				<ui:param name="versionDisplaying" value="#{formatTool.getLastVersion(product)}"/>
-				<ui:param name="insideTable" value="true"/>
-				<ui:param name="showPopup" value="true"/>
-			</ui:include>
-		</tr>
-		</c:forEach>
-	</table>
+	<div class="floatingTableBlock">
+		<c:if test="#{clientData.availableProduction.size() > 0}">
+			<p>
+				#{l10n.youAreAllowedForThoseProducts}
+			</p>
+			<table class="documentsListingTable">
+				<tr>
+					<th rowspan="2">#{l10n.name_thing}<br/>#{l10n.clickToViewDetails}</th>
+					<th rowspan="2" class="tableHeaderSpace"></th>
+					<th colspan="3">#{l10n.productLastVersionLink}</th>
+					<th rowspan="2"></th>
+					<th rowspan="2" class="tableHeaderSpace"></th>
+					<th rowspan="2">#{l10n.comment}</th>
+				</tr>
+				<tr>
+					<th>#{l10n.number}</th>
+					<th>#{l10n.fileSize}</th>
+					<th>#{l10n.issueDate}</th>
+				</tr>
+				<c:forEach var="product" items="#{clientData.availableProduction}">
+				<tr>
+					<td>
+						<a class="wholecell" href="product.xhtml?product=#{product.sysname}">#{product.name}</a>
+					</td>
+					<td class="dashedSpace"></td>
+					<ui:include src="displayVersion.xhtml">
+						<ui:param name="versionDisplaying" value="#{formatTool.getLastVersion(product)}"/>
+						<ui:param name="insideTable" value="true"/>
+						<ui:param name="showPopup" value="true"/>
+					</ui:include>
+				</tr>
+				</c:forEach>
+			</table>
+		</c:if>
+		
+	</div>
 </ui:composition>

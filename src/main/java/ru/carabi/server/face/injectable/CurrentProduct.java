@@ -32,28 +32,26 @@ public class CurrentProduct implements Serializable {
 	private ProductVersion lastVersion;
 	
 	@PostConstruct
-	public void CurrentProductPostConstruct() {
+	public void postConstruct() {
 		HttpServletRequest request = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
 		HttpServletResponse response = (HttpServletResponse) FacesContext.getCurrentInstance().getExternalContext().getResponse();
-		//проверка авторизации
-		if (!currentClient.getIsAuthorized()) {
-			try {
-				response.sendRedirect("index.xhtml");
-			} catch (IOException ex) {
-				Logger.getLogger(CurrentProduct.class.getName()).log(Level.SEVERE, null, ex);
-			}
-		}
-		//инициализация
 		String productSysname = request.getParameter("product");
 		product = productionBean.getProductInfo(productSysname);
 		if (product == null) {
-			
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 		}
 	}
 	
 	public boolean getExists() {
 		return product != null;
+	}
+	
+	public String getMetatitle() {
+		if (getExists()) {
+			return getName();
+		} else {
+			return "Not found";
+		}
 	}
 	
 	public String getName() {return product.getName();}

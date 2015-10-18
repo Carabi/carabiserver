@@ -1,5 +1,11 @@
 package ru.carabi.server.kernel;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -7,7 +13,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,7 +24,9 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
+import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
+import ru.carabi.server.Utls;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.FileOnServer;
@@ -41,23 +48,27 @@ public class ProductionBean {
 	private EntityManager em;
 	
 	@EJB private UsersPercistenceBean usersPercistence;
-			
-	public List<SoftwareProduct> getAvailableProduction(UserLogon logon) {
-		return getAvailableProduction(logon, null);
+	@EJB private DepartmentsPercistenceBean departmentsPercistence;
+	
+	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, boolean controlResources) {
+		return getAvailableProduction(logon, null, controlResources);
 	}
 	
-	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct) {
+	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct, boolean controlResources) {
 		String sql;
 		if (StringUtils.isEmpty(currentProduct)) {
-			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?)";
-		} else {
 			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?, ?)";
+		} else {
+			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?, ?, ?)";
 		}
 		Query query = em.createNativeQuery(sql);
 		query.setParameter(1, logon.getToken());
+		int currentProductIsSet = 0;
 		if (!StringUtils.isEmpty(currentProduct)) {
 			query.setParameter(2, currentProduct);
+			currentProductIsSet = 1;
 		}
+		query.setParameter(currentProductIsSet + 2, controlResources);
 		List resultList = query.getResultList();
 		List<SoftwareProduct> result = new ArrayList<>(resultList.size());
 		for (Object row: resultList) {
@@ -264,11 +275,7 @@ public class ProductionBean {
 		final ArrayList<Publication> result = new ArrayList<>();
 		Collection<Permission> userPermissions = usersPercistence.getUserPermissions(logon);
 		for (Publication publication: resultList) {
-			if (user.equals(publication.getDestinatedForUser())) {
-				result.add(publication);
-				continue;
-			}
-			if (publication.getPermissionToRead() == null || userPermissions.contains(publication.getPermissionToRead())) {
+			if (allowedForUser(user, userPermissions, publication)) {
 				result.add(publication);
 			}
 		}
@@ -299,6 +306,60 @@ public class ProductionBean {
 			return true;
 		}
 		return false;
+	}
+	
+	public boolean productionIsAllowed(UserLogon logon, String productSysname) {
+		
+		Query productionIsAvailable = em.createNativeQuery("select * from appl_production.production_is_available(? ,?, false)");
+		productionIsAvailable.setParameter(1, logon.getToken());
+		productionIsAvailable.setParameter(2, productSysname);
+		List resultList = productionIsAvailable.getResultList();
+		return (Boolean)resultList.get(0);
+	}
+
+	public Publication createPublication(UserLogon logon, String name, String description, InputStream inputStream, String filename, CarabiUser receiver, Department departmentDestination, boolean common) throws CarabiException, IOException {
+		if (departmentDestination == null && receiver == null && !common) {
+			throw new CarabiException("Illegal arguments: no recevier: user, department or everybody");
+		}
+		boolean foreignReceiver = false;
+		if (receiver != null) {
+			if (receiver.getCorporation() == null || !receiver.getCorporation().equals(logon.getUser().getCorporation())) {
+				foreignReceiver = true;
+			}
+		}
+		
+		boolean foreignDepartment = false;
+		List<Department> departmentBranch = null;
+		if (departmentDestination != null) {
+			departmentBranch = departmentsPercistence.getDepartmentBranch(logon);
+			foreignDepartment = !departmentBranch.contains(departmentDestination);
+		}
+		//Создавать общие, адресованные чужому подразделению или человеку из другого
+		//подразделения публикации может только администратор
+		if (common || foreignReceiver || foreignDepartment) {
+			logon.assertAllowed("ADMINISTRATING-PUBLICATIONS-EDIT");
+		} else {
+			logon.assertAllowedAny(new String[]{"ADMINISTRATING-PUBLICATIONS-EDIT", "MANAGING-PUBLICATIONS-EDIT"});
+		}
+		StringBuilder pathBuilder = new StringBuilder (Settings.PUBLICATIONS_LOCATION);
+		if (departmentBranch != null) {
+			for (Department department: departmentBranch) {
+				pathBuilder.append(File.separatorChar).append(department.getSysname());
+			}
+		}
+		Files.createDirectories(new File(pathBuilder.toString()).toPath());
+		pathBuilder.append(File.separatorChar);
+		pathBuilder.append(filename);
+		String path = pathBuilder.toString();
+		FileOnServer attachment = Utls.saveToFileOnServer(inputStream, path, filename);
+		Publication publication = new Publication();
+		publication.setName(name);
+		publication.setAttachment(attachment);
+		publication.setDescription(description);
+		publication.setDestinatedForDepartment(departmentDestination);
+		publication.setDestinatedForUser(receiver);
+		publication.setIssueDate(new Date());
+		return em.merge(publication);
 	}
 	
 	private static class VersionComparator implements Comparator<ProductVersion> {

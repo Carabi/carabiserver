@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -15,7 +16,6 @@ import java.sql.Types;
 import java.sql.Wrapper;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -34,9 +34,9 @@ import javax.json.JsonString;
 import javax.json.JsonValue;
 import me.lima.ThreadSafeDateParser;
 import oracle.jdbc.OracleConnection;
+import ru.carabi.server.entities.FileOnServer;
 import ru.carabi.server.kernel.oracle.CarabiDate;
 import ru.carabi.server.kernel.oracle.QueryParameter;
-import ru.carabi.server.logging.CarabiLogging;
 
 /**
  * Полезные методы для применения откуда угодно
@@ -480,6 +480,33 @@ public class Utls {
 	}
 	
 	/**
+	 * Запись потока в файл с созданием объекта {@link FileOnServer}.
+	 * Запись производится в файл с адресом path. Если такой файл существует --
+	 * добавляется числовой постфикс.
+	 * @param inputStream данные на запись
+	 * @param path путь к файлу, в который писать
+	 * @param filename оригинальное имя файла
+	 * @return
+	 * @throws IOException 
+	 */
+	public static FileOnServer saveToFileOnServer(InputStream inputStream, String path, String filename) throws IOException {
+		File file = new File(path);
+		int i = 1;
+		while (file.exists()) {
+			file = new File(path + "-" + i);
+		}
+		file.createNewFile();
+		FileOutputStream fileOutputStream = new FileOutputStream(file);
+		long contentLength = Utls.proxyStreams(inputStream, fileOutputStream);
+		FileOnServer fileOnServer = new FileOnServer();
+		fileOnServer.setContentAddress(file.getAbsolutePath());
+		fileOnServer.setContentLength(contentLength);
+		fileOnServer.setName(filename);
+		fileOnServer.setMimeType(Files.probeContentType(file.toPath()));
+		return fileOnServer;
+	}
+	
+	/**
 	 * Запись входного потока в файл.
 	 */
 	public static File saveStreamToFile(InputStream inputStream, String filename) throws IOException {
@@ -492,17 +519,22 @@ public class Utls {
 	
 	/**
 	 * Направление входного потока в один или более выходных
-	 * @param inputStream 
+	 * @param inputStream Входной поток
+	 * @param outputStreams Выходной поток
+	 * @return Объём переданных данных
 	 */
-	public static void proxyStreams(InputStream inputStream, OutputStream... outputStreams) throws IOException {
+	public static long proxyStreams(InputStream inputStream, OutputStream... outputStreams) throws IOException {
 		int bs = 1024 * 1024;
 		byte[] buffer = new byte[bs];
+		long size = 0;
 		int bytesRead;
 		while ((bytesRead = inputStream.read(buffer)) > 0) {
+			size += bytesRead;
 			for (OutputStream outputStream: outputStreams) {
 				outputStream.write(buffer, 0, bytesRead);
 			}
 		}
+		return size;
 	}
 	
 	/**

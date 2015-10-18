@@ -75,9 +75,26 @@ public class ProfileService {
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			if (StringUtils.isEmpty(currentProduct)) {
-				return productionBean.getAvailableProduction(logon);
+				return productionBean.getAvailableProduction(logon, true);
 			} else {
-				return productionBean.getAvailableProduction(logon, currentProduct);
+				return productionBean.getAvailableProduction(logon, currentProduct, true);
+			}
+		} catch (CarabiException e) {
+			logger.log(Level.SEVERE, "", e);
+			throw e;
+		}
+	}
+	
+	@WebMethod(operationName = "getAllowedProduction")
+	public Collection<SoftwareProduct> getAllowedProduction(
+			@WebParam(name = "token") String token, 
+			@WebParam(name = "currentProduct") String currentProduct
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			if (StringUtils.isEmpty(currentProduct)) {
+				return productionBean.getAvailableProduction(logon, false);
+			} else {
+				return productionBean.getAvailableProduction(logon, currentProduct, false);
 			}
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);

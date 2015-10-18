@@ -88,7 +88,7 @@ public class FormatTool {
 	
 	public String formatPublicationDownloadUrl(Publication publication) {
 		if (publication != null) {
-			return "LoadPublication?publication_id=" + publication.getId();
+			return "load_publication?publication_id=" + publication.getId();
 		} else {
 			return "";
 		}
