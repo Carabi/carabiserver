@@ -405,7 +405,37 @@ public class AdminService {
 			return admin.getQueriesList(logon, categoryId);
 		}
 	}
-	
+
+	/**
+	 * Поиск запросов по имени или системному имени. Нечувствителен к регистру. Ищет совпадения части имени 
+	 * или системного имени запроса с условием. 
+	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * См. 
+	 * {@link ru.carabi.server.soap.GuestService}, 
+	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
+	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param condition обязательный параметр, условие поиска запросов. 
+	 * @return json-строка вида:
+	 * <pre>
+	 *		{"queries":[
+	 *			{"query":{
+	 *				"id":106,
+	 *				"name":"...",
+	 *				"sysname":"..."
+	 *			}},
+	 *			...
+	 *		]}"
+	 * </pre>
+	 * @throws CarabiException - ошибка обращения к базе данных
+	 */
+	@WebMethod(operationName = "searchQueries")
+	public String searchQueries(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "condition") String condition) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.searchQueries(logon, condition);
+		}
+	}	
 
 	/**
 	 * Получение полных данных запроса по его id

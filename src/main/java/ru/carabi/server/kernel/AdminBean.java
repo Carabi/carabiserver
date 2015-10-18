@@ -789,11 +789,10 @@ public class AdminBean {
 		//					   }
 		//                     ...
 		//  ]}
-		final JsonArrayBuilder jsonQueries = 
-				Json.createArrayBuilder();
-		final Iterator<QueryEntity> schemasIterator = resultList.iterator();
-		while (schemasIterator.hasNext()) {
-			final QueryEntity queryEntity = schemasIterator.next();
+		final JsonArrayBuilder jsonQueries = Json.createArrayBuilder();
+		final Iterator<QueryEntity> queriesIterator = resultList.iterator();
+		while (queriesIterator.hasNext()) {
+			final QueryEntity queryEntity = queriesIterator.next();
 			
 			final JsonObjectBuilder jsonFields = Json.createObjectBuilder();
 			jsonFields.add("id", queryEntity.getId());
@@ -813,6 +812,51 @@ public class AdminBean {
 		final JsonObjectBuilder result = Json.createObjectBuilder();
 		result.add("queries", jsonQueries);
 		
+		// returns results
+		return result.build().toString();
+	}
+	
+	public String searchQueries(UserLogon logon, String condition) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-QUERIES-VIEW");
+		TypedQuery query = em.createQuery(
+				"select qe " + 
+				"from QueryEntity qe " +
+				"where LOWER(qe.name) like :likeCondition or LOWER(qe.sysname) like :likeCondition " + 
+				"order by qe.name", 
+				QueryEntity.class);
+		query.setParameter("likeCondition", "%"+condition.toLowerCase()+"%");
+		final List resultList = query.getResultList();
+		close();
+		// creates json object of the following form 
+		//	    { "queries": [ 
+		//                     { "query",  
+		//									{ "id": "" }, 
+		//									{ "category": "" }, 
+		//									{ "name", ""} 
+		//					   }
+		//                     ...
+		//  ]}
+		final JsonArrayBuilder jsonQueries = Json.createArrayBuilder();
+		final Iterator<QueryEntity> queriesIterator = resultList.iterator();
+		while (queriesIterator.hasNext()) {
+			final QueryEntity queryEntity = queriesIterator.next();
+			final JsonObjectBuilder jsonFields = Json.createObjectBuilder();
+			// fill in fields
+			jsonFields.add("id", queryEntity.getId());
+			//jsonFields.add("category", queryEntity.getCategory().getName());
+			jsonFields.add("name", queryEntity.getName());
+			jsonFields.add("sysname", queryEntity.getSysname());
+			//jsonFields.add("isExecutable", queryEntity.getIsExecutable());
+			//String schemaId = queryEntity.getSchema() == null ? "" : queryEntity.getSchema().getId().toString();
+			//jsonFields.add("schemaId", schemaId);
+			// add "query" object to queries array builder
+			final JsonObjectBuilder jsonQuery = Json.createObjectBuilder();
+			jsonQuery.add("query", jsonFields);
+			jsonQueries.add(jsonQuery);
+		}
+		// handles empty list case - just add root object "queries"
+		final JsonObjectBuilder result = Json.createObjectBuilder();
+		result.add("queries", jsonQueries);
 		// returns results
 		return result.build().toString();
 	}
@@ -873,7 +917,7 @@ public class AdminBean {
 		final JsonObject jsonQuery = queryReader.readObject();
 		
 		final EntityManagerTool<QueryEntity, Long> entityManagerTool = new EntityManagerTool<>();
-		String queryId = Utls.getNativeJsonString(jsonQuery, "id");
+		String queryId = Utls.getNativeJsonString(jsonQuery,"id");// = jsonQuery.getString("id");
 		QueryEntity queryEntity = entityManagerTool.createOrFind(em, QueryEntity.class, Long.class, queryId);
 		
 		// получение схемы запроса
