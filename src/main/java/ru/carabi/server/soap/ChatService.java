@@ -422,18 +422,22 @@ public class ChatService {
 	}
 	
 	/**
-	 * Получение полного списка пользователей.
+	 * Получение полного списка пользователей, доступных для общения.
+	 * Возвращает пользователей, имеющих с текущим общее подразделение в качестве основного.
+	 * Возможен поиск пользователей единственного подразделения (необходимо иметь к нему доступ).
 	 * @param token авторизационный токен клиента
+	 * @param department кодовое название подразделения, в котором ищем (null -- искать во всех)
 	 * @param search поиск по ФИО, логину, описанию (если пустой &mdash; возвращаются все пользователи)
 	 * @return Выборка в формате, используемом при запуске хранимых запросов
 	 */
 	@WebMethod(operationName = "getContactList")
 	public String getContactList(
 			@WebParam(name = "token") String token,
+			@WebParam(name = "department") String department,
 			@WebParam(name = "search") String search
 		) throws CarabiException {
 		try (UserLogon logon = uc.tokenAuthorize(token)) {
-			return chatBean.getContactList(logon, search);
+			return chatBean.getContactList(logon, department, search);
 		} catch (CarabiException e) {
 			logger.log(Level.SEVERE, "", e);
 			throw e;

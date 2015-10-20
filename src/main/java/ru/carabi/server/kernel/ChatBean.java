@@ -44,7 +44,6 @@ import ru.carabi.libs.CarabiEventType;
 import ru.carabi.libs.CarabiFunc;
 import static ru.carabi.libs.CarabiFunc.*;
 import ru.carabi.server.CarabiException;
-import ru.carabi.server.PermissionException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
@@ -72,15 +71,15 @@ import ru.carabi.stub.ChatService_Service;
 public class ChatBean {
 	private static final Logger logger = CarabiLogging.getLogger(ChatBean.class);
 	
-	@EJB UsersControllerBean uc;
-	
-	@EJB EventerBean eventer;
+	private @EJB UsersControllerBean uc;
+	private @EJB DepartmentsPercistenceBean departmentsPercistence;
+	private @EJB EventerBean eventer;
 	
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-chat")
-	EntityManager emChat;
+	private EntityManager emChat;
 	
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
-	EntityManager emKernel;
+	private EntityManager emKernel;
 	
 	/**
 	 * Отправка сообщения. Отправляет сообщение получателю и, при успешной доставке,
@@ -521,15 +520,30 @@ public class ChatBean {
 		return result.build().toString();
 	}
 	
-	public String getContactList(UserLogon client, String search) throws CarabiException {
+	public String getContactList(UserLogon client, String department, String search) throws CarabiException {
 		//Выбираем пользователей
 		TypedQuery<CarabiUser> getUsersList;
-		if (search != null && !search.isEmpty()) {
+		if (!StringUtils.isEmpty(search)) {
 			getUsersList = emKernel.createNamedQuery("getActiveUsersListSearch", CarabiUser.class);
 			getUsersList.setParameter("search", "%" + search.toUpperCase() + "%");
 		} else {
 			getUsersList = emKernel.createNamedQuery("getActiveUsersList", CarabiUser.class);
 		}
+		Collection<String> departments = new HashSet<>();
+		CarabiUser user = client.getUser();
+		if (!StringUtils.isEmpty(department)) {
+			if (!departmentsPercistence.isDepartmentAvailable(client, departmentsPercistence.findDepartment(department))) {
+				throw new CarabiException("User " + user.getLogin() + " can not search in " + department + "department");
+			}
+			departments.add(department);
+		} else {
+			departments.add(user.getCorporation().getSysname());
+			departments.add(user.getDepartment().getSysname());
+			for (Department relatedDepartment: user.getRelatedDepartments()) {
+				departments.add(relatedDepartment.getSysname());
+			}
+		}
+		getUsersList.setParameter("departments", departments);
 		List<CarabiUser> usersList = getUsersList.getResultList();
 		return printUsersForOutput(client, usersList, null, false).toString();
 	}
