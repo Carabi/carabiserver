@@ -93,7 +93,7 @@ public class LoadSoftware extends HttpServlet {
 					sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Please input productName or versionID");
 					return;
 				}
-				SoftwareProduct product = productionBean.getProductInfo(productName);
+				SoftwareProduct product = productionBean.findProduct(productName);
 				if (product == null) {
 					sendError(response, HttpServletResponse.SC_NOT_FOUND, "Product " + productName + " not found");
 				}

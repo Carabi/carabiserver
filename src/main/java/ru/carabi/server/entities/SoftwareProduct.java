@@ -8,6 +8,8 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -40,6 +42,10 @@ public class SoftwareProduct implements Serializable {
 	
 	@OneToMany(cascade=CascadeType.ALL, mappedBy="carabiProduct")
 	private List<ProductVersion> versions;
+	
+	@ManyToOne
+	@JoinColumn(name="PERMISSION_TO_USE")
+	private Permission permissionToUse;
 	
 	public Integer getId() {
 		return id;
@@ -120,5 +126,13 @@ public class SoftwareProduct implements Serializable {
 	
 	public void setVersions(List<ProductVersion> versions) {
 		this.versions = versions;
+	}
+	
+	public Permission getPermissionToUse() {
+		return permissionToUse;
+	}
+	
+	public void setPermissionToUse(Permission permissionToUse) {
+		this.permissionToUse = permissionToUse;
 	}
 }

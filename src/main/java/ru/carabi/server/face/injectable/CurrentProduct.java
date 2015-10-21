@@ -36,7 +36,7 @@ public class CurrentProduct implements Serializable {
 		HttpServletRequest request = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
 		HttpServletResponse response = (HttpServletResponse) FacesContext.getCurrentInstance().getExternalContext().getResponse();
 		String productSysname = request.getParameter("product");
-		product = productionBean.getProductInfo(productSysname);
+		product = productionBean.findProduct(productSysname);
 		if (product == null) {
 			response.setStatus(HttpServletResponse.SC_NOT_FOUND);
 		}

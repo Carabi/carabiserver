@@ -1,8 +1,6 @@
 package ru.carabi.server.kernel;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -83,7 +81,7 @@ public class ProductionBean {
 		}
 		return result;
 	}
-	public SoftwareProduct getProductInfo(String productSysname) {
+	public SoftwareProduct findProduct(String productSysname) {
 		TypedQuery<SoftwareProduct> findSoftwareProduct = em.createNamedQuery("findSoftwareProduct", SoftwareProduct.class);
 		findSoftwareProduct.setParameter("productName", productSysname);
 		List<SoftwareProduct> resultList = findSoftwareProduct.getResultList();
@@ -208,7 +206,50 @@ public class ProductionBean {
 		}
 		return result;
 	}
-
+	
+	/**
+	 * Изменить доступ пользователя к продукту.
+	 * @param logon сессия текущего пользователя
+	 * @param productSysname кодовое название продукта / модуля
+	 * @param login логин редактируемого пользователя
+	 * @param isAllowed true -- дать доступ, false -- снять доступ
+	 * @throws ru.carabi.server.CarabiException
+	 */
+	public void allowForUser(UserLogon logon, String productSysname, String login, boolean isAllowed) throws CarabiException {
+		CarabiUser user = usersPercistence.findUser(login);
+		SoftwareProduct product = this.findProduct(productSysname);
+		allowForUser(logon, product, user, isAllowed);
+	}
+	
+	/**
+	 * Изменить доступ пользователя к продукту.
+	 * @param logon сессия текущего пользователя
+	 * @param product
+	 * @param isAllowed true -- дать доступ, false -- снять доступ
+	 * @param user
+	 * @throws ru.carabi.server.CarabiException
+	 */
+	public void allowForUser(UserLogon logon, SoftwareProduct product, CarabiUser user, boolean isAllowed) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");//TODO: продумать права на выдачу прав
+		Permission permissionToUse = product.getPermissionToUse();
+		if (permissionToUse == null) {
+			return;
+		}
+		Integer parentProductId = product.getParentProductId();
+		if (parentProductId != null && isAllowed) {
+			allowForUser(logon, em.find(SoftwareProduct.class, parentProductId), user, isAllowed);
+		}
+		Query query;
+		if (isAllowed) {
+			query = em.createNativeQuery("insert into USER_HAS_PERMISSION(USER_ID, PERMISSION_ID) values(? ,?)");
+		} else {
+			query = em.createNativeQuery("delete from USER_HAS_PERMISSION where USER_ID = ? and PERMISSION_ID = ?");
+		}
+		query.setParameter(1, user.getId());
+		query.setParameter(2, permissionToUse.getId());
+		query.executeUpdate();
+	}
+	
 	private List<Integer> getDepartmentsBranch(UserLogon logon, String department) {
 		String sql = "select * from appl_department.get_departments_branch(?, ?)";
 		Query getDepartmentsBranch = em.createNativeQuery(sql);
