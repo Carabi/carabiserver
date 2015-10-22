@@ -61,6 +61,10 @@ public class Settings implements ServletContextListener {
 	 * каталог, в котором хранятся публикации
 	 */
 	public static String PUBLICATIONS_LOCATION = settings.getString("PUBLICATIONS_LOCATION");
+	/**
+	 * каталог, в котором хранятся версии продуктов
+	 */
+	public static String SOFTWARE_LOCATION = settings.getString("SOFTWARE_LOCATION");
 	
 	/**
 	 * Максимальный объём оригинала аватара

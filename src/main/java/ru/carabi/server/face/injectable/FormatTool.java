@@ -39,7 +39,7 @@ public class FormatTool {
 		//Если заполнено поле "где скачать" -- оставляем URL в чистом виде. Иначе, если
 		//есть файл, генерируем URL с сервлетом.
 		if (version != null && version.getDownloadUrl() == null && version.getFile() != null) {
-			version.setDownloadUrl("LoadSoftware?productName=" + product.getSysname() + "&versionNumber=" + version.getVersionNumber());
+			version.setDownloadUrl("load_software?productName=" + product.getSysname() + "&versionNumber=" + version.getVersionNumber());
 		}
 	}
 	

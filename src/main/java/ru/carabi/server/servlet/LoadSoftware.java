@@ -5,11 +5,15 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.inject.Inject;
+import javax.json.Json;
+import javax.json.JsonObjectBuilder;
 import javax.mail.internet.MimeUtility;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -17,12 +21,19 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.bind.DatatypeConverter;
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileItemFactory;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.RegisterException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.Utls;
 import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.FileOnServer;
+import ru.carabi.server.entities.Permission;
 import ru.carabi.server.entities.ProductVersion;
 import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.face.injectable.CurrentClient;
@@ -34,11 +45,11 @@ import ru.carabi.server.rest.RestException;
 
 /**
  * Скачивание и загрузка программного обеспечения.
- * Данные о ПО, передаваемом через данный сервлет, хранятся в объектах
+ * Данные о ПО, передаваемом через данный сервлет, хранятся в виде объектов
  * {@link SoftwareProduct} и {@link ProductVersion} 
- * @author sasha
+ * @author sasha<kopilov.ad@gmail.com>
  */
-@WebServlet(name = "LoadSoftware", urlPatterns = {"/LoadSoftware"})
+@WebServlet(name = "LoadSoftware", urlPatterns = {"/load_software"})
 public class LoadSoftware extends HttpServlet {
 	
 	private static final Logger logger = CarabiLogging.getLogger(LoadSoftware.class);
@@ -75,13 +86,21 @@ public class LoadSoftware extends HttpServlet {
 					sendError(response, HttpServletResponse.SC_NOT_FOUND, "Product with ID " + versionIDStr + " is not stored here");
 					return;
 				}
-				Department destinatedForDepartment = productVersion.getDestinatedForDepartment();
+				//если продукт ограничен для использования и пользователь не имеет доступа к нему -- отказ
+				Permission permissionToUse = productVersion.getSoftwareProduct().getPermissionToUse();
+				if (permissionToUse != null) {
+					if (!usersController.userHavePermission(logon, permissionToUse.getSysname())) {
+						sendError(response, HttpServletResponse.SC_FORBIDDEN, "Product is not allowed for you, need permission " + permissionToUse.getSysname());
+						return;
+					}
+				}
 				//если запрашиваемая версия предназначена не для подразделения,
 				//в ктором работает текущий пользователь -- отказ
-				//ToDo: Проверить, что у пользователя есть право на сам продукт
+				Department destinatedForDepartment = productVersion.getDestinatedForDepartment();
 				if (destinatedForDepartment != null) {
+					Collection<Department> relatedDepartments = logon.getUser().getRelatedDepartments();
 					List<Department> userDepartmentBranch = departmentsPercistence.getDepartmentBranch(logon);
-					if (!userDepartmentBranch.contains(destinatedForDepartment)) {
+					if (!(userDepartmentBranch.contains(destinatedForDepartment) || relatedDepartments.contains(destinatedForDepartment))) {
 						sendError(response, HttpServletResponse.SC_FORBIDDEN, "Product is not allowed for you, destinated for department " + destinatedForDepartment.getSysname());
 						return;
 					}
@@ -147,19 +166,107 @@ public class LoadSoftware extends HttpServlet {
 			sendError(response, HttpServletResponse.SC_NO_CONTENT, "Current version does not have File or URL data, sorry");
 		}
 	}
-
-	/**
-	 * Handles the HTTP <code>POST</code> method.
-	 *
-	 * @param request servlet request
-	 * @param response servlet response
-	 * @throws ServletException if a servlet-specific error occurs
-	 * @throws IOException if an I/O error occurs
-	 */
+	
 	@Override
 	protected void doPost(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
-		throw new UnsupportedOperationException("Not supported yet");
+		String token = null;
+		
+		if (currentClient.getIsAuthorized()) {
+			token = currentClient.getUserLogon().getToken();
+		}
+		
+		InputStream inputStream = null;
+		String filename = null;
+		String versionNumber = null;
+		String singularity = null;
+		String productSysname = null;
+		String departmentSysname = null;
+		boolean isSignificantUpdate = false;
+		boolean removeOldVersions = false;
+		
+		request.setCharacterEncoding("UTF-8");
+		boolean isMultipartContent = ServletFileUpload.isMultipartContent(request);
+		if (isMultipartContent) {
+			FileItemFactory factory = new DiskFileItemFactory();
+			ServletFileUpload upload = new ServletFileUpload(factory);
+			List<FileItem> fields;
+			try {
+				fields = upload.parseRequest(request);
+				Iterator<FileItem> it = fields.iterator();
+				while (it.hasNext()) {
+					FileItem fileItem = it.next();
+					if (fileItem.isFormField()) {
+						switch (fileItem.getFieldName()) {
+							case "token":
+								if (token == null) {
+									token = fileItem.getString();
+								}
+								break;
+							case "versionNumber":
+								versionNumber = fileItem.getString(); break;
+							case "singularity":
+								singularity = fileItem.getString(); break;
+							case "productSysname":
+								productSysname = fileItem.getString(); break;
+							case "departmentSysname":
+								departmentSysname = fileItem.getString(); break;
+							case "isSignificantUpdate":
+								isSignificantUpdate = !StringUtils.isEmpty(fileItem.getString()); break;
+							case "removeOldVersions":
+								removeOldVersions = !StringUtils.isEmpty(fileItem.getString()); break;
+						}
+					} else {
+						inputStream = fileItem.getInputStream();
+						filename = fileItem.getName();
+					}
+				}
+				if (inputStream == null) {
+					sendError(response, HttpServletResponse.SC_BAD_REQUEST, "No input file");
+					return;
+				}
+			} catch (FileUploadException ex) {
+				logger.log(Level.SEVERE, null, ex);
+			}
+		} else {
+			inputStream = request.getInputStream();
+			if (token == null) {
+				token = request.getParameter("token");
+			}
+			filename = request.getParameter("filename");
+			versionNumber = request.getParameter("versionNumber");
+			singularity = request.getParameter("singularity");
+			productSysname = request.getParameter("productSysname");
+			departmentSysname = request.getParameter("departmentSysname");
+			isSignificantUpdate = !StringUtils.isEmpty(request.getParameter("isSignificantUpdate"));
+			removeOldVersions = !StringUtils.isEmpty(request.getParameter("removeOldVersions"));
+		}
+		if (StringUtils.isEmpty(versionNumber) || StringUtils.isEmpty(productSysname)) {
+			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Not enough data (versionNumber or productSysname)");
+			return;
+		}
+		
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			SoftwareProduct product = productionBean.findProduct(productSysname);
+			if (product == null) {
+				sendError(response, HttpServletResponse.SC_NOT_FOUND, "Product " + productSysname + " not found");
+				return;
+			}
+			Department departmentDestination = null;
+			if (!StringUtils.isEmpty(departmentSysname)) {
+				departmentDestination = departmentsPercistence.findDepartment(departmentSysname);
+			}
+			if (removeOldVersions) {
+				productionBean.removeVersions(product, departmentDestination);
+			}
+			ProductVersion uploadedVersion = productionBean.uploadProductVersion(logon, product, versionNumber, inputStream, filename, singularity, isSignificantUpdate, departmentDestination);
+			JsonObjectBuilder result = Json.createObjectBuilder();
+			result.add("status", "ok");
+			result.add("uploadedVersionId", uploadedVersion.getId());
+			response.getOutputStream().println(result.build().toString());
+		} catch (CarabiException ex) {
+			Logger.getLogger(LoadSoftware.class.getName()).log(Level.SEVERE, null, ex);
+		}
 	}
 
 	/**

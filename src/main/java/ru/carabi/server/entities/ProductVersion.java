@@ -22,7 +22,11 @@ import javax.persistence.Temporal;
 @Table(name="PRODUCT_VERSION")
 @NamedQueries({
 	@NamedQuery(name="getProductNameNumberVersion",
-		query="SELECT V FROM ProductVersion V WHERE V.carabiProduct.sysname = :productName AND V.versionNumber = :versionNumber")
+		query="SELECT V FROM ProductVersion V WHERE V.carabiProduct.sysname = :productName AND V.versionNumber = :versionNumber"),
+	@NamedQuery(name="getProductVersionsForNobody",
+		query = "select V from ProductVersion V where V.carabiProduct = :product and V.destinatedForDepartment is null"),
+	@NamedQuery(name="getProductVersionsForDepartment",
+		query = "select V from ProductVersion V where V.carabiProduct = :product and V.destinatedForDepartment = :departmentDestination")
 })
 public class ProductVersion implements Serializable {
 	private static final long serialVersionUID = 1L;

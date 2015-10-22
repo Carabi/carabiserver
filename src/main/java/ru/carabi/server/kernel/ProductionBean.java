@@ -48,10 +48,23 @@ public class ProductionBean {
 	@EJB private UsersPercistenceBean usersPercistence;
 	@EJB private DepartmentsPercistenceBean departmentsPercistence;
 	
+	/**
+	 * Получение списка продуктов/модулей, с которыми может работать пользователь.
+	 * @param logon сессия текущего пользователя
+	 * @param controlResources проверять, доступны ли продукты на текущем сервере и БД
+	 * @return
+	 */
 	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, boolean controlResources) {
 		return getAvailableProduction(logon, null, controlResources);
 	}
 	
+	/**
+	 * Получение списка продуктов/модулей, с которыми может работать пользователь.
+	 * @param logon сессия текущего пользователя
+	 * @param currentProduct родительский продукт для модулей (null, если искать всё)
+	 * @param controlResources проверять, доступны ли продукты на текущем сервере и БД
+	 * @return
+	 */
 	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct, boolean controlResources) {
 		String sql;
 		if (StringUtils.isEmpty(currentProduct)) {
@@ -81,6 +94,12 @@ public class ProductionBean {
 		}
 		return result;
 	}
+	
+	/**
+	 * Поиск программного продукта {@link SoftwareProduct} по кодовому наименованию.
+	 * @param productSysname кодовое наименование
+	 * @return Найденный объект SoftwareProduct, null, если не найден.
+	 */
 	public SoftwareProduct findProduct(String productSysname) {
 		TypedQuery<SoftwareProduct> findSoftwareProduct = em.createNamedQuery("findSoftwareProduct", SoftwareProduct.class);
 		findSoftwareProduct.setParameter("productName", productSysname);
@@ -92,6 +111,16 @@ public class ProductionBean {
 		}
 	}
 	
+	/**
+	 * Получение списка доступных версий одного продукта.
+	 * @param logon сессия текущего пользователя
+	 * @param productName кодовое название продукта
+	 * @param department подразделение, к которому должны относиться версии (если null и ignoreDepartment == false, то берётся из текущего пользователя)
+	 * @param ignoreDepartment не показывать версии для подразделений (только общие)
+	 * @param showAllDepartments показывать версии для всех подразделений (параметры department и ignoreDepartment игнорируются)
+	 * @return
+	 * @throws CarabiException 
+	 */
 	public List<ProductVersion> getVersionsList(
 			UserLogon logon,
 			String productName,
@@ -287,7 +316,7 @@ public class ProductionBean {
 	 * Выполняется поиск по системному наименованию продукта и номеру версии.
 	 * Если есть несколько версий для разных подразделений -- возвражается версия
 	 * для ближайшего к текущему пользователю подразделения.
-	 * @param logon сессия пользователя
+	 * @param logon сессия текущего пользователя
 	 * @param productName название продукта
 	 * @param versionNumber номер версии
 	 * @return экземпляр ProductVersion, если найден, иначе null
@@ -349,6 +378,13 @@ public class ProductionBean {
 		return false;
 	}
 	
+	/**
+	 * Проверка, имеет ли право ли пользователь использовать продукт.
+	 * Проверка доступности на сервере и БД не проверяется.
+	 * @param logon сессия текущего пользователя
+	 * @param productSysname кодовое название продукта
+	 * @return 
+	 */
 	public boolean productionIsAllowed(UserLogon logon, String productSysname) {
 		
 		Query productionIsAvailable = em.createNativeQuery("select * from appl_production.production_is_available(? ,?, false)");
@@ -357,9 +393,23 @@ public class ProductionBean {
 		List resultList = productionIsAvailable.getResultList();
 		return (Boolean)resultList.get(0);
 	}
-
-	public Publication createPublication(UserLogon logon, String name, String description, InputStream inputStream, String filename, CarabiUser receiver, Department departmentDestination, boolean common) throws CarabiException, IOException {
-		if (departmentDestination == null && receiver == null && !common) {
+	
+	/**
+	 * Создание публикации с записью данных в файл и БД.
+	 * @param logon сессия текущего пользователя
+	 * @param name название публикации
+	 * @param description описание публикации
+	 * @param inputStream данные для записи в файл
+	 * @param filename пользовательское название файла
+	 * @param receiver пользователь-получатель
+	 * @param departmentDestination подразделение-получатель
+	 * @param isCommon общая публикация (receiver и departmentDestination null)
+	 * @return
+	 * @throws CarabiException
+	 * @throws IOException 
+	 */
+	public Publication uploadPublication(UserLogon logon, String name, String description, InputStream inputStream, String filename, CarabiUser receiver, Department departmentDestination, boolean isCommon) throws CarabiException, IOException {
+		if (departmentDestination == null && receiver == null && !isCommon) {
 			throw new CarabiException("Illegal arguments: no recevier: user, department or everybody");
 		}
 		boolean foreignReceiver = false;
@@ -377,7 +427,7 @@ public class ProductionBean {
 		}
 		//Создавать общие, адресованные чужому подразделению или человеку из другого
 		//подразделения публикации может только администратор
-		if (common || foreignReceiver || foreignDepartment) {
+		if (isCommon || foreignReceiver || foreignDepartment) {
 			logon.assertAllowed("ADMINISTRATING-PUBLICATIONS-EDIT");
 		} else {
 			logon.assertAllowedAny(new String[]{"ADMINISTRATING-PUBLICATIONS-EDIT", "MANAGING-PUBLICATIONS-EDIT"});
@@ -401,6 +451,70 @@ public class ProductionBean {
 		publication.setDestinatedForUser(receiver);
 		publication.setIssueDate(new Date());
 		return em.merge(publication);
+	}
+	
+	/**
+	 * Создание версии продукта с записью данных в файл и БД.
+	 * @param logon
+	 * @param product продукт, для которого создаётся версия
+	 * @param versionNumber номер версии в формате "1.2.3.4"
+	 * @param inputStream данные для записи в файл
+	 * @param filename
+	 * @param singularity особенности данной версии
+	 * @param significantUpdate является важным обновлением
+	 * @param departmentDestination компания, которой адресована данная сборка
+	 * @return 
+	 * @throws ru.carabi.server.CarabiException
+	 * @throws java.io.IOException
+	 */
+	public ProductVersion uploadProductVersion(UserLogon logon, SoftwareProduct product, String versionNumber, InputStream inputStream, String filename, String singularity, boolean significantUpdate, Department departmentDestination) throws CarabiException, IOException {
+		logon.assertAllowed("ADMINISTRATING-PRODUCTS-EDIT");
+		StringBuilder pathBuilder = new StringBuilder (Settings.SOFTWARE_LOCATION);
+		pathBuilder.append(File.separatorChar).append(product.getSysname());
+		if (departmentDestination != null) {
+			List<Department> departmentBranch = departmentsPercistence.getDepartmentBranch(logon);
+			for (Department department: departmentBranch) {
+				pathBuilder.append(File.separatorChar).append(department.getSysname());
+			}
+		}
+		Files.createDirectories(new File(pathBuilder.toString()).toPath());
+		pathBuilder.append(File.separatorChar).append(product.getSysname());
+		pathBuilder.append("-").append(versionNumber);
+		FileOnServer fileOnServer = Utls.saveToFileOnServer(inputStream, pathBuilder.toString(), filename);
+		ProductVersion version = new ProductVersion();
+		version.setCarabiProduct(product);
+		version.setVersionNumber(versionNumber);
+		version.setSingularity(singularity);
+		version.setFile(fileOnServer);
+		version.setDestinatedForDepartment(departmentDestination);
+		version.setIssueDate(new Date());
+		version.setIsSignificantUpdate(significantUpdate);
+		return em.merge(version);
+	}
+	
+	/**
+	 * Удаление версий одного программного продукта, общих или предназначенных одному подразделению
+	 * @param product
+	 * @param departmentDestination 
+	 */
+	public void removeVersions(SoftwareProduct product, Department departmentDestination) {
+		TypedQuery<ProductVersion> getProductVersionsForDepartment;
+		if (departmentDestination == null) {
+			getProductVersionsForDepartment = em.createNamedQuery("getProductVersionsForNobody", ProductVersion.class);
+		} else {
+			getProductVersionsForDepartment = em.createNamedQuery("getProductVersionsForDepartment", ProductVersion.class);
+			getProductVersionsForDepartment.setParameter("departmentDestination", departmentDestination);
+		}
+		getProductVersionsForDepartment.setParameter("product", product);
+		List<ProductVersion> resultList = getProductVersionsForDepartment.getResultList();
+		for (ProductVersion removingVersion: resultList) {
+			FileOnServer file = removingVersion.getFile();
+			if (file != null) {
+				new File(file.getContentAddress()).delete();
+				em.remove(file);
+			}
+			em.remove(removingVersion);
+		}
 	}
 	
 	private static class VersionComparator implements Comparator<ProductVersion> {
