@@ -472,7 +472,7 @@ public class ProductionBean {
 		StringBuilder pathBuilder = new StringBuilder (Settings.SOFTWARE_LOCATION);
 		pathBuilder.append(File.separatorChar).append(product.getSysname());
 		if (departmentDestination != null) {
-			List<Department> departmentBranch = departmentsPercistence.getDepartmentBranch(logon);
+			List<Department> departmentBranch = departmentsPercistence.getDepartmentBranch(departmentDestination);
 			for (Department department: departmentBranch) {
 				pathBuilder.append(File.separatorChar).append(department.getSysname());
 			}

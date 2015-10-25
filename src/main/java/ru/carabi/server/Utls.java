@@ -499,6 +499,7 @@ public class Utls {
 		int i = 1;
 		while (file.exists()) {
 			file = new File(path + "-" + i);
+			i++;
 		}
 		file.createNewFile();
 		FileOutputStream fileOutputStream = new FileOutputStream(file);
