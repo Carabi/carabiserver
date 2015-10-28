@@ -7,7 +7,7 @@
 			<p>
 				#{l10n.youAreAllowedForThoseProducts}
 			</p>
-			<table class="documentsListingTable">
+			<table class="table table-hover documentsListingTable">
 				<tr>
 					<th rowspan="2">#{l10n.name_thing}<br/>#{l10n.clickToViewDetails}</th>
 					<th rowspan="2" class="tableHeaderSpace"></th>
@@ -26,7 +26,7 @@
 					<td>
 						<a class="wholecell" href="product.xhtml?product=#{product.sysname}">#{product.name}</a>
 					</td>
-					<td class="dashedSpace"></td>
+					<td><!--space--></td>
 					<ui:include src="displayVersion.xhtml">
 						<ui:param name="versionDisplaying" value="#{formatTool.getLastVersion(product)}"/>
 						<ui:param name="insideTable" value="true"/>

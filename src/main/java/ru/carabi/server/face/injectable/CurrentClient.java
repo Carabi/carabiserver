@@ -83,7 +83,7 @@ public class CurrentClient implements Serializable {
 		if (!getIsAuthorized()) {
 			try {
 				properties.setProperty("targetPageAfterAuth", request.getRequestURI());
-				response.sendRedirect("index.xhtml");
+				response.sendRedirect(request.getContextPath()+"/auth.xhtml");
 			} catch (IOException ex) {
 				Logger.getLogger(CurrentProduct.class.getName()).log(Level.SEVERE, null, ex);
 			}

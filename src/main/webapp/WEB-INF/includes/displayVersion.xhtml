@@ -8,7 +8,7 @@
 			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{formatTool.formatVersionFileSize(versionDisplaying)}&#160;</a></td>
 			<td><a class="wholecell" href="#{versionDisplaying.downloadUrl}">#{formatTool.formatVersionIssueDate(versionDisplaying)}&#160;</a></td>
 			<td><a href="#{versionDisplaying.downloadUrl}"><img src="images/download-ico-24.png" alt="download"/></a></td>
-			<td class="dashedSpace"></td>
+			<td><!--space--></td>
 			<td>
 				<ui:include src="displayComment.xhtml">
 					<ui:param name="versionDisplaying" value="#{versionDisplaying}"/>
@@ -32,7 +32,7 @@
 			<td>#{formatTool.formatVersionFileSize(versionDisplaying)}</td>
 			<td>#{formatTool.formatVersionIssueDate(versionDisplaying)}</td>
 			<td><!--place for icon--></td>
-			<td class="dashedSpace"></td>
+			<td><!--space--></td>
 			<td>
 				<ui:include src="displayComment.xhtml">
 					<ui:param name="versionDisplaying" value="#{versionDisplaying}"/>

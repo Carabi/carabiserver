@@ -24,7 +24,7 @@
 					<td><a class="wholecell" href="#{formatTool.formatPublicationDownloadUrl(publication)}">#{publication.name}&#160;</a></td>
 					<td><a class="wholecell" href="#{formatTool.formatPublicationDownloadUrl(publication)}">#{formatTool.formatPublicationFileSize(publication)}&#160;</a></td>
 					<td><a class="wholecell" href="#{formatTool.formatPublicationDownloadUrl(publication)}">#{formatTool.formatPublicationIssueDate(publication)}&#160;</a></td>
-					<td class="dashedSpace"></td>
+					<td><!--space--></td>
 					<td>
 						<c:if test="#{!empty(publication.description)}">
 							<a class="wholecell" href="#" style="text-align: center;" onclick="dalert.alert('#{utls.nl2br(publication.description)}', '#{l10n.whatsIsThis}'); return false;" title="#{l10n.whatsIsThis}: #{publication.description}">&#160;&#10043;&#160;</a>

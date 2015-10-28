@@ -3,23 +3,45 @@
 		xmlns:ui="http://java.sun.com/jsf/facelets"
 		xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 	<ui:param name="metaTitle" value="#{l10n.addPublication}"/>
+	<ui:define name="h1">
+		<c:if test="#{currentClient.haveAnyPermission('ADMINISTRATING-PUBLICATIONS-EDIT', 'MANAGING-PUBLICATIONS-EDIT')}">
+			#{l10n.addPublication}
+		</c:if>
+		<c:if test="#{!currentClient.haveAnyPermission('ADMINISTRATING-PUBLICATIONS-EDIT', 'MANAGING-PUBLICATIONS-EDIT')}">
+			Permission denied
+		</c:if>
+	</ui:define>
 	<ui:define name="body">
 		#{currentClient.authControl}
 		<c:if test="#{currentClient.haveAnyPermission('ADMINISTRATING-PUBLICATIONS-EDIT', 'MANAGING-PUBLICATIONS-EDIT')}">
-			<h1>#{l10n.addPublication}</h1>
-			<form method="post" enctype="multipart/form-data" action="load_publication" id="sendPublicationForm">
-				<label>#{l10n.name_thing}: <input type="text" name="name"/></label><br/>
-				<label>#{l10n.description}: <input type="text" name="description"/></label><br/>
-				#{l10n.department}:
-				<select name="departmentDestinationId">
-					<c:forEach var="department" items="#{clientData.availableDepartments}">
-						<option value="#{department.id}">#{department.name}</option>
-					</c:forEach>
-				</select><br/>
-				#{l10n.selectFile}: <input type="file" name="attachment"/>
-			</form>
-			<button id="submitter">Send</button>
-			<script type="text/javascript" language="javascript">
+			<div class="row">
+				<div class="col-md-5">
+					<form method="post" enctype="multipart/form-data" action="load_publication" id="sendPublicationForm">
+						<div class="form-group">
+							<label for="pubName">#{l10n.name_thing}:</label>
+							<input class="form-control" type="text" name="name" id="pubName"/>
+						</div>
+						<div class="form-group">
+							<label for="pubDescription">#{l10n.description}:</label>
+							<input class="form-control" type="text" name="description" id="pubDescription"/>
+						</div>
+						<div class="form-group">
+							<label for="departmentDestination">#{l10n.department}:</label>
+							<select name="departmentDestinationId" class="form-control" id="departmentDestination">
+								<c:forEach var="department" items="#{clientData.availableDepartments}">
+									<option value="#{department.id}">#{department.name}</option>
+								</c:forEach>
+							</select>
+						</div>
+						<div class="form-group">
+							<label for="attachment">#{l10n.selectFile}: </label>
+							<input type="file" name="attachment" id="attachment"/>
+						</div>
+					</form>
+					<button id="submitter" class="form-control btn-success">Send</button>
+				</div>
+			</div>
+			<script type="text/javascript">
 				$(document).ready(function() {
 					$("#submitter").click(function() {
 						var form = document.getElementById("sendPublicationForm");
@@ -41,7 +63,6 @@
 		</c:if>
 		<c:if test="#{!currentClient.haveAnyPermission('ADMINISTRATING-PUBLICATIONS-EDIT', 'MANAGING-PUBLICATIONS-EDIT')}">
 			<ui:include src="WEB-INF/includes/error.xhtml">
-				<ui:param name="errorDisplayTitle" value="Permission denied"/>
 				<ui:param name="errorDisplayDescription" value="You are not able to manage publications"/>
 			</ui:include>
 		</c:if>

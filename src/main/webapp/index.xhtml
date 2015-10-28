@@ -5,7 +5,6 @@
 		xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 	<ui:param name="metaTitle" value="#{l10n.indexWelcome}"/>
 	<ui:define name="body">
-		<h1>#{l10n.indexWelcome}</h1>
 		<c:if test="#{currentClient.isAuthorized}">
 			<c:if test="#{!currentClient.departmentBranch.isEmpty()}">
 				<p>

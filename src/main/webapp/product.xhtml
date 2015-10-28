@@ -4,11 +4,18 @@
 		xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
 		xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 	<ui:param name="metaTitle" value="#{currentProduct.metatitle}"/>
+	<ui:define name="h1">
+		<c:if test="#{currentProduct.exists and currentClient.isAuthorized}">
+			#{currentProduct.name}
+		</c:if>
+		<c:if test="#{!currentProduct.exists}">
+			404
+		</c:if>
+	</ui:define>
 	<ui:define name="body">
 		#{currentClient.authControl}
 		<c:if test="#{currentProduct.exists and currentClient.isAuthorized}">
 			<ui:param name="metaTitle" value="#{currentProduct.name}"/>
-			<h1>#{currentProduct.name}</h1>
 			<p>#{currentProduct.description}</p>
 			<p>#{l10n.codeName}: #{currentProduct.sysname}</p>
 			
@@ -43,7 +50,6 @@
 		</c:if>
 		<c:if test="#{!currentProduct.exists}">
 			<ui:include src="WEB-INF/includes/error.xhtml">
-				<ui:param name="errorDisplayTitle" value="404"/>
 				<ui:param name="errorDisplayDescription" value="Product not found"/>
 			</ui:include>
 		</c:if>
