@@ -14,7 +14,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name="FILE")
-public class FileOnServer implements Serializable {
+public class FileOnServer extends AbstractEntity implements Serializable {
 	
 	@Id
 	@Column(name="FILE_ID")
@@ -33,6 +33,7 @@ public class FileOnServer implements Serializable {
 	@Column(name="CONTENT_LENGTH")
 	private Long contentLength;
 	
+	@Override
 	public Long getId() {
 		return id;
 	}

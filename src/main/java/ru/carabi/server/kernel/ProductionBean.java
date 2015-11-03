@@ -47,7 +47,7 @@ public class ProductionBean {
 	
 	@EJB private UsersPercistenceBean usersPercistence;
 	@EJB private DepartmentsPercistenceBean departmentsPercistence;
-	
+	@EJB private AdminBean admin;
 	/**
 	 * Получение списка продуктов/модулей, с которыми может работать пользователь.
 	 * @param logon сессия текущего пользователя
@@ -259,7 +259,6 @@ public class ProductionBean {
 	 * @throws ru.carabi.server.CarabiException
 	 */
 	public void allowForUser(UserLogon logon, SoftwareProduct product, CarabiUser user, boolean isAllowed) throws CarabiException {
-		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");//TODO: продумать права на выдачу прав
 		Permission permissionToUse = product.getPermissionToUse();
 		if (permissionToUse == null) {
 			return;
@@ -268,15 +267,7 @@ public class ProductionBean {
 		if (parentProductId != null && isAllowed) {
 			allowForUser(logon, em.find(SoftwareProduct.class, parentProductId), user, isAllowed);
 		}
-		Query query;
-		if (isAllowed) {
-			query = em.createNativeQuery("insert into USER_HAS_PERMISSION(USER_ID, PERMISSION_ID) values(? ,?)");
-		} else {
-			query = em.createNativeQuery("delete from USER_HAS_PERMISSION where USER_ID = ? and PERMISSION_ID = ?");
-		}
-		query.setParameter(1, user.getId());
-		query.setParameter(2, permissionToUse.getId());
-		query.executeUpdate();
+		admin.assignPermissionForUser(logon, user, permissionToUse, isAllowed);
 	}
 	
 	private List<Integer> getDepartmentsBranch(UserLogon logon, String department) {

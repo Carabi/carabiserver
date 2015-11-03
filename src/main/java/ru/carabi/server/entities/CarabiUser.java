@@ -69,7 +69,7 @@ import javax.persistence.Temporal;
 	@NamedQuery(name="getRelatedUsersList",
 		query = "select UR.relatedUser from UserRelation UR where UR.mainUser = :user")
 })
-public class CarabiUser implements Serializable {
+public class CarabiUser extends AbstractEntity implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	@Id
@@ -362,26 +362,6 @@ public class CarabiUser implements Serializable {
 		this.status = status;
 	}
 	
-	@Override
-	public int hashCode() {
-		int hash = 0;
-		hash += (id != null ? id.hashCode() : 0);
-		return hash;
-	}
-	
-	@Override
-	public boolean equals(Object object) {
-		// TODO: Warning - this method won't work in the case the id fields are not set
-		if (!(object instanceof CarabiUser)) {
-			return false;
-		}
-		CarabiUser other = (CarabiUser) object;
-		if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
-			return false;
-		}
-		return true;
-	}
-
 	public void setAll(Map<String, Object> newData) {
 		if (newData.containsKey("FIRSTNAME")) {
 			setFirstname((String)newData.get("FIRSTNAME"));

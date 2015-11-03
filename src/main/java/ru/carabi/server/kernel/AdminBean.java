@@ -41,6 +41,7 @@ import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.ConnectionSchema;
 import ru.carabi.server.entities.Department;
 import ru.carabi.server.entities.FileOnServer;
+import ru.carabi.server.entities.Permission;
 import ru.carabi.server.entities.Phone;
 import ru.carabi.server.entities.PhoneType;
 import ru.carabi.server.entities.QueryCategory;
@@ -276,8 +277,7 @@ public class AdminBean {
 		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 		// create or fetch user
 		String idStr = Utls.getNativeJsonString(userDetails,"id");
-		final EntityManagerTool<CarabiUser, Long> entityManagerTool = new EntityManagerTool<>();
-		CarabiUser user = entityManagerTool.createOrFind(em, CarabiUser.class, Long.class, idStr);
+		CarabiUser user = EntityManagerTool.createOrFind(em, CarabiUser.class, Long.class, idStr);
 		// set simple user fields
 		user.setFirstname(userDetails.getString("firstName"));
 		user.setMiddlename(userDetails.getString("middleName"));
@@ -300,62 +300,64 @@ public class AdminBean {
 			user.setDepartment(department);
 		}
 		
-		// update phones
-		if (user.getPhonesList() != null) {
-			for (Phone phone: user.getPhonesList()) {//удаляем старые телефоны, если на входе есть новые
-				em.remove(phone);
-			}
-			close(); // fix for error: non persisted object in a relationship marked for cascade persist.
-					 // releasing a user object before updating its list of phones.
-		}
-		String[] phones = {};
-		if(!("".equals(userDetails.getString("phones")))) { // if phones string is empty, just use empty phones list
-			phones = userDetails.getString("phones").replace("||||", "| | ||").replace("^||", "^| |").replace("|||", "| ||").split("\\|\\|");
-				// using replace to handle the cases when "" is set for phone schema, phone type or both of them. interpret " " as NULL below.
-				// there is an important assumption made that we have trailing "^" at the end of all numbers (so the client-side must set it even
-				// if suffix is empty)
-		}
-		ArrayList<Phone> phonesList = new ArrayList<>(phones.length);
-		int phoneOrderNumber = 1;
-		for (String phoneStr: phones) {
-			String[] phoneElements = phoneStr.split("\\|");
-			if (phoneElements.length == 0 || StringUtils.isEmpty(phoneElements[0])) {
-				continue;
-			}
-			Phone phone = new Phone();
-			phone.parse(phoneElements[0]);
-			PhoneType phoneType = null;
-			if (phoneElements.length > 1 && !" ".equals(phoneElements[1])) {
-				final String phoneTypeName = phoneElements[1];
-				final TypedQuery<PhoneType> findPhoneType = em.createNamedQuery("findPhoneType", PhoneType.class);
-				findPhoneType.setParameter("name", phoneTypeName);
-				final List<PhoneType> resultList = findPhoneType.getResultList();
-				if (resultList.isEmpty()) {
-					phoneType = new PhoneType();
-					phoneType.setName(phoneTypeName);
-					phoneType.setSysname(phoneTypeName);
-				} else {
-					phoneType = resultList.get(0);
+		// update phones (incorrect from some schemas)
+		try {
+			if (user.getPhonesList() != null) {
+				for (Phone phone: user.getPhonesList()) {//удаляем старые телефоны, если на входе есть новые
+					em.remove(phone);
 				}
-				if (phoneType.getSysname().equals("SIP")) {
-					phone.setSipSchema(user.getDefaultSchema());
-				}
+				close(); // fix for error: non persisted object in a relationship marked for cascade persist.
+						 // releasing a user object before updating its list of phones.
 			}
-			if (phoneElements.length > 2) {
-				if (!("".equals(phoneElements[2]) || " ".equals(phoneElements[2]))) {
-					final ConnectionSchema phoneSchema = em.find(ConnectionSchema.class, Integer.parseInt(phoneElements[2]));
-					phone.setSipSchema(phoneSchema);
-				} else {
-					phone.setSipSchema(null);
-				}
+			String[] phones = {};
+			if(!("".equals(userDetails.getString("phones")))) { // if phones string is empty, just use empty phones list
+				phones = userDetails.getString("phones").replace("||||", "| | ||").replace("^||", "^| |").replace("|||", "| ||").split("\\|\\|");
+					// using replace to handle the cases when "" is set for phone schema, phone type or both of them. interpret " " as NULL below.
+					// there is an important assumption made that we have trailing "^" at the end of all numbers (so the client-side must set it even
+					// if suffix is empty)
 			}
-			phone.setPhoneType(phoneType);
-			phone.setOrdernumber(phoneOrderNumber);
-			phoneOrderNumber++;
-			phone.setOwner(user);
-			phonesList.add(phone);
-		}
-		user.setPhonesList(phonesList);
+			ArrayList<Phone> phonesList = new ArrayList<>(phones.length);
+			int phoneOrderNumber = 1;
+			for (String phoneStr: phones) {
+				String[] phoneElements = phoneStr.split("\\|");
+				if (phoneElements.length == 0 || StringUtils.isEmpty(phoneElements[0])) {
+					continue;
+				}
+				Phone phone = new Phone();
+				phone.parse(phoneElements[0]);
+				PhoneType phoneType = null;
+				if (phoneElements.length > 1 && !" ".equals(phoneElements[1])) {
+					final String phoneTypeName = phoneElements[1];
+					final TypedQuery<PhoneType> findPhoneType = em.createNamedQuery("findPhoneType", PhoneType.class);
+					findPhoneType.setParameter("name", phoneTypeName);
+					final List<PhoneType> resultList = findPhoneType.getResultList();
+					if (resultList.isEmpty()) {
+						phoneType = new PhoneType();
+						phoneType.setName(phoneTypeName);
+						phoneType.setSysname(phoneTypeName);
+					} else {
+						phoneType = resultList.get(0);
+					}
+					if (phoneType.getSysname().equals("SIP")) {
+						phone.setSipSchema(user.getDefaultSchema());
+					}
+				}
+				if (phoneElements.length > 2) {
+					if (!("".equals(phoneElements[2]) || " ".equals(phoneElements[2]))) {
+						final ConnectionSchema phoneSchema = em.find(ConnectionSchema.class, Integer.parseInt(phoneElements[2]));
+						phone.setSipSchema(phoneSchema);
+					} else {
+						phone.setSipSchema(null);
+					}
+				}
+				phone.setPhoneType(phoneType);
+				phone.setOrdernumber(phoneOrderNumber);
+				phoneOrderNumber++;
+				phone.setOwner(user);
+				phonesList.add(phone);
+			}
+			user.setPhonesList(phonesList);
+		} catch (Exception ex) { logger.log(Level.WARNING, "could not parce phones", ex);}
 		
 		// updates schemas
 		if (updateSchemas) {
@@ -484,8 +486,7 @@ public class AdminBean {
 			department = new Department();
 		} else if (departmentData.containsKey("id")) {
 			String idStr = departmentData.getString("id");
-			final EntityManagerTool<Department, Integer> entityManagerTool = new EntityManagerTool<>();
-			department = entityManagerTool.createOrFind(em, Department.class, Integer.class, idStr);
+			department = EntityManagerTool.createOrFind(em, Department.class, Integer.class, idStr);
 			department.setId(Integer.valueOf(idStr));
 		} else {
 			department = departmentsPercistence.findDepartment(departmentData.getString("sysname"));
@@ -916,9 +917,8 @@ public class AdminBean {
 		JsonReader queryReader = Json.createReader(new StringReader(nonUrlStrQuery));
 		final JsonObject jsonQuery = queryReader.readObject();
 		
-		final EntityManagerTool<QueryEntity, Long> entityManagerTool = new EntityManagerTool<>();
 		String queryId = Utls.getNativeJsonString(jsonQuery,"id");// = jsonQuery.getString("id");
-		QueryEntity queryEntity = entityManagerTool.createOrFind(em, QueryEntity.class, Long.class, queryId);
+		QueryEntity queryEntity = EntityManagerTool.createOrFind(em, QueryEntity.class, Long.class, queryId);
 		
 		// получение схемы запроса
 		int schemaId;
@@ -1219,7 +1219,54 @@ public class AdminBean {
 		}
 		return mainUser;
 	}
-
+	
+	/**
+	 * Дать или отнять право у пользователя
+	 * @param logon сессия текущего пользователя
+	 * @param user кому выдаём право
+	 * @param permissionSysname название права
+	 * @param isAssigned если true - выдать право, false - снять.
+	 * @throws ru.carabi.server.CarabiException если текущий пользователь не может выдать данное право или если права с таким названием не существует
+	 */
+	public void assignPermissionForUser(UserLogon logon, CarabiUser user, String permissionSysname, boolean isAssigned) throws CarabiException {
+		Permission permission = EntityManagerTool.findBySysname(em, Permission.class, permissionSysname);
+		if (permission == null) {
+			throw new CarabiException("Unknown permission: " + permissionSysname);
+		}
+		assignPermissionForUser(logon, user, permission, isAssigned);
+	}
+	
+	/**
+	 * Дать или отнять право у пользователя
+	 * @param logon сессия текущего пользователя
+	 * @param user кому выдаём право
+	 * @param permission переключаемое право
+	 * @param isAssigned если true - выдать право, false - снять.
+	 * @throws ru.carabi.server.CarabiException если текущий пользователь не может выдать данное право или если права с таким названием не существует
+	 */
+	public void assignPermissionForUser(UserLogon logon, CarabiUser user, Permission permission, boolean isAssigned) throws CarabiException {
+		Integer parentPermissionId = permission.getParentPermissionId();
+		if (parentPermissionId != null && isAssigned) {
+			assignPermissionForUser(logon, user, EntityManagerTool.createOrFind(em, Permission.class, parentPermissionId), isAssigned);
+		}
+		String sql = "select * from appl_permissions.may_apply_permission(?, ?)";
+		Query query = em.createNativeQuery(sql);
+		query.setParameter(1, logon.getUser().getId());
+		query.setParameter(2, permission.getId());
+		Boolean mayApplyPermission = (Boolean)query.getSingleResult();
+		if (!mayApplyPermission) {
+			throw new CarabiException("Current user can not assign permission " + permission.getSysname());
+		}
+		if (isAssigned) {
+			query = em.createNativeQuery("insert into USER_HAS_PERMISSION(USER_ID, PERMISSION_ID) values(? ,?)");
+		} else {
+			query = em.createNativeQuery("delete from USER_HAS_PERMISSION where USER_ID = ? and PERMISSION_ID = ?");
+		}
+		query.setParameter(1, user.getId());
+		query.setParameter(2, permission.getId());
+		query.executeUpdate();
+	}
+	
 	public void setShowOnlineMode(UserLogon logon, CarabiUser user, boolean showOnline) throws CarabiException {
 		if (!user.equals(logon.getUser())) {
 			logon.assertAllowed("ADMINISTRATING-USERS-EDIT");

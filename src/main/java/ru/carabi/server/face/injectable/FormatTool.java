@@ -58,7 +58,7 @@ public class FormatTool {
 		}
 		Long contentLength = version.getFile().getContentLength();
 		if (contentLength == null) { //при получении списка версий через PL/pgSQL подробные данные о файлах не вносятся
-			FileOnServer file = new EntityManagerTool<FileOnServer, Long>().createOrFind(em, FileOnServer.class, version.getFile().getId());
+			FileOnServer file = EntityManagerTool.createOrFind(em, FileOnServer.class, version.getFile().getId());
 			contentLength = file.getContentLength();
 		}
 		return Utls.formatContentLength(contentLength);

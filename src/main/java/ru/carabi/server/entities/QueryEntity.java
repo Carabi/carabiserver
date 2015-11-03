@@ -32,41 +32,13 @@ import javax.persistence.Table;
 	@NamedQuery(name = "selectAllQueries",
 		query="select Q from QueryEntity Q order by Q.name"),
 })
-public class QueryEntity implements Serializable {
+public class QueryEntity extends AbstractEntity implements Serializable {
 	private static final long serialVersionUID = 2L;
 	
 	@Id
 	@Column(name="QUERY_ID")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	
-	public Long getId() {
-		return id;
-	}
-	
-	public void setId(Long id) {
-		this.id = id;
-	}
-	
-	@Override
-	public int hashCode() {
-		int hash = 0;
-		hash += (id != null ? id.hashCode() : 0);
-		return hash;
-	}
-	
-	@Override
-	public boolean equals(Object object) {
-		// TODO: Warning - this method won't work in the case the id fields are not set
-		if (!(object instanceof QueryEntity)) {
-			return false;
-		}
-		QueryEntity other = (QueryEntity) object;
-		if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
-			return false;
-		}
-		return true;
-	}
 	
 	private String name;
 	@ManyToOne
@@ -92,11 +64,20 @@ public class QueryEntity implements Serializable {
 	
 	@Column(name="SYSNAME")
 	private String sysname;
-
+	
+	@Override
+	public Long getId() {
+		return id;
+	}
+	
+	public void setId(Long id) {
+		this.id = id;
+	}
+	
 	public String getSysname() {
 		return sysname;
 	}
-
+	
 	public void setSysname(String sysname) {
 		this.sysname = sysname;
 	}

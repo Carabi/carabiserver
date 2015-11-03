@@ -193,8 +193,7 @@ public class LoadPublication extends HttpServlet {
 			}
 			Department departmentDestination = null;
 			if (departmentDestinationId >= 0) {
-				EntityManagerTool<Department, Integer> entityManagerTool = new EntityManagerTool<>();
-				departmentDestination = entityManagerTool.createOrFind(em, Department.class, departmentDestinationId);
+				departmentDestination = EntityManagerTool.createOrFind(em, Department.class, departmentDestinationId);
 			}
 			Publication createdPublication = productionBean.uploadPublication(logon, name, description, inputStream, filename, receiver, departmentDestination, isCommon);
 			JsonObjectBuilder result = Json.createObjectBuilder();

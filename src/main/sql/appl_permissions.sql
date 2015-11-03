@@ -194,3 +194,33 @@ BEGIN
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
+
+/**
+*/
+CREATE OR REPLACE FUNCTION appl_permissions.may_apply_permission(user_id$ BIGINT, permission_id$ INTEGER)
+	RETURNS BOOLEAN AS
+$BODY$
+DECLARE
+	permission_to_assign_id$ INTEGER;
+BEGIN
+	SELECT permission_to_assign INTO permission_to_assign_id$ FROM carabi_kernel.user_permission WHERE permission_id = permission_id$;
+	IF permission_to_assign_id$ IS NULL THEN
+		permission_to_assign_id$ := appl_permissions.get_user_permission_by_sysname('ADMINISTRATING-USERS-EDIT');
+	END IF;
+	
+	RETURN appl_permissions.user_has_permission(user_id$, permission_to_assign_id$);
+END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE;
+	
+/**
+*/
+CREATE OR REPLACE FUNCTION appl_permissions.may_apply_permission(user_id$ BIGINT, permission_sysname$ CHARACTER VARYING)
+	RETURNS BOOLEAN AS
+$BODY$
+DECLARE
+BEGIN
+	RETURN appl_permissions.may_apply_permission(user_id$, appl_permissions.get_user_permission_by_sysname(permission_sysname$));
+END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE;

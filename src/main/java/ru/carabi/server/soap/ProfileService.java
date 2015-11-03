@@ -1,7 +1,6 @@
 package ru.carabi.server.soap;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -29,7 +28,7 @@ public class ProfileService {
 	@EJB private UsersPercistenceBean usersPercistence;
 	@EJB private ProductionBean productionBean;
 	@EJB private AdminBean admin;
-	Logger logger = CarabiLogging.getLogger(ProfileService.class);
+	private static final Logger logger = CarabiLogging.getLogger(ProfileService.class);
 	
 	@WebMethod(operationName = "getShowOnlineMode")
 	public boolean getShowOnlineMode(
@@ -56,6 +55,12 @@ public class ProfileService {
 		}
 	}
 	
+	/**
+	 * Возвращает права ({@link Permission}), которые текущий пользователь имеет в системе.
+	 * @param token токен авторизации
+	 * @return список прав
+	 * @throws CarabiException 
+	 */
 	@WebMethod(operationName = "getPermissions")
 	public Collection<Permission> getPermissions(
 			@WebParam(name = "token") String token
@@ -68,6 +73,16 @@ public class ProfileService {
 		}
 	}
 	
+	/**
+	 * Возвращает список программ и их модулей ({@link SoftwareProduct}),
+	 * доступных текущему пользователю в данный момент. Список может зависеть от
+	 * того, через какой сервер зашёл пользователь и с какой базой он работает.
+	 * При ненулевом значении параметра currentProduct возвращаются только его дочерние модули.
+	 * @param token
+	 * @param currentProduct
+	 * @return
+	 * @throws CarabiException 
+	 */
 	@WebMethod(operationName = "getAvailableProduction")
 	public Collection<SoftwareProduct> getAvailableProduction(
 			@WebParam(name = "token") String token, 
@@ -85,9 +100,18 @@ public class ProfileService {
 		}
 	}
 	
+	/**
+	 * Возвращает список программ и их модулей ({@link SoftwareProduct}),
+	 * которыми пользователь имеет право пользоваться. Не зависит от текущего окружения.
+	 * При ненулевом значении параметра currentProduct возвращаются только его дочерние модули.
+	 * @param token
+	 * @param currentProduct
+	 * @return
+	 * @throws CarabiException 
+	 */
 	@WebMethod(operationName = "getAllowedProduction")
 	public Collection<SoftwareProduct> getAllowedProduction(
-			@WebParam(name = "token") String token, 
+			@WebParam(name = "token") String token,
 			@WebParam(name = "currentProduct") String currentProduct
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
@@ -101,5 +125,4 @@ public class ProfileService {
 			throw e;
 		}
 	}
-	
 }

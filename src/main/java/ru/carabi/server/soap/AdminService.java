@@ -8,6 +8,7 @@ import javax.jws.WebMethod;
 import javax.jws.WebParam;
 import javax.jws.WebService;
 import ru.carabi.server.CarabiException;
+import ru.carabi.server.EntityManagerTool;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.UserStatus;
@@ -43,7 +44,7 @@ public class AdminService {
 			return admin.getUserAllowedSchemas(logon, login);
 		}
 	}
-
+	
 	/**
 	 * Получение списка всех пользователей системы
 	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
@@ -573,7 +574,7 @@ public class AdminService {
 			throw e;
 		}
 	}
-
+	
 	/**
 	 * Получение списка всех типов телефонов.
 	 * @param token "Токен", идентификатор регистрации в системе (выполненной через сервер приложений).
@@ -598,5 +599,25 @@ public class AdminService {
 	public String getPhoneTypes(@WebParam(name = "token") String token) throws CarabiException {
 		usersController.tokenControl(token);// check permissions
 		return admin.getPhoneTypes();// read from kernel db
+	}
+	
+	/**
+	 * Дать или отнять право для пользователя
+	 * @param token
+	 * @param login
+	 * @param permissionSysname
+	 * @param isAssigned
+	 * @throws CarabiException 
+	 */
+	public void assignPermissionForUser (
+			@WebParam(name = "token") String token,
+			@WebParam(name = "login") String login,
+			@WebParam(name = "permissionSysname") String permissionSysname,
+			@WebParam(name = "isAssigned") boolean isAssigned
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.assignPermissionForUser(logon, usersController.findUser(login), permissionSysname, isAssigned);
+			
+		}
 	}
 }

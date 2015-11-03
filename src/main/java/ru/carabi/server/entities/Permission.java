@@ -14,7 +14,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name="USER_PERMISSION")
-public class Permission implements Serializable {
+public class Permission extends AbstractEntity implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	@Id
@@ -70,28 +70,4 @@ public class Permission implements Serializable {
 		this.parentPermissionId = parentPermissionId;
 	}
 	
-	@Override
-	public int hashCode() {
-		int hash = 0;
-		hash += (id != null ? id.hashCode() : 0);
-		return hash;
-	}
-	
-	@Override
-	public boolean equals(Object object) {
-		// TODO: Warning - this method won't work in the case the id fields are not set
-		if (!(object instanceof Permission)) {
-			return false;
-		}
-		Permission other = (Permission) object;
-		if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
-			return false;
-		}
-		return true;
-	}
-	
-	@Override
-	public String toString() {
-		return "ru.carabi.server.entities.Permission[ id=" + id + " ]";
-	}
 }

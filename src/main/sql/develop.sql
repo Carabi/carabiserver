@@ -168,6 +168,9 @@ create table USER_PERMISSION (
 	SYSNAME varchar(256) not null unique,
 	DESCRIPTION varchar(32000),
 	PARENT_PERMISSION integer references USER_PERMISSION (PERMISSION_ID),
+	-- право на выдачу/отъём данного права. Если не задано
+	-- используется стандартное право на редактирование пользователей.
+	PERMISSION_TO_ASSIGN integer references USER_PERMISSION (PERMISSION_ID),
 	ALLOWED_BY_DEFAULT boolean default false
 );
 
