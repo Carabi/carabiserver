@@ -49,6 +49,7 @@ import ru.carabi.server.entities.QueryEntity;
 import ru.carabi.server.entities.QueryParameterEntity;
 import ru.carabi.server.entities.UserRelation;
 import ru.carabi.server.entities.UserRelationType;
+import ru.carabi.server.entities.UserRole;
 import ru.carabi.server.entities.UserStatus;
 
 @Stateless
@@ -1258,11 +1259,60 @@ public class AdminBean {
 			throw new CarabiException("Current user can not assign permission " + permission.getSysname());
 		}
 		if (isAssigned) {
+			query = em.createNativeQuery("select count(*) from USER_HAS_PERMISSION where USER_ID = ? and PERMISSION_ID =?");
+			query.setParameter(1, user.getId());
+			query.setParameter(2, permission.getId());
+			Number count = (Number)query.getSingleResult();
+			if (count.intValue() > 0) {
+				return;
+			}
 			query = em.createNativeQuery("insert into USER_HAS_PERMISSION(USER_ID, PERMISSION_ID) values(? ,?)");
 		} else {
 			query = em.createNativeQuery("delete from USER_HAS_PERMISSION where USER_ID = ? and PERMISSION_ID = ?");
 		}
 		query.setParameter(1, user.getId());
+		query.setParameter(2, permission.getId());
+		query.executeUpdate();
+	}
+	
+	public void assignPermissionForRole(UserLogon logon, String roleSysname, String permissionSysname, boolean isAssigned) throws CarabiException {
+		Permission permission = EntityManagerTool.findBySysname(em, Permission.class, permissionSysname);
+		if (permission == null) {
+			throw new CarabiException("Unknown permission: " + permissionSysname);
+		}
+		UserRole userRole = EntityManagerTool.findBySysname(em, UserRole.class, roleSysname);
+		if (userRole == null) {
+			throw new CarabiException("Unknown role: " + roleSysname);
+		}
+		assignPermissionForRole(logon, userRole, permission, isAssigned);
+	}
+	
+	public void assignPermissionForRole(UserLogon logon, UserRole userRole, Permission permission, boolean isAssigned) throws CarabiException {
+		Integer parentPermissionId = permission.getParentPermissionId();
+		if (parentPermissionId != null && isAssigned) {
+			assignPermissionForRole(logon, userRole, EntityManagerTool.createOrFind(em, Permission.class, parentPermissionId), isAssigned);
+		}
+		String sql = "select * from appl_permissions.may_apply_permission(?, ?)";
+		Query query = em.createNativeQuery(sql);
+		query.setParameter(1, logon.getUser().getId());
+		query.setParameter(2, permission.getId());
+		Boolean mayApplyPermission = (Boolean)query.getSingleResult();
+		if (!mayApplyPermission) {
+			throw new CarabiException("Current user can not assign permission " + permission.getSysname());
+		}
+		if (isAssigned) {
+			query = em.createNativeQuery("select count(*) from ROLE_HAS_PERMISSION where ROLE_ID = ? and PERMISSION_ID =?");
+			query.setParameter(1, userRole.getId());
+			query.setParameter(2, permission.getId());
+			Number count = (Number)query.getSingleResult();
+			if (count.intValue() > 0) {
+				return;
+			}
+			query = em.createNativeQuery("insert into ROLE_HAS_PERMISSION(ROLE_ID, PERMISSION_ID) values(? ,?)");
+		} else {
+			query = em.createNativeQuery("delete from ROLE_HAS_PERMISSION where ROLE_ID = ? and PERMISSION_ID = ?");
+		}
+		query.setParameter(1, userRole.getId());
 		query.setParameter(2, permission.getId());
 		query.executeUpdate();
 	}

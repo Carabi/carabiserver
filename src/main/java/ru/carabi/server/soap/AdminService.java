@@ -603,12 +603,13 @@ public class AdminService {
 	
 	/**
 	 * Дать или отнять право для пользователя
-	 * @param token
-	 * @param login
-	 * @param permissionSysname
-	 * @param isAssigned
+	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param login логин пользователя, которому меняем настройки
+	 * @param permissionSysname право, которое даём или забираем
+	 * @param isAssigned true - выдать право, false - забрать
 	 * @throws CarabiException 
 	 */
+	@WebMethod(operationName = "assignPermissionForUser")
 	public void assignPermissionForUser (
 			@WebParam(name = "token") String token,
 			@WebParam(name = "login") String login,
@@ -617,7 +618,26 @@ public class AdminService {
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			admin.assignPermissionForUser(logon, usersController.findUser(login), permissionSysname, isAssigned);
-			
+		}
+	}
+	
+	/**
+	 * Дать или отнять право для роли
+	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param roleSysname роль, которую настраиваем
+	 * @param permissionSysname право, которое даём или забираем
+	 * @param isAssigned true - выдать право, false - забрать
+	 * @throws CarabiException 
+	 */
+	@WebMethod(operationName = "assignPermissionForRole")
+	public void assignPermissionForRole (
+			@WebParam(name = "token") String token,
+			@WebParam(name = "roleSysname") String roleSysname,
+			@WebParam(name = "permissionSysname") String permissionSysname,
+			@WebParam(name = "isAssigned") boolean isAssigned
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.assignPermissionForRole(logon, roleSysname, permissionSysname, isAssigned);
 		}
 	}
 }
