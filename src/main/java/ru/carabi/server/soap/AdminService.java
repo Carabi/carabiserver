@@ -1,14 +1,16 @@
 package ru.carabi.server.soap;
 
+import java.io.StringReader;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
+import javax.json.Json;
+import javax.json.JsonReader;
 import javax.jws.WebMethod;
 import javax.jws.WebParam;
 import javax.jws.WebService;
 import ru.carabi.server.CarabiException;
-import ru.carabi.server.EntityManagerTool;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.UserStatus;
@@ -180,7 +182,9 @@ public class AdminService {
 			throws CarabiException
 	{
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			return admin.saveUser(logon, strUser);
+			final String nonUrlNewData = strUser.replace("&quot;", "\"");
+			JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
+			return admin.saveUser(logon, jsonReader.readObject(), true);
 		}
 	}
 	
@@ -221,6 +225,37 @@ public class AdminService {
 			admin.deleteUser(logon, login);
 		}
 	}	
+	
+	/**
+	 * Создать или обновить данные о роли пользователя.
+	 * Параметр strRole должен иметь поля id, name, sysname, description.
+	 * При отсутствии id поле sysname используется в качестве идентификатора.
+	 * @param token token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе.
+	 * @param strRole данные о роли пользователя в формате JSON
+	 * @throws CarabiException 
+	 */
+	@WebMethod(operationName = "saveRole")
+	public void saveRole(@WebParam(name = "token") String token, @WebParam(name = "strRole") String strRole) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			JsonReader jsonReader = Json.createReader(new StringReader(strRole));
+			admin.saveRole(logon, jsonReader.readObject());
+		}
+	}
+	
+	/**
+	 * Удалить данные о роли пользователя.
+	 * Параметр strRole должен иметь поля id или sysname
+	 * @param token token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе.
+	 * @param strRole данные о роли пользователя в формате JSON
+	 * @throws CarabiException 
+	 */
+	@WebMethod(operationName = "deleteRole")
+	public void deleteRole(@WebParam(name = "token") String token, @WebParam(name = "strRole") String strRole) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			JsonReader jsonReader = Json.createReader(new StringReader(strRole));
+			admin.deleteRole(logon, jsonReader.readObject());
+		}
+	}
 	
 	/**
 	 * Получение списка всех схем подключений системы
@@ -638,6 +673,40 @@ public class AdminService {
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			admin.assignPermissionForRole(logon, roleSysname, permissionSysname, isAssigned);
+		}
+	}
+	
+	@WebMethod(operationName = "copyPermissionsFromRoleToRole")
+	public void copyPermissionsFromRoleToRole(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "originalRole") String originalRole,
+			@WebParam(name = "newRole") String newRole,
+			@WebParam(name = "removeOldPermossions") boolean removeOldPermossions
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.copyPermissionsFromRoleToRole(logon, originalRole, newRole, removeOldPermossions);
+		}
+	}
+	@WebMethod(operationName = "copyPermissionsFromRoleToUser")
+	public void copyPermissionsFromRoleToUser(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "originalRole") String originalRole,
+			@WebParam(name = "userLogin") String userLogin,
+			@WebParam(name = "removeOldPermossions") boolean removeOldPermossions
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.copyPermissionsFromRoleToUser(logon, originalRole, userLogin, removeOldPermossions);
+		}
+	}
+	@WebMethod(operationName = "copyPermissionsFromUserToRole")
+	public void copyPermissionsFromUserToRole(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "userLogin") String userLogin,
+			@WebParam(name = "newRole") String newRole,
+			@WebParam(name = "removeOldPermossions") boolean removeOldPermossions
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.copyPermissionsFromUserToRole(logon, userLogin, newRole, removeOldPermossions);
 		}
 	}
 }

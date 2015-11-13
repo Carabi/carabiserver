@@ -1,11 +1,15 @@
 package ru.carabi.server.entities;
 
 import java.io.Serializable;
+import java.util.Collection;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
 /**
@@ -25,6 +29,16 @@ public class UserRole extends AbstractEntity implements Serializable {
 	private String name;
 	private String sysname;
 	private String description;
+	
+	@ManyToMany
+	@JoinTable(
+		name="ROLE_HAS_PERMISSION",
+		joinColumns=
+			@JoinColumn(name="ROLE_ID", referencedColumnName="ROLE_ID"),
+		inverseJoinColumns=
+			@JoinColumn(name="PERMISSION_ID", referencedColumnName="PERMISSION_ID")
+	)
+	private Collection<Permission> permissions;
 	
 	public Integer getId() {
 		return id;
@@ -58,4 +72,11 @@ public class UserRole extends AbstractEntity implements Serializable {
 		this.description = description;
 	}
 	
+	public Collection<Permission> getPermissions() {
+		return permissions;
+	}
+	
+	public void setPermissions(Collection<Permission> permissions) {
+		this.permissions = permissions;
+	}
 }

@@ -193,7 +193,7 @@ create table USER_HAS_PERMISSION (
 );
 
 create table ROLE_HAS_PERMISSION (
-	ROLE_ID bigint not null references USER_ROLE (ROLE_ID) on delete cascade,
+	ROLE_ID integer not null references USER_ROLE (ROLE_ID) on delete cascade,
 	PERMISSION_ID integer not null references USER_PERMISSION (PERMISSION_ID),
 	PERMISSION_INHIBITED boolean default false,
 	primary key (ROLE_ID, PERMISSION_ID)
@@ -201,7 +201,7 @@ create table ROLE_HAS_PERMISSION (
 
 create table USER_HAS_ROLE (
 	USER_ID bigint not null references CARABI_USER (USER_ID) on delete cascade,
-	ROLE_ID bigint not null references USER_ROLE (ROLE_ID),
+	ROLE_ID integer not null references USER_ROLE (ROLE_ID),
 	primary key (USER_ID, ROLE_ID)
 );
 

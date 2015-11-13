@@ -26,6 +26,7 @@ import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.PersistenceException;
 import javax.persistence.Query;
+import javax.persistence.StoredProcedureQuery;
 import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.StrBuilder;
@@ -256,19 +257,6 @@ public class AdminBean {
 	/**
 	 * Редактирование или создание пользователя Carabi из Web-сервиса.
 	 * @param logon сессия текущего пользователя
-	 * @param strUser Информация о пользователе в JSON
-	 * @return ID пользователя
-	 * @throws CarabiException
-	 */
-	public Long saveUser(UserLogon logon, String strUser) throws CarabiException {
-		final String nonUrlNewData = strUser.replace("&quot;", "\"");
-		JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
-		return saveUser(logon, jsonReader.readObject(), true);
-	}
-	
-	/**
-	 * Редактирование или создание пользователя Carabi из Web-сервиса.
-	 * @param logon сессия текущего пользователя
 	 * @param userDetails Информация о пользователе
 	 * @param updateSchemas обновлять данные о доступе к схемам (если редактируем имевшегося пользователя из Oracle -- то нет)
 	 * @return ID пользователя
@@ -432,6 +420,43 @@ public class AdminBean {
 			logger.log(Level.WARNING, "" , e);
 			throw e;
 		}
+	}
+	
+	/**
+	 * Создать или изменить роль пользователя
+	 * @param logon
+	 * @param roleDetails
+	 * @throws CarabiException 
+	 */
+	public void saveRole(UserLogon logon, JsonObject roleDetails) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-ROLES-EDIT");
+		UserRole userRole;
+		if (roleDetails.containsKey("id")) {
+			userRole = EntityManagerTool.createOrFind(em, UserRole.class, Integer.class, roleDetails.getString("id"));
+		} else {
+			userRole = EntityManagerTool.findBySysnameOrCreate(em, UserRole.class, roleDetails.getString("sysname"));
+		}
+		userRole.setName(roleDetails.getString("name"));
+		userRole.setSysname(roleDetails.getString("sysname"));
+		userRole.setDescription(roleDetails.getString("description"));
+		em.merge(userRole);
+	}
+	
+	/**
+	 * Удалить роль пользователя по ID или Sysname
+	 * @param logon
+	 * @param roleDetails
+	 * @throws CarabiException 
+	 */
+	public void deleteRole(UserLogon logon, JsonObject roleDetails) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-ROLES-EDIT");
+		UserRole userRole;
+		if (roleDetails.containsKey("id")) {
+			userRole = em.find(UserRole.class, Integer.valueOf(roleDetails.getJsonObject("id").toString()));
+		} else {
+			userRole = EntityManagerTool.findBySysname(em, UserRole.class, roleDetails.getString("sysname"));
+		}
+		em.remove(userRole);
 	}
 	
 	/**
@@ -1250,12 +1275,12 @@ public class AdminBean {
 		if (parentPermissionId != null && isAssigned) {
 			assignPermissionForUser(logon, user, EntityManagerTool.createOrFind(em, Permission.class, parentPermissionId), isAssigned);
 		}
-		String sql = "select * from appl_permissions.may_apply_permission(?, ?)";
+		String sql = "select * from appl_permissions.may_assign_permission(?, ?)";
 		Query query = em.createNativeQuery(sql);
 		query.setParameter(1, logon.getUser().getId());
 		query.setParameter(2, permission.getId());
-		Boolean mayApplyPermission = (Boolean)query.getSingleResult();
-		if (!mayApplyPermission) {
+		Boolean mayAssignPermission = (Boolean)query.getSingleResult();
+		if (!mayAssignPermission) {
 			throw new CarabiException("Current user can not assign permission " + permission.getSysname());
 		}
 		if (isAssigned) {
@@ -1292,14 +1317,11 @@ public class AdminBean {
 		if (parentPermissionId != null && isAssigned) {
 			assignPermissionForRole(logon, userRole, EntityManagerTool.createOrFind(em, Permission.class, parentPermissionId), isAssigned);
 		}
-		String sql = "select * from appl_permissions.may_apply_permission(?, ?)";
-		Query query = em.createNativeQuery(sql);
-		query.setParameter(1, logon.getUser().getId());
-		query.setParameter(2, permission.getId());
-		Boolean mayApplyPermission = (Boolean)query.getSingleResult();
-		if (!mayApplyPermission) {
+		boolean mayAssignPermission = mayAssignPermission(logon, permission);
+		if (!mayAssignPermission) {
 			throw new CarabiException("Current user can not assign permission " + permission.getSysname());
 		}
+		Query query;
 		if (isAssigned) {
 			query = em.createNativeQuery("select count(*) from ROLE_HAS_PERMISSION where ROLE_ID = ? and PERMISSION_ID =?");
 			query.setParameter(1, userRole.getId());
@@ -1315,6 +1337,122 @@ public class AdminBean {
 		query.setParameter(1, userRole.getId());
 		query.setParameter(2, permission.getId());
 		query.executeUpdate();
+	}
+	
+	/**
+	 * Копирование набора прав между ролями.
+	 * @param logon сессия текущего пользователя
+	 * @param originalRoleSysname роль, из которой копируем права
+	 * @param newRoleSysname роль, в которую копируем права
+	 * @param removeOldPermossions удалить текущие права из newRole 
+	 * @throws CarabiException если не найдена оригинальная роль или текущий пользователь не может выдать или отнять требуемое право
+	 */
+	public void copyPermissionsFromRoleToRole(UserLogon logon, String originalRoleSysname, String newRoleSysname, boolean removeOldPermossions) throws CarabiException {
+		UserRole originalRole = EntityManagerTool.findBySysname(em, UserRole.class, originalRoleSysname);
+		if (originalRole == null) {
+			throw new CarabiException("Original role not found");
+		}
+		UserRole newRole = EntityManagerTool.findBySysnameOrCreate(em, UserRole.class, newRoleSysname);
+		if (newRole.getId() == null) {
+			newRole.setName(newRoleSysname);
+			newRole.setSysname(newRoleSysname);
+			newRole = em.merge(newRole);
+		}
+		copyPermissionsFromRoleToRole(logon, originalRole, newRole, removeOldPermossions);
+	}
+	
+	/**
+	 * Копирование набора прав между ролями.
+	 * @param logon сессия текущего пользователя
+	 * @param originalRole роль, из которой копируем права
+	 * @param newRole роль, в которую копируем права
+	 * @param removeOldPermossions удалить текущие права из newRole 
+	 * @throws CarabiException если текущий пользователь не может выдать или отнять требуемое право
+	 */
+	public void copyPermissionsFromRoleToRole(UserLogon logon, UserRole originalRole, UserRole newRole, boolean removeOldPermossions) throws CarabiException {
+		if (removeOldPermossions) {
+			for (Permission permission: newRole.getPermissions()) {
+				if (!mayAssignPermission(logon, permission)) {
+					throw new CarabiException("User " + logon.getUser().getLogin() + " can not disassign old permission " + permission.getSysname() + " from role " + newRole.getSysname());
+				}
+			}
+		}
+		newRole.getPermissions().clear();
+		for (Permission permission: originalRole.getPermissions()) {
+			if (!mayAssignPermission(logon, permission)) {
+				throw new CarabiException("User " + logon.getUser().getLogin() + " can not assign new permission " + permission.getSysname() + " for role " + newRole.getSysname());
+			}
+			newRole.getPermissions().add(permission);
+		}
+		em.merge(newRole);
+	}
+	
+	/**
+	 * Копирование набора прав из роли в пользователя.
+	 * @param logon сессия текущего пользователя
+	 * @param originalRoleSysname роль, из которой копируем права
+	 * @param userLogin пользователь, которому копируем права
+	 * @param removeOldPermossions удалить текущие права у пользователя
+	 * @throws CarabiException если не найдена оригинальная роль или текущий пользователь не может выдать или отнять требуемое право
+	 */
+	public void copyPermissionsFromRoleToUser(UserLogon logon, String originalRoleSysname, String userLogin, boolean removeOldPermossions) throws CarabiException {
+		UserRole originalRole = EntityManagerTool.findBySysname(em, UserRole.class, originalRoleSysname);
+		if (originalRole == null) {
+			throw new CarabiException("Original role not found");
+		}
+		copyPermissionsFromRoleToUser(logon, originalRole, uc.findUser(userLogin), removeOldPermossions);
+	}
+	
+	/**
+	 * Копирование набора прав из роли в пользователя.
+	 * @param logon сессия текущего пользователя
+	 * @param originalRole роль, из которой копируем права
+	 * @param user пользователь, которому копируем права
+	 * @param removeOldPermossions удалить текущие права у пользователя
+	 * @throws CarabiException если текущий пользователь не может выдать или отнять требуемое право
+	 */
+	public void copyPermissionsFromRoleToUser(UserLogon logon, UserRole originalRole, CarabiUser user, boolean removeOldPermossions) throws CarabiException {
+		Query roleToUser = em.createNativeQuery("select appl_permissions.role_to_user(?, ?, ?, ?)");
+		roleToUser.setParameter(1, logon.getUser().getId());
+		roleToUser.setParameter(2, originalRole.getId());
+		roleToUser.setParameter(3, user.getId());
+		roleToUser.setParameter(4, removeOldPermossions);
+		roleToUser.getSingleResult();
+	}
+	
+	/**
+	 * Копирование набора прав из пользователя в роль.
+	 * @param logon сессия текущего пользователя
+	 * @param userLogin пользователь, из которого копируем права
+	 * @param newRoleSysname роль, куда копируем права
+	 * @param removeOldPermossions удалить текущие права из роли
+	 * @throws CarabiException если текущий пользователь не может выдать или отнять требуемое право
+	 */
+	public void copyPermissionsFromUserToRole(UserLogon logon, String userLogin, String newRoleSysname, boolean removeOldPermossions) throws CarabiException {
+		UserRole newRole = EntityManagerTool.findBySysnameOrCreate(em, UserRole.class, newRoleSysname);
+		if (newRole.getId() == null) {
+			newRole.setName(newRoleSysname);
+			newRole.setSysname(newRoleSysname);
+			newRole = em.merge(newRole);
+		}
+		copyPermissionsFromUserToRole(logon, uc.findUser(userLogin), newRole, removeOldPermossions);
+	}
+	
+	/**
+	 * Копирование набора прав из пользователя в роль.
+	 * @param logon сессия текущего пользователя
+	 * @param originalUser пользователь, из которого копируем права
+	 * @param role роль, куда копируем права
+	 * @param removeOldPermossions удалить текущие права из роли
+	 * @throws CarabiException если текущий пользователь не может выдать или отнять требуемое право
+	 */
+	public void copyPermissionsFromUserToRole(UserLogon logon, CarabiUser originalUser, UserRole role, boolean removeOldPermossions) throws CarabiException {
+		Query userToRole = em.createNativeQuery("select appl_permissions.role_from_user(?, ?, ?, ?)");
+		userToRole.setParameter(1, logon.getUser().getId());
+		userToRole.setParameter(2, role.getId());
+		userToRole.setParameter(3, originalUser.getId());
+		userToRole.setParameter(4, removeOldPermossions);
+		userToRole.getSingleResult();
 	}
 	
 	public void setShowOnlineMode(UserLogon logon, CarabiUser user, boolean showOnline) throws CarabiException {
@@ -1373,5 +1511,18 @@ public class AdminBean {
 			phoneTypesJson.add(phoneTypeJson);
 		}
 		return phoneTypesJson.build().toString();
+	}
+	
+	/**
+	 * Проверка, может ли текущий пользователь назначить или отнять данное право для других
+	 * @param permission
+	 * @return 
+	 */
+	private boolean mayAssignPermission(UserLogon logon, Permission permission) {
+		String sql = "select * from appl_permissions.may_assign_permission(?, ?)";
+		Query query = em.createNativeQuery(sql);
+		query.setParameter(1, logon.getUser().getId());
+		query.setParameter(2, permission.getId());
+		return (Boolean)query.getSingleResult();
 	}
 }

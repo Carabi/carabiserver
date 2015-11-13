@@ -96,7 +96,8 @@ public class UsersAdmin {
 		if (!userIsNew) {
 			try {
 				CarabiUser user = usersController.findUser(login);
-				if (!user.getDefaultSchema().getId().equals(schemaID) && !user.getAllowedSchemas().contains(connectionSchema)) {
+				//пользователь из новой БД должен иметь такой же пароль, чтобы быть принятым автоматически
+				if (!user.getDefaultSchema().getId().equals(schemaID) && !user.getAllowedSchemas().contains(connectionSchema) && !user.getPassword().equals(userData.getString("password"))) {
 					return "user " + login + " already registered with another database";
 				}
 				userDataNew.add("id", ""+userID);

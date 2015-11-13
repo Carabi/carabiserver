@@ -245,6 +245,7 @@ public class ProductionBean {
 	 * @throws ru.carabi.server.CarabiException
 	 */
 	public void allowForUser(UserLogon logon, String productSysname, String login, boolean isAllowed) throws CarabiException {
+		logger.log(Level.FINE, "product: {0}, login: {1}", new String[]{productSysname, login});
 		CarabiUser user = usersPercistence.findUser(login);
 		SoftwareProduct product = this.findProduct(productSysname);
 		allowForUser(logon, product, user, isAllowed);

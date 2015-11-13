@@ -125,9 +125,33 @@ public class EntityManagerTool {
 	}
 	
 	/**
-	 * Поиск entity по полю sysname. См. {@link #findByStrFieldSingle(javax.persistence.EntityManager, java.lang.Class, java.lang.String, java.lang.String)}
+	 * Поиск entity по полю sysname.
+	 * @param <E> Тип entity
+	 * @param em текущий {@link javax.persistence.EntityManager}
+	 * @param eType объект Class для оперируемого Entity
+	 * @param fieldValue значение поля sysname
+	 * @return найденный Entity, null, если не нашли.
 	 */
 	public static <E extends AbstractEntity> E findBySysname(EntityManager em, Class<E> eType, String fieldValue) {
 		return findByStrFieldSingle(em, eType, "sysname", fieldValue);
+	}
+	/**
+	 * Поиск entity по полю sysname с созданием нового при отсутствии.
+	 * @param <E> Тип entity
+	 * @param em текущий {@link javax.persistence.EntityManager}
+	 * @param eType объект Class для оперируемого Entity
+	 * @param fieldValue значение поля sysname
+	 * @return найденный Entity, новый объект, если не нашли.
+	 */
+	public static <E extends AbstractEntity> E findBySysnameOrCreate(EntityManager em, Class<E> eType, String fieldValue) {
+		E entity = findBySysname(em, eType, fieldValue);
+		if (entity == null) {
+			try {
+				entity = eType.newInstance();
+			} catch (InstantiationException | IllegalAccessException ex) {
+				Logger.getLogger(EntityManagerTool.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+		return entity;
 	}
 }

@@ -17,6 +17,16 @@ declare
 	MANAGING_DEPARTMENTS_VIEW_ID$ INTEGER;
 	MANAGING_DEPARTMENTS_EDIT_ID$ INTEGER;
 
+	ADMINISTRATING_PERMISSIONS_ID$ INTEGER;
+	ADMINISTRATING_PERMISSIONS_VIEW_ID$ INTEGER;
+	ADMINISTRATING_PERMISSIONS_EDIT_ID$ INTEGER;
+	ADMINISTRATING_PERMISSIONS_ASSIGN_ID$ INTEGER;
+
+	ADMINISTRATING_ROLES_ID$ INTEGER;
+	ADMINISTRATING_ROLES_VIEW_ID$ INTEGER;
+	ADMINISTRATING_ROLES_EDIT_ID$ INTEGER;
+	ADMINISTRATING_ROLES_ASSIGN_ID$ INTEGER;
+
 	ADMINISTRATING_SCHEMAS_ID$ INTEGER;
 	ADMINISTRATING_SCHEMAS_VIEW_ID$ INTEGER;
 	ADMINISTRATING_SCHEMAS_EDIT_ID$ INTEGER;
@@ -48,6 +58,7 @@ begin
 	values(DEFAULT, 'Администрирование системы', 'ADMINISTRATING', 'Использование методов AdminBean')
 	returning PERMISSION_ID into ADMINISTRATING_ID$;
 
+
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Управление пользователями', 'ADMINISTRATING-USERS', 'Просмотр и редактирование любых учётных записей', ADMINISTRATING_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_USERS_ID$;
@@ -59,6 +70,7 @@ begin
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Редактировать пользователей', 'ADMINISTRATING-USERS-EDIT', 'Редактировать учётные записи любых пользователей', ADMINISTRATING_USERS_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_USERS_EDIT_ID$;
+
 
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Управление подразделениями', 'ADMINISTRATING-DEPARTMENTS', 'Просмотр и редактирование любых подразделений', ADMINISTRATING_ID$)
@@ -72,6 +84,7 @@ begin
 	values(DEFAULT, 'Редактировать подразделения', 'ADMINISTRATING-DEPARTMENTS-EDIT', 'Редактировать данные о любых подразделениях', ADMINISTRATING_DEPARTMENTS_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_DEPARTMENTS_EDIT_ID$;
 
+
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Ограниченное управление подразделениями', 'MANAGING-DEPARTMENTS', 'Просмотр и редактирование подразделений, дочерних в основном', ADMINISTRATING_ID$)
 	returning PERMISSION_ID into MANAGING_DEPARTMENTS_ID$;
@@ -83,6 +96,41 @@ begin
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Редактировать доступные подразделения', 'MANAGING-DEPARTMENTS-EDIT', 'Редактировать данные о подразделениях, дочерних в основном', MANAGING_DEPARTMENTS_ID$)
 	returning PERMISSION_ID into MANAGING_DEPARTMENTS_EDIT_ID$;
+
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Управление правами', 'ADMINISTRATING-PERMISSIONS', 'Просмотр и редактирование прав доступа', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_PERMISSIONS_ID;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просматривать права', 'ADMINISTRATING-PERMISSIONS-VIEW', 'Просматривать права доступа', ADMINISTRATING_PERMISSIONS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_PERMISSIONS_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактировать права', 'ADMINISTRATING-PERMISSIONS-EDIT', 'Редактировать права доступа', ADMINISTRATING_PERMISSIONS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_PERMISSIONS_EDIT_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Выдавать права', 'ADMINISTRATING-PERMISSIONS-ASSIGN', 'Выдавать права пользователям и ролям', ADMINISTRATING_PERMISSIONS_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_PERMISSIONS_ASSIGN_ID$;
+
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Управление ролями', 'ADMINISTRATING-ROLES', 'Просмотр и редактирование пользовательских ролей', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_ROLES_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просматривать роли', 'ADMINISTRATING-ROLES-VIEW', 'Просматривать роли', ADMINISTRATING_ROLES_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_ROLES_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактировать роли', 'ADMINISTRATING-ROLES-EDIT', 'Редактировать роли', ADMINISTRATING_ROLES_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_ROLES_EDIT_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Назначать роли', 'ADMINISTRATING-ROLES-ASSIGN', 'Назначать роли пользователям', ADMINISTRATING_ROLES_ID$)
+	returning PERMISSION_ID into ADMINISTRATING_ROLES_ASSIGN_ID$;
+
 
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Управление схемами подключения', 'ADMINISTRATING-SCHEMAS', 'Просмотр и редактирование схемы подключения к неядровым БД', ADMINISTRATING_ID$)
@@ -96,6 +144,7 @@ begin
 	values(DEFAULT, 'Редактировать схемы подключения', 'ADMINISTRATING-SCHEMAS-EDIT', 'Редактировать схемы подключения к неядровым БД', ADMINISTRATING_SCHEMAS_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_SCHEMAS_EDIT_ID$;
 
+
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Управление запросами', 'ADMINISTRATING-QUERIES', 'Просмотр и редактирование хранимых запросов, их параметры и категорий', ADMINISTRATING_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_QUERIES_ID$;
@@ -108,12 +157,14 @@ begin
 	values(DEFAULT, 'Редактировать запросы', 'ADMINISTRATING-QUERIES-EDIT', 'Редактировать хранимые запросы, их параметры и категории', ADMINISTRATING_QUERIES_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_QUERIES_EDIT_ID$;
 
+
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Работать с расширениями чата', 'ADMINISTRATING-CHAT_MESSAGE_TYPES', '', ADMINISTRATING_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$;
 
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Создавать расширения чата налету', 'ADMINISTRATING-CHAT_MESSAGE_TYPES-AUTOCREATE', 'Создавать расширения чата при отправке сообщений с неизвестным типом расширения', ADMINISTRATING_CHAT_MESSAGE_TYPES_ID$);
+
 
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Управление всеми программными продуктами', 'ADMINISTRATING-PRODUCTS', 'Доступ к любым программным продуктам', ADMINISTRATING_ID$)
@@ -127,6 +178,7 @@ begin
 	values(DEFAULT, 'Редактирование всех программных продуктов', 'ADMINISTRATING-PRODUCTS-EDIT', 'Создавать, удалять и редактировать программные продукты, доступные кому угодно', ADMINISTRATING_PRODUCTS_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_PRODUCTS_EDIT_ID$;
 
+
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Управление всеми публикациями', 'ADMINISTRATING-PUBLICATIONS', 'Доступ к любым публикациям', ADMINISTRATING_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_PUBLICATIONS_ID$;
@@ -138,6 +190,7 @@ begin
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Редактирование всех публикаций', 'ADMINISTRATING-PUBLICATIONS-EDIT', 'Создавать, удалять и редактировать публикации, доступные кому угодно', ADMINISTRATING_PUBLICATIONS_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_PUBLICATIONS_EDIT_ID$;
+
 
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Управление публикациями для своего подразделения', 'MANAGING-PUBLICATIONS', 'Доступ к публикациям подразделения, где являешься менеджером', ADMINISTRATING_ID$)
@@ -171,6 +224,16 @@ begin
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_DEPARTMENTS_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_DEPARTMENTS_VIEW_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_DEPARTMENTS_EDIT_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_PERMISSIONS_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_PERMISSIONS_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_PERMISSIONS_EDIT_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_PERMISSIONS_ASSIGN_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_ROLES_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_ROLES_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_ROLES_EDIT_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_ROLES_ASSIGN_ID$);
 
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_SCHEMAS_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_SCHEMAS_VIEW_ID$);

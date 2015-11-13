@@ -537,8 +537,18 @@ public class ChatBean {
 			}
 			departments.add(department);
 		} else {
-			departments.add(user.getCorporation().getSysname());
-			departments.add(user.getDepartment().getSysname());
+			if (user.getCorporation() != null) {
+				departments.add(user.getCorporation().getSysname());
+			} else {
+				logger.info("client " + client.getToken() + " does not have corporation");
+			}
+			
+			if (user.getDepartment() != null) {
+				departments.add(user.getDepartment().getSysname());
+			} else {
+				logger.info("client " + client.getToken() + " does not have department");
+			}
+			
 			for (Department relatedDepartment: user.getRelatedDepartments()) {
 				departments.add(relatedDepartment.getSysname());
 			}

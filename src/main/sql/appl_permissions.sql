@@ -196,8 +196,9 @@ $BODY$
 	LANGUAGE plpgsql VOLATILE;
 
 /**
-*/
-CREATE OR REPLACE FUNCTION appl_permissions.may_apply_permission(user_id$ BIGINT, permission_id$ INTEGER)
+ * Проверка, что конкретный пользователь может выдать или отнять конкретное право
+ */
+CREATE OR REPLACE FUNCTION appl_permissions.may_assign_permission(user_id$ BIGINT, permission_id$ INTEGER)
 	RETURNS BOOLEAN AS
 $BODY$
 DECLARE
@@ -205,22 +206,111 @@ DECLARE
 BEGIN
 	SELECT permission_to_assign INTO permission_to_assign_id$ FROM carabi_kernel.user_permission WHERE permission_id = permission_id$;
 	IF permission_to_assign_id$ IS NULL THEN
-		permission_to_assign_id$ := appl_permissions.get_user_permission_by_sysname('ADMINISTRATING-USERS-EDIT');
+		permission_to_assign_id$ := appl_permissions.get_user_permission_by_sysname('ADMINISTRATING-PERMISSIONS-ASSIGN');
 	END IF;
 	
 	RETURN appl_permissions.user_has_permission(user_id$, permission_to_assign_id$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
-	
+
 /**
-*/
-CREATE OR REPLACE FUNCTION appl_permissions.may_apply_permission(user_id$ BIGINT, permission_sysname$ CHARACTER VARYING)
+ * Проверка, что конкретный пользователь может выдать или отнять конкретное право
+ */
+CREATE OR REPLACE FUNCTION appl_permissions.may_assign_permission(user_id$ BIGINT, permission_sysname$ CHARACTER VARYING)
 	RETURNS BOOLEAN AS
 $BODY$
 DECLARE
 BEGIN
-	RETURN appl_permissions.may_apply_permission(user_id$, appl_permissions.get_user_permission_by_sysname(permission_sysname$));
+	RETURN appl_permissions.may_assign_permission(user_id$, appl_permissions.get_user_permission_by_sysname(permission_sysname$));
+END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE;
+
+/**
+ * Скопировать права из роли в пользователя, не привязывая роль
+ * current_user_id$ -- id текущего пользователя, выполняющего действие
+ * role_id$ -- id копируемой роли
+ * user_id$ -- id редактируемого пользователя
+ * remove_old_permossions$ -- если true, удалить у пользователя с user_id$ права,
+ * которые current_user может назначать/изымать
+ */
+CREATE OR REPLACE FUNCTION appl_permissions.role_to_user(current_user_id$ BIGINT, role_id$ INTEGER, user_id$ BIGINT, remove_old_permossions$ BOOLEAN)
+	RETURNS VOID AS
+$BODY$
+DECLARE
+	permissions REFCURSOR;
+	has_next BOOLEAN;
+	permission_id$ INTEGER;
+BEGIN
+	IF remove_old_permossions$ THEN
+		OPEN permissions FOR
+			SELECT TRUE AS has_next, permission_id FROM carabi_kernel.user_has_permission WHERE user_id = user_id$;
+		FETCH permissions INTO has_next, permission_id$;
+		WHILE has_next LOOP
+			IF appl_permissions.may_assign_permission(current_user_id$, permission_id$) THEN
+				DELETE FROM carabi_kernel.user_has_permission WHERE user_id = user_id$ AND permission_id = permission_id$;
+			END IF;
+			FETCH permissions INTO has_next, permission_id$;
+		END LOOP;
+		CLOSE permissions;
+	END IF;
+	
+	OPEN permissions FOR
+		SELECT TRUE AS has_next, permission_id FROM carabi_kernel.role_has_permission WHERE role_id = role_id$;
+	FETCH permissions INTO has_next, permission_id$;
+	WHILE has_next LOOP
+		IF appl_permissions.may_assign_permission(current_user_id$, permission_id$) THEN
+			INSERT INTO carabi_kernel.user_has_permission (user_id, permission_id) VALUES (user_id$, permission_id$);
+		ELSE
+			RAISE 'User % can not assign permission %', current_user_id$, permission_id$;
+		END IF;
+		FETCH permissions INTO has_next, permission_id$;
+	END LOOP;
+END;
+$BODY$
+	LANGUAGE plpgsql VOLATILE;
+
+/**
+ * Скопировать права из пользователя в роль (сделать роль шаблоном для назначения другим пользователям)
+ * current_user_id$ -- id текущего пользователя, выполняющего действие
+ * role_id$ -- id редактируемой роли
+ * user_id$ -- id копируемого пользователя
+ * remove_old_permossions$ -- если true, удалить у роли с role_id$ права,
+ * которые current_user может назначать/изымать
+ */
+CREATE OR REPLACE FUNCTION appl_permissions.role_from_user(current_user_id$ BIGINT, role_id$ INTEGER, user_id$ BIGINT, remove_old_permossions$ BOOLEAN)
+	RETURNS VOID AS
+$BODY$
+DECLARE
+	permissions REFCURSOR;
+	has_next BOOLEAN;
+	permission_id$ INTEGER;
+BEGIN
+	IF remove_old_permossions$ THEN
+		OPEN permissions FOR
+			SELECT TRUE AS has_next, permission_id FROM carabi_kernel.role_has_permission WHERE role_id = role_id$;
+		FETCH permissions INTO has_next, permission_id$;
+		WHILE has_next LOOP
+			IF appl_permissions.may_assign_permission(current_user_id$, permission_id$) THEN
+				DELETE FROM carabi_kernel.role_has_permission WHERE role_id = role_id$ AND permission_id = permission_id$;
+			END IF;
+			FETCH permissions INTO has_next, permission_id$;
+		END LOOP;
+		CLOSE permissions;
+	END IF;
+	
+	OPEN permissions FOR
+		SELECT TRUE AS has_next, permission_id FROM carabi_kernel.user_has_permission WHERE user_id = user_id$;
+	FETCH permissions INTO has_next, permission_id$;
+	WHILE has_next LOOP
+		IF appl_permissions.may_assign_permission(current_user_id$, permission_id$) THEN
+			INSERT INTO carabi_kernel.role_has_permission (role_id, permission_id) VALUES (role_id$, permission_id$);
+		ELSE
+			RAISE 'User % can not assign permission %', current_user_id$, permission_id$;
+		END IF;
+		FETCH permissions INTO has_next, permission_id$;
+	END LOOP;
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
