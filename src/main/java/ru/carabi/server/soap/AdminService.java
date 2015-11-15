@@ -1,6 +1,7 @@
 package ru.carabi.server.soap;
 
 import java.io.StringReader;
+import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -11,8 +12,11 @@ import javax.jws.WebMethod;
 import javax.jws.WebParam;
 import javax.jws.WebService;
 import ru.carabi.server.CarabiException;
+import ru.carabi.server.RegisterException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
+import ru.carabi.server.entities.Permission;
+import ru.carabi.server.entities.UserRole;
 import ru.carabi.server.entities.UserStatus;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
@@ -224,8 +228,26 @@ public class AdminService {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			admin.deleteUser(logon, login);
 		}
-	}	
+	}
 	
+	@WebMethod(operationName = "getRolesList")
+	public List<UserRole> getRolesList(
+			@WebParam(name = "token") String token
+		) throws RegisterException, CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getRolesList(logon);
+		}
+	}
+	
+	public Collection<Permission> getRolePermissions(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "strRole") String strRole
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			JsonReader jsonReader = Json.createReader(new StringReader(strRole));
+			return admin.getRolePermissions(logon, jsonReader.readObject());
+		}
+	}
 	/**
 	 * Создать или обновить данные о роли пользователя.
 	 * Параметр strRole должен иметь поля id, name, sysname, description.
@@ -235,7 +257,10 @@ public class AdminService {
 	 * @throws CarabiException 
 	 */
 	@WebMethod(operationName = "saveRole")
-	public void saveRole(@WebParam(name = "token") String token, @WebParam(name = "strRole") String strRole) throws CarabiException {
+	public void saveRole(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "strRole") String strRole
+		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			JsonReader jsonReader = Json.createReader(new StringReader(strRole));
 			admin.saveRole(logon, jsonReader.readObject());
@@ -673,6 +698,18 @@ public class AdminService {
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			admin.assignPermissionForRole(logon, roleSysname, permissionSysname, isAssigned);
+		}
+	}
+	
+	@WebMethod(operationName = "assignRoleForUser")
+	public void assignRoleForUser(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "login") String login,
+			@WebParam(name = "roleSysname") String roleSysname,
+			@WebParam(name = "isAssigned") boolean isAssigned
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			admin.assignRoleForUser(logon, login, roleSysname, isAssigned);
 		}
 	}
 	

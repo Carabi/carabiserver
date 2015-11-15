@@ -3,6 +3,7 @@ package ru.carabi.server.kernel;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -422,6 +423,17 @@ public class AdminBean {
 		}
 	}
 	
+	public List<UserRole> getRolesList(UserLogon logon) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-ROLES-VIEW");
+		TypedQuery<UserRole> getAllUsersRoles = em.createNamedQuery("getAllUsersRoles", UserRole.class);
+		return getAllUsersRoles.getResultList();
+	}
+	
+	public Collection<Permission> getRolePermissions(UserLogon logon, JsonObject roleDetails) throws CarabiException {
+		logon.assertAllowed("ADMINISTRATING-ROLES-VIEW");
+		UserRole userRole = EntityManagerTool.findByIdOrSysname(em, UserRole.class, roleDetails);
+		return userRole.getPermissions();
+	}
 	/**
 	 * Создать или изменить роль пользователя
 	 * @param logon
@@ -450,12 +462,7 @@ public class AdminBean {
 	 */
 	public void deleteRole(UserLogon logon, JsonObject roleDetails) throws CarabiException {
 		logon.assertAllowed("ADMINISTRATING-ROLES-EDIT");
-		UserRole userRole;
-		if (roleDetails.containsKey("id")) {
-			userRole = em.find(UserRole.class, Integer.valueOf(roleDetails.getJsonObject("id").toString()));
-		} else {
-			userRole = EntityManagerTool.findBySysname(em, UserRole.class, roleDetails.getString("sysname"));
-		}
+		UserRole userRole = EntityManagerTool.findByIdOrSysname(em, UserRole.class, roleDetails);
 		em.remove(userRole);
 	}
 	
@@ -1337,6 +1344,29 @@ public class AdminBean {
 		query.setParameter(1, userRole.getId());
 		query.setParameter(2, permission.getId());
 		query.executeUpdate();
+	}
+	
+	public void assignRoleForUser(UserLogon logon, String userLogin, String roleSysname, boolean isAssigned) throws CarabiException {
+		CarabiUser user = uc.findUser(userLogin);
+		UserRole role = EntityManagerTool.findBySysname(em, UserRole.class, roleSysname);
+		if (role == null) {
+			throw new CarabiException("Role " + roleSysname + " does not exists");
+		}
+		assignRoleForUser(logon, user, role, isAssigned);
+	}
+	
+	public void assignRoleForUser(UserLogon logon, CarabiUser user, UserRole role, boolean isAssigned) throws CarabiException {
+		for (Permission permission: role.getPermissions()) {
+			if (!this.mayAssignPermission(logon, permission)) {
+				throw new PermissionException(logon, "to assign role " + role.getSysname() + " because it has permission " + permission.getSysname());
+			}
+		}
+		if (isAssigned) {
+			user.getRoles().add(role);
+		} else {
+			user.getRoles().remove(role);
+		}
+		em.merge(user);
 	}
 	
 	/**

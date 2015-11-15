@@ -3,10 +3,12 @@ package ru.carabi.server;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.json.JsonObject;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.entities.AbstractEntity;
+import ru.carabi.server.entities.UserRole;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
@@ -151,6 +153,16 @@ public class EntityManagerTool {
 			} catch (InstantiationException | IllegalAccessException ex) {
 				Logger.getLogger(EntityManagerTool.class.getName()).log(Level.SEVERE, null, ex);
 			}
+		}
+		return entity;
+	}
+	
+	public static <E extends AbstractEntity> E findByIdOrSysname(EntityManager em, Class<E> eType, JsonObject details) {
+		E entity;
+		if (details.containsKey("id")) {
+			entity = em.find(eType, Integer.valueOf(details.getJsonObject("id").toString()));
+		} else {
+			entity = EntityManagerTool.findBySysname(em, eType, details.getString("sysname"));
 		}
 		return entity;
 	}

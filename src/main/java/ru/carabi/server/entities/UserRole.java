@@ -10,6 +10,8 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 
 /**
@@ -17,6 +19,10 @@ import javax.persistence.Table;
  ** @author sasha<kopilov.ad@gmail.com>
  */
 @Entity
+@NamedQueries({
+	@NamedQuery(name = "getAllUsersRoles",
+		query = "select UR from UserRole UR")
+})
 @Table(name="USER_ROLE")
 public class UserRole extends AbstractEntity implements Serializable {
 	private static final long serialVersionUID = 1L;

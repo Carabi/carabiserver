@@ -79,4 +79,16 @@ public class ProductionService {
 			return productionBean.getLastVersion(logon, productName, department, ignoreDepartment);
 		}
 	}
+	
+	@WebMethod(operationName = "allowForUser")
+	public void allowForUser(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "productName") String productName,
+			@WebParam(name = "userLogin") String userLogin,
+			@WebParam(name = "isAllowed") boolean isAllowed
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			productionBean.allowForUser(logon, productName, userLogin, isAllowed);
+		}
+	}
 }
