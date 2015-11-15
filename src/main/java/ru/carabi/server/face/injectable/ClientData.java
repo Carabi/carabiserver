@@ -35,7 +35,7 @@ public class ClientData {
 	private List<SoftwareProduct> availableProduction;
 	public List<SoftwareProduct> getAvailableProduction() {
 		if (availableProduction == null) {
-			availableProduction = productionBean.getAvailableProduction(currentClient.getUserLogon(), false);
+			availableProduction = productionBean.getAvailableProduction(currentClient.getUserLogon(), false, false);
 		}
 		return availableProduction;
 	}

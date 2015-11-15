@@ -54,8 +54,8 @@ public class ProductionBean {
 	 * @param controlResources проверять, доступны ли продукты на текущем сервере и БД
 	 * @return
 	 */
-	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, boolean controlResources) {
-		return getAvailableProduction(logon, null, controlResources);
+	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, boolean controlResources, boolean showInvisible) {
+		return getAvailableProduction(logon, null, controlResources, showInvisible);
 	}
 	
 	/**
@@ -65,12 +65,12 @@ public class ProductionBean {
 	 * @param controlResources проверять, доступны ли продукты на текущем сервере и БД
 	 * @return
 	 */
-	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct, boolean controlResources) {
+	public List<SoftwareProduct> getAvailableProduction(UserLogon logon, String currentProduct, boolean controlResources, boolean showInvisible) {
 		String sql;
 		if (StringUtils.isEmpty(currentProduct)) {
-			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?, ?)";
-		} else {
 			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?, ?, ?)";
+		} else {
+			sql = "select production_id, name, sysname, home_url, parent_production from appl_production.get_available_production(?, ?, ?, ?)";
 		}
 		Query query = em.createNativeQuery(sql);
 		query.setParameter(1, logon.getToken());
@@ -80,6 +80,7 @@ public class ProductionBean {
 			currentProductIsSet = 1;
 		}
 		query.setParameter(currentProductIsSet + 2, controlResources);
+		query.setParameter(currentProductIsSet + 3, showInvisible);
 		List resultList = query.getResultList();
 		List<SoftwareProduct> result = new ArrayList<>(resultList.size());
 		for (Object row: resultList) {
@@ -371,15 +372,28 @@ public class ProductionBean {
 	}
 	
 	/**
-	 * Проверка, имеет ли право ли пользователь использовать продукт.
-	 * Проверка доступности на сервере и БД не проверяется.
+	 * Проверка, имеет ли пользователь право использовать продукт.
+	 * Проверка доступности на сервере и БД не производится.
 	 * @param logon сессия текущего пользователя
 	 * @param productSysname кодовое название продукта
 	 * @return 
 	 */
 	public boolean productionIsAllowed(UserLogon logon, String productSysname) {
-		
 		Query productionIsAvailable = em.createNativeQuery("select * from appl_production.production_is_available(? ,?, false)");
+		productionIsAvailable.setParameter(1, logon.getToken());
+		productionIsAvailable.setParameter(2, productSysname);
+		List resultList = productionIsAvailable.getResultList();
+		return (Boolean)resultList.get(0);
+	}
+	/**
+	 * Проверка, может ли пользователь использовать продукт в данный момент.
+	 * Производится проверка доступности на сервере и БД.
+	 * @param logon сессия текущего пользователя
+	 * @param productSysname кодовое название продукта
+	 * @return 
+	 */
+	public boolean productionIsAvailable(UserLogon logon, String productSysname) {
+		Query productionIsAvailable = em.createNativeQuery("select * from appl_production.production_is_available(? ,?, true)");
 		productionIsAvailable.setParameter(1, logon.getToken());
 		productionIsAvailable.setParameter(2, productSysname);
 		List resultList = productionIsAvailable.getResultList();

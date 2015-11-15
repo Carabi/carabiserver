@@ -124,7 +124,7 @@ $BODY$
 /**
  * Возвращает все продукты ПО, доступные пользователю в данный момент
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(user_id$ BIGINT, schema_id$ INTEGER, appserver_id$ INTEGER, control_resources$ BOOLEAN)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(user_id$ BIGINT, schema_id$ INTEGER, appserver_id$ INTEGER, control_resources$ BOOLEAN, show_invisible$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
@@ -138,12 +138,12 @@ DECLARE
 BEGIN
 	OPEN root_productions FOR --Выбираем видимые родительские продукты
 		SELECT true as has_next, production_id, name, sysname, home_url, parent_production
-		FROM carabi_kernel.software_production WHERE parent_production IS NULL AND visible;
+		FROM carabi_kernel.software_production WHERE parent_production IS NULL AND (visible OR show_invisible$);
 	FETCH root_productions INTO has_next$, production_id$, name$, sysname$, home_url$, parent_production$;
 	WHILE has_next$ LOOP
 		IF appl_production.production_is_available(user_id$, schema_id$, appserver_id$, production_id$, control_resources$) THEN
 			RETURN NEXT (production_id$, name$, sysname$, parent_production$, home_url$);
-			RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$);
+			RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$, show_invisible$);
 		END IF;
 		FETCH root_productions INTO has_next$, production_id$, name$, sysname$, home_url$, parent_production$;
 	END LOOP;
@@ -155,7 +155,7 @@ $BODY$
 /**
  * Возвращает все дочерние продукты ПО под данным родительским
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(user_id$ BIGINT, schema_id$ INTEGER, appserver_id$ INTEGER, parent_production_id$ INTEGER, control_resources$ BOOLEAN)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(user_id$ BIGINT, schema_id$ INTEGER, appserver_id$ INTEGER, parent_production_id$ INTEGER, control_resources$ BOOLEAN, show_invisible$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
@@ -169,12 +169,12 @@ DECLARE
 BEGIN
 	OPEN child_productions FOR --Выбираем видимые дочерние продукты
 		SELECT true as has_next, production_id, name, sysname, home_url, parent_production
-		FROM carabi_kernel.software_production WHERE parent_production = parent_production_id$ AND visible;
+		FROM carabi_kernel.software_production WHERE parent_production = parent_production_id$ AND (visible OR show_invisible$);
 	FETCH child_productions INTO has_next$, production_id$, name$, sysname$, home_url$, parent_production$;
 	WHILE has_next$ LOOP
 		IF appl_production.production_is_available(user_id$, schema_id$, appserver_id$, production_id$, control_resources$) THEN
 			RETURN NEXT (production_id$, name$, sysname$, parent_production$, home_url$);
-			RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$);
+			RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$, show_invisible$);
 		END IF;
 		FETCH child_productions INTO has_next$, production_id$, name$, sysname$, home_url$, parent_production$;
 	END LOOP;
@@ -186,7 +186,7 @@ $BODY$
 /**
  * Возвращает все продукты ПО, доступные пользователю в данный момент
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, control_resources$ BOOLEAN)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, control_resources$ BOOLEAN, show_invisible$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
@@ -199,7 +199,7 @@ BEGIN
 	IF user_id$ IS NULL THEN
 		RAISE EXCEPTION 'Unknown token: %', token$;
 	END IF;
-	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, control_resources$);
+	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, control_resources$, show_invisible$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
@@ -208,7 +208,7 @@ $BODY$
 /**
  * Возвращает все дочерние продукты ПО под данным родительским, доступные пользователю в данный момент
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, production_sysname$ CHARACTER VARYING, control_resources$ BOOLEAN)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, production_sysname$ CHARACTER VARYING, control_resources$ BOOLEAN, show_invisible$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
@@ -221,7 +221,7 @@ BEGIN
 	IF user_id$ IS NULL THEN
 		RAISE EXCEPTION 'Unknown token: %', token$;
 	END IF;
-	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, appl_production.get_production_by_sysname(production_sysname$), control_resources$);
+	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, appl_production.get_production_by_sysname(production_sysname$), control_resources$, show_invisible$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;
@@ -230,7 +230,7 @@ $BODY$
 /**
  * Возвращает все дочерние продукты ПО под данным родительским, доступные пользователю.
  */
-CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, production_id$ INTEGER, control_resources$ BOOLEAN)
+CREATE OR REPLACE FUNCTION appl_production.get_available_production(token$ CHARACTER VARYING, production_id$ INTEGER, control_resources$ BOOLEAN, show_invisible$ BOOLEAN)
 	RETURNS SETOF appl_production.production AS
 $BODY$
 DECLARE
@@ -243,7 +243,7 @@ BEGIN
 	IF user_id$ IS NULL THEN
 		RAISE EXCEPTION 'Unknown token: %', token$;
 	END IF;
-	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$);
+	RETURN QUERY SELECT * FROM appl_production.get_available_production(user_id$, schema_id$, appserver_id$, production_id$, control_resources$, show_invisible$);
 END;
 $BODY$
 	LANGUAGE plpgsql VOLATILE;

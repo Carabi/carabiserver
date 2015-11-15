@@ -157,12 +157,12 @@ public class UsersControllerBean {
 	}
 	/**
 	 * Проверка наличия токена в системе,
-	 * получение учётки без сохранения в кеше
+	 * получение сессии без сохранения в кеше
 	 * @param token
-	 * @return
-	 * @throws CarabiException 
+	 * @return Сессия текущего пользователя
+	 * @throws RegisterException если указанного токена нет в системе
 	 */
-	public UserLogon tokenControl(String token) throws CarabiException {
+	public UserLogon tokenControl(String token) throws RegisterException  {
 		UserLogon logon = getUserLogon(token);
 		if (logon == null) {
 			final String msg = "Ошибка безопастности сервера. Токен '"+token+"' неизвестен, "
@@ -185,9 +185,9 @@ public class UsersControllerBean {
 	 * Продление активности и срока действия токена.
 	 * @param token
 	 * @return UserLogon - данные регистрации пользователя в системе
-	 * @throws CarabiException если пользователя с заданным токеном нет
+	 * @throws RegisterException если пользователя с заданным токеном нет
 	 */
-	public UserLogon tokenAuthorize(String token) throws CarabiException {
+	public UserLogon tokenAuthorize(String token) throws RegisterException {
 		UserLogon logon = tokenControl(token);
 		if (!activeUsers.containsKey(token)) {
 			activeUsers.put(token, logon);
