@@ -57,6 +57,7 @@ public class RunStoredQuery {
 			@QueryParam("token") String token,
 			@QueryParam("login") String login,
 			@QueryParam("password_hash") String passwordHash,
+			@QueryParam("schema") String schema,
 			@QueryParam("query_sysname") String queryName,
 			MultivaluedMap<String, String> formParams
 		) {
@@ -64,7 +65,7 @@ public class RunStoredQuery {
 		for (Map.Entry<String, List<String>> parameter: formParams.entrySet()) {
 			parametersData.add(parameter.getKey(), parameter.getValue().get(0));
 		}
-		return runQuery(token, login, passwordHash, queryName, parametersData.build());
+		return runQuery(token, login, passwordHash, schema, queryName, parametersData.build());
 	}
 	
 	@POST
@@ -74,6 +75,7 @@ public class RunStoredQuery {
 			@QueryParam("token") String token,
 			@QueryParam("login") String login,
 			@QueryParam("password_hash") String passwordHash,
+			@QueryParam("schema") String schema,
 			@QueryParam("query_sysname") String queryName,
 			JsonObject parametersData
 		) {
@@ -81,9 +83,10 @@ public class RunStoredQuery {
 		try {
 			if (StringUtils.isEmpty(token)) {
 				CarabiUser user = usersPercistence.findUser(login);
-				Holder<String> schema = new Holder<>();
+				Holder<String> schemaHolder = new Holder<>();
+				schemaHolder.value = schema;
 				Holder<String> tokenTmp = new Holder<>();
-				guest.registerUserLight(user, passwordHash, "Temporary session (run stored query REST)", false, true, new Properties(), schema, tokenTmp);
+				guest.registerUserLight(user, passwordHash, "Temporary session (run stored query REST)", false, true, new Properties(), schemaHolder, tokenTmp);
 				token = tokenTmp.value;
 				temporarySession = true;
 			}
