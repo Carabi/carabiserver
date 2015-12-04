@@ -15,9 +15,6 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonString;
 import javax.json.JsonValue;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Path;
 import javax.ws.rs.POST;
@@ -111,7 +108,7 @@ public class RunStoredQuery {
 					default:
 						throw new CarabiException("Unsupported Json type");
 				}
-				parameters.put(parameter.getName(), parameter);
+				parameters.put(parameter.getName().toUpperCase(), parameter);
 			}
 			queryStorage.runQuery(userLogon, queryName, parameters, -Integer.MAX_VALUE);
 			JsonObjectBuilder result = Json.createObjectBuilder();
