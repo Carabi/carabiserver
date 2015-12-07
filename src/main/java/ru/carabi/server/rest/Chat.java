@@ -1,5 +1,6 @@
 package ru.carabi.server.rest;
 
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
@@ -297,16 +298,16 @@ Content-Length: xxx
 		try(UserLogon logon = uc.tokenAuthorize(token)) {
 			if (logon.isPermanent()) {
 				UserLogon targetLogon = new UserLogon();
-				targetLogon.setUser(uc.findUser(login));
+				CarabiUser user = uc.findUser(login);
+				targetLogon.setUser(user);
 				targetLogon.setAppServer(Settings.getCurrentServer());
-				targetLogon = uc.addUser(targetLogon);
+				targetLogon.setUsersController(uc);
+				targetLogon.setToken(user.getLogin() + "-temp-getUnreadMessagesCount" + new Date().toString());
 				Long unreadMessagesCount;
 				try {
 					unreadMessagesCount = chatBean.getUnreadMessagesCount(targetLogon);
 				} catch (Exception e){
 					return e.getMessage();
-				} finally {
-					uc.removeUserLogon(targetLogon.getToken(), true);
 				}
 				return "" + unreadMessagesCount;
 			} else {
