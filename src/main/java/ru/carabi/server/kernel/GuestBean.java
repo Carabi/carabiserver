@@ -317,6 +317,8 @@ public class GuestBean {
 	}
 	
 	private UserLogon createUserLogon(int schemaID, String schemaName, CarabiUser user, boolean connectToOracle, String userAgent) throws CarabiException, NamingException, SQLException {
+		logger.log(Level.FINE, "createUserLogon called with parameters: schemaID={0}, schemaName={1}, user={2}, connectToOracle={3}, userAgent={4}", new Object[]{schemaID, schemaName, user.getLogin(), connectToOracle, userAgent});
+		userInfo = null;
 		ConnectionSchema schema = connectionsGate.getDedicatedSchema(schemaID, schemaName, user.getLogin());
 		if (connectToOracle) {
 			try (Connection connection = connectionsGate.connectToSchema(schema)) {
