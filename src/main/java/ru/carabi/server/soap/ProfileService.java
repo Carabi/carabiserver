@@ -59,19 +59,20 @@ public class ProfileService {
 	
 	/**
 	 * Возвращает права ({@link Permission}), которые текущий пользователь имеет в системе.
+	 * Все (при parentPermissionSysname == null) или в некотором контексте
+	 * (parentPermission и дочерние, либо пустой список, если пользователь не имеет parentPermission).
 	 * @param token токен авторизации
+	 * @param parentPermissionSysname родительское право, дочерние от которого интересуют
 	 * @return список прав
-	 * @throws CarabiException 
+	 * @throws CarabiException если пользователь не авторизован или право parentPermission не найдено
 	 */
 	@WebMethod(operationName = "getPermissions")
 	public Collection<Permission> getPermissions(
-			@WebParam(name = "token") String token
+			@WebParam(name = "token") String token,
+			@WebParam(name = "parentPermissionSysname") String parentPermissionSysname
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			return usersPercistence.getUserPermissions(logon);
-		} catch (CarabiException e) {
-			logger.log(Level.SEVERE, "", e);
-			throw e;
+			return usersPercistence.getUserPermissions(logon.getUser(), parentPermissionSysname);
 		}
 	}
 	

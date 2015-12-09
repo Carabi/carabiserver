@@ -9,6 +9,10 @@ declare
 	ADMINISTRATING_USERS_VIEW_ID$ INTEGER;
 	ADMINISTRATING_USERS_EDIT_ID$ INTEGER;
 
+	MANAGING_USERS_ID$ INTEGER;
+	MANAGING_USERS_VIEW_ID$ INTEGER;
+	MANAGING_USERS_EDIT_ID$ INTEGER;
+
 	ADMINISTRATING_DEPARTMENTS_ID$ INTEGER;
 	ADMINISTRATING_DEPARTMENTS_VIEW_ID$ INTEGER;
 	ADMINISTRATING_DEPARTMENTS_EDIT_ID$ INTEGER;
@@ -70,6 +74,19 @@ begin
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
 	values(DEFAULT, 'Редактировать пользователей', 'ADMINISTRATING-USERS-EDIT', 'Редактировать учётные записи любых пользователей', ADMINISTRATING_USERS_ID$)
 	returning PERMISSION_ID into ADMINISTRATING_USERS_EDIT_ID$;
+
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Ограниченное управление пользователями', 'MANAGING-USERS', 'Просмотр и редактирование учётных записей в пределах подразделения или проекта', ADMINISTRATING_ID$)
+	returning PERMISSION_ID into MANAGING_USERS_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Просматривать доступных пользователей', 'MANAGING-USERS-VIEW', 'Просматривать учётные записи пользователей в пределах подразделения или проекта', MANAGING_USERS_ID$)
+	returning PERMISSION_ID into MANAGING_USERS_VIEW_ID$;
+
+	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
+	values(DEFAULT, 'Редактировать доступных пользователей', 'MANAGING-USERS-EDIT', 'Редактировать учётные записи пользователей в пределах подразделения или проекта', MANAGING_USERS_ID$)
+	returning PERMISSION_ID into MANAGING_USERS_EDIT_ID$;
 
 
 	insert into USER_PERMISSION(PERMISSION_ID, NAME, SYSNAME, DESCRIPTION, PARENT_PERMISSION)
@@ -216,6 +233,10 @@ begin
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_VIEW_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_USERS_EDIT_ID$);
+
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_USERS_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_USERS_VIEW_ID$);
+	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(MANAGER_ID$, MANAGING_USERS_EDIT_ID$);
 
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_DEPARTMENTS_ID$);
 	insert into ROLE_HAS_PERMISSION(role_id, permission_id) values(ADMINISTRATOR_ID$, ADMINISTRATING_DEPARTMENTS_VIEW_ID$);

@@ -23,7 +23,7 @@ import javax.persistence.Table;
 @Table(name="SOFTWARE_PRODUCTION")
 @NamedQuery(name="findSoftwareProduct",
 		query="SELECT P FROM SoftwareProduct P where P.sysname = :productName")
-public class SoftwareProduct implements Serializable {
+public class SoftwareProduct extends AbstractEntity implements Serializable {
 	private static final long serialVersionUID = 1L;
 	@Id
 	@Column(name="PRODUCTION_ID")
@@ -47,37 +47,13 @@ public class SoftwareProduct implements Serializable {
 	@JoinColumn(name="PERMISSION_TO_USE")
 	private Permission permissionToUse;
 	
+	@Override
 	public Integer getId() {
 		return id;
 	}
 	
 	public void setId(Integer id) {
 		this.id = id;
-	}
-	
-	@Override
-	public int hashCode() {
-		int hash = 0;
-		hash += (id != null ? id.hashCode() : 0);
-		return hash;
-	}
-	
-	@Override
-	public boolean equals(Object object) {
-		// TODO: Warning - this method won't work in the case the id fields are not set
-		if (!(object instanceof SoftwareProduct)) {
-			return false;
-		}
-		SoftwareProduct other = (SoftwareProduct) object;
-		if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
-			return false;
-		}
-		return true;
-	}
-	
-	@Override
-	public String toString() {
-		return "ru.carabi.server.CarabiProduct[ id=" + id + " ]";
 	}
 	
 	public String getName() {

@@ -35,7 +35,7 @@ public class AdminService {
 	
 	/**
 	 * Получение списка схем, доступных пользователю.
-	 * @param token
+	 * @param token токен авторизации
 	 * @param login логин
 	 * @return список псевдонимов схем
 	 * @throws CarabiException если такого пользователя нет
@@ -53,7 +53,7 @@ public class AdminService {
 	
 	/**
 	 * Получение списка всех пользователей системы
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param token токен авторизации
 	 * См. 
 	 * {@link ru.carabi.server.soap.GuestService}, 
 	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
@@ -79,7 +79,7 @@ public class AdminService {
 	 * Получение списка активных пользователей.
 	 * Аналогично {@link #getUsersList(java.lang.String)}, но возвращает только 
 	 * активных пользователей (с {@link CarabiUser#status} == "active").
-	 * @param token
+	 * @param token токен авторизации
 	 * @return 
 	 * @throws CarabiException
 	 */
@@ -92,11 +92,7 @@ public class AdminService {
 	
 	/**
 	 * Получение пользователя по id 
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @return JSON-строка вида:
 	 * <pre>
 	 *		"{
@@ -155,11 +151,7 @@ public class AdminService {
 	
 	/**
 	 * Изменение пользовательских данных (по id)
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @param strUser JSON-строка вида:
 	 * <pre>
 	 *		"{
@@ -195,7 +187,7 @@ public class AdminService {
 	/**
 	 * Изменение статуса пользователя.
 	 * Присвоение пользователю {@link UserStatus} с указанным наименованием
-	 * @param token Токен (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param token токен авторизации
 	 * @param login логин редактируемого пользователя
 	 * @param status системное наименование устанавливаемого статуса
 	 * @throws CarabiException 
@@ -213,11 +205,7 @@ public class AdminService {
 	
 	/**
 	 * Удаление пользователя из БД
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @param login логин удаляемого пользователя
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */
@@ -252,7 +240,7 @@ public class AdminService {
 	 * Создать или обновить данные о роли пользователя.
 	 * Параметр strRole должен иметь поля id, name, sysname, description.
 	 * При отсутствии id поле sysname используется в качестве идентификатора.
-	 * @param token token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе.
+	 * @param token токен авторизации
 	 * @param strRole данные о роли пользователя в формате JSON
 	 * @throws CarabiException 
 	 */
@@ -284,11 +272,7 @@ public class AdminService {
 	
 	/**
 	 * Получение списка всех схем подключений системы
-	 * @param token "Токен", идентификатор регистрации в системе (выполненной через сервер приложений).
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @return json-строка вида:
 	 * creates json object with the following structure:
 	 * <pre>
@@ -314,11 +298,7 @@ public class AdminService {
 
 	/**
 	 * Получение полных данных схемы подключения по ее id
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @param id - идентификатор схемы
 	 * @return json-строка вида:
 	 * <pre>
@@ -337,11 +317,7 @@ public class AdminService {
 	
 	/**
 	 * Создание или обновление схемы
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @param strSchema - json-строка вида:
 	 * <pre>
 	 *		{"id":" ", "name":" ", "sysName":" ", "jndiName": " "}
@@ -381,7 +357,7 @@ public class AdminService {
 	
 	/**
 	 * Получение списка всех категорий запросов 
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param token токен авторизации
 	 * @return json-строка вида:
 	 * <pre>
 	 *		{"categories":[
@@ -404,7 +380,7 @@ public class AdminService {
 	
 	/**
 	 * Добавление или изменение категории запросов.
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе.
+	 * @param token токен авторизации
 	 * @param strCategory json категория в виде:
 	 * <pre>
 	 *		{"id":" ", "name":" "}
@@ -422,7 +398,7 @@ public class AdminService {
 
 	/**
 	 * Удаление категории по id.
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе.
+	 * @param token токен авторизации
 	 * @param id - идентификатор удаляемой категории
 	 * @return код ошибки: 0 - все ок, -1 - категория используется в качестве родительской, -2 - категория содержит запросы
 	 * @throws CarabiException - серверная ошибка, ошибка обращения к базе данных
@@ -436,12 +412,8 @@ public class AdminService {
 
 	/**
 	 * Получение списка запросов (всех или одной категории)
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param token токен авторизации
 	 * @param categoryId необязательный параметр, идентификатор категории запросов. если задан, то выбираются только запросы из указанной категории.
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
 	 * @return json-строка вида:
 	 * <pre>
 	 *		{"queries":[
@@ -470,11 +442,7 @@ public class AdminService {
 	/**
 	 * Поиск запросов по имени или системному имени. Нечувствителен к регистру. Ищет совпадения части имени 
 	 * или системного имени запроса с условием. 
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @param condition обязательный параметр, условие поиска запросов. 
 	 * @return json-строка вида:
 	 * <pre>
@@ -500,12 +468,8 @@ public class AdminService {
 
 	/**
 	 * Получение полных данных запроса по его id
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param token токен авторизации
 	 * @param id идентификатор запроса
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
 	 * @return json-строка вида:
 	 *		{"id":<>, "text":"<>", "сategory":"<>", "name":"<>", "schemaId":<>,
 	 *		 "isExecutable":0, 
@@ -529,11 +493,7 @@ public class AdminService {
 	
 	/**
 	 * Создание или обновление запроса
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @param strQuery - json-строка запроса вида:
 	 * <pre>
 	 * </pre>
@@ -551,11 +511,7 @@ public class AdminService {
 	
 	/**
 	 * Удаление хранимого запроса из БД
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
-	 * См. 
-	 * {@link ru.carabi.server.soap.GuestService}, 
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @param id - идентификатор удаляемой записи
 	 * @throws CarabiException - не удается найти пользователя по id
 	 */
@@ -571,7 +527,7 @@ public class AdminService {
 	/**
 	 * Архивация / деархивация запроса. 
 	 * Пометка, что его следует или не следует использовать
-	 * @param token авторизационный токен
+	 * @param token токен авторизации
 	 * @param id id запроса
 	 * @param isDeprecated следует ли использовать запрос
 	 * @throws CarabiException если запрос не найден или при ошибке авторизации
@@ -589,7 +545,7 @@ public class AdminService {
 	
 	/**
 	 * Создать связь между пользователями
-	 * @param token токен текущего пользователя или администратора
+	 * @param token токен авторизации текущего пользователя или администратора
 	 * @param relatedUsersList  привязываемый пользователь (логин или JSON-массив логинов)
 	 * @param mainUserLogin  редактируемый пользователь -- если задан, под токеном должен входить администратор
 	 * @param relation
@@ -613,7 +569,7 @@ public class AdminService {
 	
 	/**
 	 * Удалить связь между пользователями
-	 * @param token токен текущего пользователя или администратора
+	 * @param token токен авторизации текущего пользователя или администратора
 	 * @param relatedUsersList  отвязываемый пользователь (логин или JSON-массив логинов)
 	 * @param mainUserLogin  редактируемый пользователь -- если задан, под токеном должен входить администратор
 	 * @param relation
@@ -637,11 +593,7 @@ public class AdminService {
 	
 	/**
 	 * Получение списка всех типов телефонов.
-	 * @param token "Токен", идентификатор регистрации в системе (выполненной через сервер приложений).
-	 * См.
-	 * {@link ru.carabi.server.soap.GuestService},
-	 * {@link ru.carabi.server.soap.GuestService#registerUserLight(java.lang.String, java.lang.String, java.lang.String, boolean, javax.xml.ws.Holder)} и
-	 * {@link ru.carabi.server.soap.GuestService#registerUser(java.lang.String, java.lang.String, java.lang.String, java.lang.String, int, javax.xml.ws.Holder, javax.xml.ws.Holder)}.
+	 * @param token токен авторизации
 	 * @return json-строка вида:
 	 * <pre>
 	 *  { "phoneTypes": [
@@ -663,44 +615,56 @@ public class AdminService {
 	
 	/**
 	 * Дать или отнять право для пользователя
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param token токен авторизации
 	 * @param login логин пользователя, которому меняем настройки
 	 * @param permissionSysname право, которое даём или забираем
 	 * @param isAssigned true - выдать право, false - забрать
-	 * @throws CarabiException 
+	 * @param autocreate создать право, если его нет в БД
+	 * @throws CarabiException если текущий пользователь не может выдать данное право или (при autocreate == false) если права с таким названием не существует
 	 */
 	@WebMethod(operationName = "assignPermissionForUser")
 	public void assignPermissionForUser (
 			@WebParam(name = "token") String token,
 			@WebParam(name = "login") String login,
 			@WebParam(name = "permissionSysname") String permissionSysname,
-			@WebParam(name = "isAssigned") boolean isAssigned
+			@WebParam(name = "isAssigned") boolean isAssigned,
+			@WebParam(name = "autocreate") boolean autocreate
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			admin.assignPermissionForUser(logon, usersController.findUser(login), permissionSysname, isAssigned);
+			admin.assignPermissionForUser(logon, usersController.findUser(login), permissionSysname, isAssigned, autocreate);
 		}
 	}
 	
 	/**
 	 * Дать или отнять право для роли
-	 * @param token "Токен" (идентификатор) выполненной через сервер приложений регистрации в системе. 
+	 * @param token токен авторизации
 	 * @param roleSysname роль, которую настраиваем
 	 * @param permissionSysname право, которое даём или забираем
 	 * @param isAssigned true - выдать право, false - забрать
-	 * @throws CarabiException 
+	 * @param autocreate создать право, если его нет в БД
+	 * @throws CarabiException если текущий пользователь не может выдать данное право или (при autocreate == false) если права с таким названием не существует
 	 */
 	@WebMethod(operationName = "assignPermissionForRole")
 	public void assignPermissionForRole (
 			@WebParam(name = "token") String token,
 			@WebParam(name = "roleSysname") String roleSysname,
 			@WebParam(name = "permissionSysname") String permissionSysname,
-			@WebParam(name = "isAssigned") boolean isAssigned
+			@WebParam(name = "isAssigned") boolean isAssigned,
+			@WebParam(name = "autocreate") boolean autocreate
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			admin.assignPermissionForRole(logon, roleSysname, permissionSysname, isAssigned);
+			admin.assignPermissionForRole(logon, roleSysname, permissionSysname, isAssigned, autocreate);
 		}
 	}
 	
+	/**
+	 * Присвоить или отнять роль для пользователя.
+	 * @param token токен авторизации
+	 * @param login логин редактируемого пользователя
+	 * @param roleSysname роль, которую присваиваем или отбираем
+	 * @param isAssigned true -- присвоить роль, false -- отобрать роль
+	 * @throws CarabiException 
+	 */
 	@WebMethod(operationName = "assignRoleForUser")
 	public void assignRoleForUser(
 			@WebParam(name = "token") String token,
@@ -744,6 +708,21 @@ public class AdminService {
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			admin.copyPermissionsFromUserToRole(logon, userLogin, newRole, removeOldPermossions);
+		}
+	}
+	
+	/**
+	 * Получить список пользователей, у которых есть указанное право.
+	 * Метод возвращает только пользователей, которым право выдано напрямую (без учёта ролей и allow by default).
+	 * @param token токен авторизации
+	 * @param permissionSysame кодовое название права
+	 * @return список пользователей, у которых есть указанное право 
+	 * @throws ru.carabi.server.CarabiException 
+	 */
+	@WebMethod(operationName = "getUsersHavingPermission")
+	public List<CarabiUser> getUsersHavingPermission(String token, String permissionSysame) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return admin.getUsersHavingPermission(logon, permissionSysame);
 		}
 	}
 }

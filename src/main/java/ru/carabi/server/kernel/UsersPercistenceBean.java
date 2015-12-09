@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
+import ru.carabi.server.EntityManagerTool;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiAppServer;
@@ -230,10 +232,49 @@ public class UsersPercistenceBean {
 		}
 	}
 	
-	public Collection<Permission> getUserPermissions(CarabiUser user) {
-		String sql = "select permission_id, name, sysname, parent_permission from appl_permissions.get_user_permissions(?)";
-		Query query = em.createNativeQuery(sql);
-		query.setParameter(1, user.getId());
+	/**
+	 * Возвращает права ({@link Permission}), которые текущий пользователь имеет в системе.
+	 * Все (при parentPermissionSysname == null) или в некотором контексте
+	 * (parentPermission и дочерние, либо пустой список, если пользователь не имеет parentPermission).
+	 * @param user пользователь, права которого нужны
+	 * @param parentPermissionSysname кодовое название родительского права, дочерние от которого интересуют
+	 * @return список прав
+	 * @throws ru.carabi.server.CarabiException если право parentPermissionSysname не найдено
+	 */
+	public Collection<Permission> getUserPermissions(CarabiUser user, String parentPermissionSysname) throws CarabiException {
+		Permission parentPermission = null;
+		if (StringUtils.isEmpty(parentPermissionSysname)) {
+			return getUserPermissions(user, parentPermission);
+		}
+		if (!userHavePermission(user, parentPermissionSysname)) {
+			return new ArrayList<>();
+		}
+		parentPermission = EntityManagerTool.findBySysname(em, Permission.class, parentPermissionSysname);
+		Collection<Permission> userPermissions = getUserPermissions(user, parentPermission);
+		userPermissions.add(parentPermission);
+		return userPermissions;
+	}
+	
+	/**
+	 * Возвращает права указанного пользователя.
+	 * Все (при parentPermission == null) или в некотором контексте
+	 * (parentPermission и дочерние, либо пустой список, если пользователь не имеет parentPermission).
+	 * @param user пользователь, права которого нужны
+	 * @param parentPermission родительское право, дочерние от которого интересуют
+	 * @return список прав пользователя user
+	 */
+	public Collection<Permission> getUserPermissions(CarabiUser user, Permission parentPermission) {
+		Query query = null;
+		if (parentPermission == null) {
+			String sql = "select permission_id, name, sysname, parent_permission from appl_permissions.get_user_permissions(?)";
+			query = em.createNativeQuery(sql);
+			query.setParameter(1, user.getId());
+		} else {
+			String sql = "select permission_id, name, sysname, parent_permission from appl_permissions.get_user_permissions(?, ?)";
+			query = em.createNativeQuery(sql);
+			query.setParameter(1, user.getId());
+			query.setParameter(2, parentPermission.getId());
+		}
 		List resultList = query.getResultList();
 		Set<Permission> result = new HashSet<>();
 		for (Object row: resultList) {
@@ -247,7 +288,13 @@ public class UsersPercistenceBean {
 		}
 		return result;
 	}
+	
+	/**
+	 * Возвращает все права текущего пользователя
+	 * @param logon сессия текущего пользователя
+	 * @return список прав текущего пользователя
+	 */
 	public Collection<Permission> getUserPermissions(UserLogon logon) {
-		return getUserPermissions(logon.getUser());
+		return getUserPermissions(logon.getUser(), (Permission)null);
 	}
 }

@@ -8,6 +8,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.entities.AbstractEntity;
+import ru.carabi.server.entities.SoftwareProduct;
 import ru.carabi.server.entities.UserRole;
 import ru.carabi.server.logging.CarabiLogging;
 

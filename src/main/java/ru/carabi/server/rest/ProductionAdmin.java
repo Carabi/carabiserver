@@ -58,7 +58,8 @@ public class ProductionAdmin {
 			String login = data.getString("login");
 			String productSysname = data.getString("product");
 			boolean allow = data.getBoolean("allow");
-			productionBean.allowForUser(logon, productSysname, login, allow);
+			boolean autocreate = data.getBoolean("autocreate");
+			productionBean.allowForUser(logon, productSysname, login, allow, autocreate);
 			result.add("status", "ok");
 		} catch (CarabiException ex) {
 			logger.log(Level.SEVERE, null, ex);

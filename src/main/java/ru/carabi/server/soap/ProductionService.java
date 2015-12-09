@@ -80,15 +80,27 @@ public class ProductionService {
 		}
 	}
 	
+	/**
+	 * Изменить доступ пользователя к продукту.
+	 * Возможно создание продукта и права налету (текущий пользователь должен иметь право
+	 * ADMINISTRATING-PRODUCTS-EDIT и ADMINISTRATING-PERMISSIONS-EDIT)
+	 * @param token авторизационный токен
+	 * @param productName системное имя продукта
+	 * @param userLogin пользователь
+	 * @param isAllowed true -- дать доступ, false -- отобрать доступ.
+	 * @param autocreate создать продукт и право на его использование, если их нет.
+	 * @throws CarabiException 
+	 */
 	@WebMethod(operationName = "allowForUser")
 	public void allowForUser(
 			@WebParam(name = "token") String token,
 			@WebParam(name = "productName") String productName,
 			@WebParam(name = "userLogin") String userLogin,
-			@WebParam(name = "isAllowed") boolean isAllowed
+			@WebParam(name = "isAllowed") boolean isAllowed,
+			@WebParam(name = "autocreate") boolean autocreate
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			productionBean.allowForUser(logon, productName, userLogin, isAllowed);
+			productionBean.allowForUser(logon, productName, userLogin, isAllowed, autocreate);
 		}
 	}
 }
