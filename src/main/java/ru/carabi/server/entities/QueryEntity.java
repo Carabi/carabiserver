@@ -28,7 +28,7 @@ import javax.persistence.Table;
 		query="SELECT Q.id FROM QueryEntity Q where Q.sysname = :queryName"),
 	@NamedQuery(name = "selectCategoryQueries",
 		//query="select Q from QueryEntity Q where Q.category.id = :categoryId and Q.isDeprecated = false order by Q.name"),
-		query="select Q from QueryEntity Q where Q.category.id = :categoryId order by Q.name"),
+		query="select Q from QueryEntity Q where Q.category.id = :categoryId order by Q.sysname, Q.name"),
 	@NamedQuery(name = "selectAllQueries",
 		query="select Q from QueryEntity Q order by Q.name"),
 })
