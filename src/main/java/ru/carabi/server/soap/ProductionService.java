@@ -103,4 +103,30 @@ public class ProductionService {
 			productionBean.allowForUser(logon, productName, userLogin, isAllowed, autocreate);
 		}
 	}
+	
+	/**
+	 * Сделать пользователя "владельцем" проекта.
+	 * Кроме права пользования проектом, он получает возможность выдавать это право
+	 * (и, по умолчанию, дочерние) другим пользователям.
+	 * Возможно создание продукта и прав налету (текущий пользователь должен иметь право
+	 * ADMINISTRATING-PRODUCTS-EDIT и ADMINISTRATING-PERMISSIONS-EDIT)
+	 * @param token авторизационный токен
+	 * @param productName системное имя продукта
+	 * @param userLogin пользователь
+	 * @param isGranted true -- дать доступ, false -- отобрать доступ.
+	 * @param autocreate создать продукт и право на его использование, если их нет.
+	 * @throws CarabiException 
+	 */
+	@WebMethod(operationName = "grantForUser")
+	public void grantForUser(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "productName") String productName,
+			@WebParam(name = "userLogin") String userLogin,
+			@WebParam(name = "isGranted") boolean isGranted,
+			@WebParam(name = "autocreate") boolean autocreate
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			productionBean.grantForUser(logon, productName, userLogin, isGranted, autocreate);
+		}
+	}
 }

@@ -203,8 +203,14 @@ CREATE OR REPLACE FUNCTION appl_permissions.may_assign_permission(user_id$ BIGIN
 $BODY$
 DECLARE
 	permission_to_assign_id$ INTEGER;
+	parent_permission_id$ INTEGER;
 BEGIN
-	SELECT permission_to_assign INTO permission_to_assign_id$ FROM carabi_kernel.user_permission WHERE permission_id = permission_id$;
+	SELECT permission_to_assign, parent_permission INTO permission_to_assign_id$, parent_permission_id$
+	FROM carabi_kernel.user_permission WHERE permission_id = permission_id$;
+	WHILE permission_to_assign_id$ IS NULL AND parent_permission_id$ IS NOT NULL LOOP
+		SELECT permission_to_assign, parent_permission INTO permission_to_assign_id$, parent_permission_id$
+		FROM carabi_kernel.user_permission WHERE permission_id = parent_permission_id$;
+	END LOOP;
 	IF permission_to_assign_id$ IS NULL THEN
 		permission_to_assign_id$ := appl_permissions.get_user_permission_by_sysname('ADMINISTRATING-PERMISSIONS-ASSIGN');
 	END IF;

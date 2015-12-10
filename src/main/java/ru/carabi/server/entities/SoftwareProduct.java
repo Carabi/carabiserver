@@ -33,6 +33,7 @@ public class SoftwareProduct extends AbstractEntity implements Serializable {
 	private String name;
 	private String sysname;
 	private String description;
+	private boolean visible;
 	
 	@Column(name="HOME_URL")
 	private String homeUrl;
@@ -78,6 +79,14 @@ public class SoftwareProduct extends AbstractEntity implements Serializable {
 	
 	public void setDescription(String description) {
 		this.description = description;
+	}
+	
+	public boolean isVisible() {
+		return visible;
+	}
+	
+	public void setVisible(boolean visible) {
+		this.visible = visible;
 	}
 	
 	public Integer getParentProductId() {

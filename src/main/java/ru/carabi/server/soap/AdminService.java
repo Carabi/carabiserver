@@ -20,6 +20,7 @@ import ru.carabi.server.entities.UserRole;
 import ru.carabi.server.entities.UserStatus;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
+import ru.carabi.server.kernel.UsersPercistenceBean;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
@@ -30,6 +31,7 @@ import ru.carabi.server.logging.CarabiLogging;
 @WebService(serviceName = "AdminService")
 public class AdminService {
 	@EJB private UsersControllerBean usersController;
+	@EJB private UsersPercistenceBean usersPercistence;
 	@EJB private AdminBean admin;
 	private static final Logger logger = CarabiLogging.getLogger(AdminService.class);
 	
@@ -723,6 +725,46 @@ public class AdminService {
 	public List<CarabiUser> getUsersHavingPermission(String token, String permissionSysame) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			return admin.getUsersHavingPermission(logon, permissionSysame);
+		}
+	}
+	
+	/**
+	 * Возвращает права ({@link Permission}), которые указанный пользователь имеет в системе.
+	 * Все (при parentPermissionSysname == null) или в некотором контексте
+	 * (parentPermission и дочерние, либо пустой список, если пользователь не имеет parentPermission).
+	 * @param token токен авторизации
+	 * @param login пользователь, права которого нужны
+	 * @param parentPermissionSysname родительское право, дочерние от которого интересуют
+	 * @return список прав
+	 * @throws CarabiException если пользователь не авторизован или право parentPermission не найдено
+	 */
+	@WebMethod(operationName = "getUserPermissions")
+	public Collection<Permission> getUserPermissions(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "login") String login,
+			@WebParam(name = "parentPermissionSysname") String parentPermissionSysname
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return usersPercistence.getUserPermissions(usersPercistence.findUser(login), parentPermissionSysname);
+		}
+	}
+	
+	/**
+	 * Имеет ли некоторыый пользователь указанное право.
+	 * @param token токен авторизации
+	 * @param login пользователь, право которого нужно
+	 * @param permissionSysname кодовое имя права
+	 * @return имеет ли текущий пользователь указанное право
+	 * @throws CarabiException если пользователь не авторизован или право не найдено
+	 */
+	@WebMethod(operationName = "userHasPermision")
+	public boolean userHasPermision(
+			@WebParam(name = "token") String token,
+			@WebParam(name = "login") String login,
+			@WebParam(name = "permissionSysname") String permissionSysname
+		) throws CarabiException {
+		try (UserLogon logon = usersController.tokenAuthorize(token)) {
+			return usersPercistence.userHavePermission(usersPercistence.findUser(login), permissionSysname);
 		}
 	}
 }

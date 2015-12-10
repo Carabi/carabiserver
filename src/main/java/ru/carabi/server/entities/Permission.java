@@ -31,6 +31,9 @@ public class Permission extends AbstractEntity implements Serializable {
 	@Column(name="PARENT_PERMISSION")
 	private Integer parentPermissionId;
 	
+	@Column(name="PERMISSION_TO_ASSIGN")
+	private Integer permissionToAssignId;
+	
 	@Override
 	public Integer getId() {
 		return id;
@@ -72,4 +75,11 @@ public class Permission extends AbstractEntity implements Serializable {
 		this.parentPermissionId = parentPermissionId;
 	}
 	
+	public Integer getPermissionToAssignId() {
+		return permissionToAssignId;
+	}
+	
+	public void setPermissionToAssignId(Integer permissionToAssignId) {
+		this.permissionToAssignId = permissionToAssignId;
+	}
 }

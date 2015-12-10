@@ -4,7 +4,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashSet;
 import java.util.List;
@@ -239,7 +238,7 @@ public class UsersPercistenceBean {
 	 * @param user пользователь, права которого нужны
 	 * @param parentPermissionSysname кодовое название родительского права, дочерние от которого интересуют
 	 * @return список прав
-	 * @throws ru.carabi.server.CarabiException если право parentPermissionSysname не найдено
+	 * @throws ru.carabi.server.CarabiException если право parentPermission не найдено
 	 */
 	public Collection<Permission> getUserPermissions(CarabiUser user, String parentPermissionSysname) throws CarabiException {
 		Permission parentPermission = null;
@@ -250,6 +249,9 @@ public class UsersPercistenceBean {
 			return new ArrayList<>();
 		}
 		parentPermission = EntityManagerTool.findBySysname(em, Permission.class, parentPermissionSysname);
+		if (parentPermission == null) {
+			throw new CarabiException("Permission " + parentPermissionSysname + " not found");
+		}
 		Collection<Permission> userPermissions = getUserPermissions(user, parentPermission);
 		userPermissions.add(parentPermission);
 		return userPermissions;
