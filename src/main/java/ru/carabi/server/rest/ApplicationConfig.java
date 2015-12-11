@@ -34,6 +34,7 @@ public class ApplicationConfig extends Application {
 		resources.add(ru.carabi.server.rest.Chat.class);
 		resources.add(ru.carabi.server.rest.DepartmentsAdmin.class);
 		resources.add(ru.carabi.server.rest.FireEvent.class);
+		resources.add(ru.carabi.server.rest.PermissionsAdmin.class);
 		resources.add(ru.carabi.server.rest.ProductionAdmin.class);
 		resources.add(ru.carabi.server.rest.RunStoredQuery.class);
 		resources.add(ru.carabi.server.rest.UsersAdmin.class);
