@@ -12,6 +12,7 @@ import javax.enterprise.context.RequestScoped;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.QueryParam;
@@ -77,12 +78,14 @@ public class ProductionAdmin {
 			@QueryParam("token") String token,
 			@FormParam("login") String login,
 			@FormParam("product") String product,
-			@FormParam("allow") String allow
+			@FormParam("allow") String allow,
+			@FormParam("autocreate") @DefaultValue("false") String autocreate
 		) {
 		JsonObjectBuilder data = Json.createObjectBuilder();
 		data.add("login", login);
 		data.add("product", product);
 		data.add("allow", Boolean.valueOf(allow));
+		data.add("autocreate", Boolean.valueOf(autocreate));
 		JsonObject result = allowForUser(token, data.build());
 		return result.getString("status");
 	}

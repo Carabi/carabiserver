@@ -1,20 +1,14 @@
 package ru.carabi.server.rest;
 
-import java.math.BigDecimal;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.POST;
 import javax.ws.rs.QueryParam;
@@ -22,6 +16,7 @@ import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.kernel.AdminBean;
 import ru.carabi.server.kernel.UsersControllerBean;
+import ru.carabi.server.logging.CarabiLogging;
 
 /**
  * Управление правами пользователей
@@ -30,6 +25,7 @@ import ru.carabi.server.kernel.UsersControllerBean;
  */
 @Path("permissions_admin")
 public class PermissionsAdmin {
+	private static final Logger logger = CarabiLogging.getLogger(PermissionsAdmin.class);
 
 	@EJB private AdminBean admin;
 	@EJB private UsersControllerBean usersController;
@@ -43,23 +39,28 @@ public class PermissionsAdmin {
 	 * isAssigned true &ndash; выдать право, false &ndash; забрать
 	 * autocreate &ndash; создать право, если его нет в БД
 	 * @param token токен авторизации
-	 * @param data JSON-объект с полями login, permissionSysname [, isAssigned = true, autocreate = false]
+	 * @param data JSON-объект с полями login, permission [, isAssigned = true, autocreate = false]
 	 */
 	@POST
 	@Consumes("application/json")
-	public void assignPermissionForUser(
+	public JsonObject assignPermissionForUser(
 			@QueryParam("token") String token,
 			JsonObject data
 		) {
+		JsonObjectBuilder result = Json.createObjectBuilder();
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			String login = data.getString("login");
-			String permissionSysname = data.getString("permissionSysname");
+			String permissionSysname = data.getString("permission");
 			boolean isAssigned = data.getBoolean("isAssigned", true);
 			boolean autocreate = data.getBoolean("autocreate", false);
 			admin.assignPermissionForUser(logon, usersController.findUser(login), permissionSysname, isAssigned, autocreate);
+			result.add("status", "ok");
 		} catch (CarabiException ex) {
-			Logger.getLogger(PermissionsAdmin.class.getName()).log(Level.SEVERE, null, ex);
+			logger.log(Level.SEVERE, null, ex);
+			result.add("status", "error");
+			result.add("details", ex.getMessage());
 		}
+		return result.build();
 	}
 	
 	/**
@@ -68,22 +69,18 @@ public class PermissionsAdmin {
 	 */
 	@POST
 	@Consumes("application/x-www-form-urlencoded")
-	public void assignPermissionForUser(
+	public JsonObject assignPermissionForUser(
 			@QueryParam("token") String token,
 			@FormParam("login") String login,
-			@FormParam("permissionSysname") String permissionSysname,
+			@FormParam("permission") String permission,
 			@FormParam("isAssigned") @DefaultValue("true") String isAssigned,
 			@FormParam("autocreate") @DefaultValue("false") String autocreate
 		) {
-		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			JsonObjectBuilder data = Json.createObjectBuilder();
-			data.add("login", login);
-			data.add("permissionSysname", permissionSysname);
-			data.add("isAssigned", Boolean.valueOf(isAssigned));
-			data.add("autocreate", Boolean.valueOf(autocreate));
-			assignPermissionForUser(token, data.build());
-		} catch (CarabiException ex) {
-			Logger.getLogger(PermissionsAdmin.class.getName()).log(Level.SEVERE, null, ex);
-		}
+		JsonObjectBuilder data = Json.createObjectBuilder();
+		data.add("login", login);
+		data.add("permission", permission);
+		data.add("isAssigned", Boolean.valueOf(isAssigned));
+		data.add("autocreate", Boolean.valueOf(autocreate));
+		return assignPermissionForUser(token, data.build());
 	}
 }
