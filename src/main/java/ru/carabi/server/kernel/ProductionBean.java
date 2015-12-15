@@ -303,7 +303,7 @@ public class ProductionBean {
 		}
 		Integer parentProductId = product.getParentProductId();
 		if (parentProductId != null && isAllowed) {
-			allowForUser(logon, em.find(SoftwareProduct.class, parentProductId), user, isAllowed, autocreate);
+			allowForUser(logon, em.find(SoftwareProduct.class, parentProductId), user, isAllowed, false);
 		}
 		admin.assignPermissionForUser(logon, user, permissionToUse, isAllowed);
 		return permissionToUse;
