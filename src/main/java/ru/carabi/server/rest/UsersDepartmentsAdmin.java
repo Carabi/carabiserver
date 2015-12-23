@@ -9,10 +9,8 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -29,38 +27,20 @@ import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.kernel.UsersPercistenceBean;
 
 /**
- * Сервис для управления пользовательской базой из Oracle
+ * Добавление/редактирование пользователей с автогенерацией подразделений
  * @author sasha<kopilov.ad@gmail.com>
  */
-@Path("users_admin/{schema}")
+@Path("users_departments_admin/{schema}")
 @RequestScoped
-public class UsersAdmin {
+public class UsersDepartmentsAdmin {
 	
 	@EJB private AdminBean admin;
 	@EJB private ConnectionsGateBean cg;
 	@EJB private UsersControllerBean usersController;
 	@EJB private UsersPercistenceBean usersPercistence;
 	
-	@GET
-	@Produces("text/plain")
-	public String getUserID(
-			@QueryParam("token") String token,
-			@DefaultValue("") @QueryParam("login") String login
-		) {
-		UserLogon logon = usersController.getUserLogon(token);
-		if (logon == null) {
-			return "Unknown token: " + token;
-		}
-		try {
-			logon.assertAllowed("ADMINISTRATING-USERS-VIEW");
-			return "" + usersPercistence.getUserID(login);
-		} catch (CarabiException ex) {
-			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
-		}
-		return null;
-	}
 	
-	@POST 
+	@POST
 	@Consumes({"application/json"})
 	@Produces("text/plain")
 	/**
@@ -110,7 +90,7 @@ public class UsersAdmin {
 		allowedSchemaIds.add(schemaID);
 		userDataNew.add("allowedSchemaIds", allowedSchemaIds.build());
 		try {
-			return admin.saveUser(logon, userDataNew.build(), userIsNew, false).toString();
+			return admin.saveUser(logon, userDataNew.build(), userIsNew, true).toString();
 		} catch (Exception ex) {
 			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
 			return ex.getMessage();
@@ -130,7 +110,9 @@ public class UsersAdmin {
 			@DefaultValue("") @FormParam("firstName") String firstName,
 			@DefaultValue("") @FormParam("middleName") String middleName,
 			@DefaultValue("") @FormParam("lastName") String lastName,
-			@DefaultValue("") @FormParam("department") String department,
+			@DefaultValue("") @FormParam("corporation_name") String corporationName,
+			@DefaultValue("") @FormParam("corporation_sysname") String corporationSysname,
+			@DefaultValue("") @FormParam("department_name") String departmentName,
 			@DefaultValue("") @FormParam("department_sysname") String departmentSysname,
 			@DefaultValue("") @FormParam("role") String role,
 			@DefaultValue("") @FormParam("phones") String phones,
@@ -143,30 +125,13 @@ public class UsersAdmin {
 				.add("firstName", firstName)
 				.add("middleName", middleName)
 				.add("lastName", lastName)
-				.add("departmentName", department)
+				.add("corporationName", corporationName)
+				.add("corporationSysname", corporationSysname)
+				.add("departmentName", departmentName)
 				.add("departmentSysname", departmentSysname)
 				.add("role", role)
 				.add("phones", phones);
 		return addUserJson(token, userData.build(), schemaName);
 	}
 	
-	@DELETE
-	@Produces("text/plain")
-	public String markBanned(
-			@QueryParam("token") String token,
-			@QueryParam("login") String login,
-			@DefaultValue("banned") @QueryParam("status") String status,
-			@PathParam("schema") String schemaName
-	) {
-		try (UserLogon logon = usersController.tokenAuthorize(token)) {
-			if (logon == null) {
-				return "Unknown token: " + token;
-			}
-			admin.setUserStatus(logon, login, status);
-			return login + " " + status;
-		} catch (CarabiException ex) {
-			Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
-			return ex.getMessage();
-		}
-	}
 }

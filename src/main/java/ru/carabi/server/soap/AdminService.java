@@ -182,7 +182,7 @@ public class AdminService {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			final String nonUrlNewData = strUser.replace("&quot;", "\"");
 			JsonReader jsonReader = Json.createReader(new StringReader(nonUrlNewData));
-			return admin.saveUser(logon, jsonReader.readObject(), true);
+			return admin.saveUser(logon, jsonReader.readObject(), true, false);
 		}
 	}
 	

@@ -11,7 +11,9 @@ import javax.persistence.NonUniqueResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
+import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
+import ru.carabi.server.EntityManagerTool;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.Department;
 import ru.carabi.server.logging.CarabiLogging;
@@ -63,6 +65,31 @@ public class DepartmentsPercistenceBean {
 		} else {
 			return department;
 		}
+	}
+	
+	/**
+	 * Поиск подразделения или автогенерация.
+	 * @param name
+	 * @param sysname
+	 * @param description
+	 * @param forceUpdate
+	 * @return 
+	 */
+	public Department getOrCreateDepartment(String name, String sysname, String description, boolean forceUpdate) {
+		Department department = EntityManagerTool.findBySysnameOrCreate(em, Department.class, sysname);
+		boolean isNew = department.getSysname() == null;
+		if (isNew) {
+			department.setSysname(sysname);
+		}
+		if (isNew || StringUtils.isEmpty(department.getName()) || forceUpdate) {
+			department.setName(name);
+		}
+		if (isNew || StringUtils.isEmpty(department.getDescription()) || forceUpdate) {
+			department.setDescription(description);
+		}
+		department = em.merge(department);
+		em.flush();
+		return department;
 	}
 	
 	/**

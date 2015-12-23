@@ -258,10 +258,11 @@ public class AdminBean {
 	 * @param logon сессия текущего пользователя
 	 * @param userDetails Информация о пользователе
 	 * @param updateSchemas обновлять данные о доступе к схемам (если редактируем имевшегося пользователя из Oracle -- то нет)
+	 * @param autocreateDepartment создать позразделения с указанными данными, если их нет в базе
 	 * @return ID пользователя
 	 * @throws CarabiException
 	 */
-	public Long saveUser(UserLogon logon, JsonObject userDetails, boolean updateSchemas) throws CarabiException {
+	public Long saveUser(UserLogon logon, JsonObject userDetails, boolean updateSchemas, boolean autocreateDepartment) throws CarabiException {
 		logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 		// create or fetch user
 		String idStr = Utls.getNativeJsonString(userDetails,"id");
@@ -274,20 +275,40 @@ public class AdminBean {
 		user.setPassword(userDetails.getString("password"));
 		
 		//deprecated fields
-		user.setCarabiDepartment(userDetails.getString("department"));
+		user.setCarabiDepartment(userDetails.getString("departmentName"));
 		user.setCarabiRole(userDetails.getString("role"));
 		
-		//update corporation/department if inputed
-		if (userDetails.containsKey("corporationSysname")) {
-			Department corporation = departmentsPercistence.findDepartment(userDetails.getString("corporationSysname"));
-			user.setCorporation(corporation);
+		if (autocreateDepartment) {
+			if (userDetails.containsKey("corporationSysname")) {
+				Department corporation = departmentsPercistence.getOrCreateDepartment(
+						userDetails.getString("corporationName"),
+						userDetails.getString("corporationSysname"),
+						null,
+						false
+				);
+				user.setCorporation(corporation);
+			}
+			if (userDetails.containsKey("departmentSysname")) {
+				Department department = departmentsPercistence.getOrCreateDepartment(
+						userDetails.getString("departmentName"),
+						userDetails.getString("departmentSysname"),
+						null,
+						false
+				);
+				user.setDepartment(department);
+			}
+		} else {
+			//update corporation/department if inputed
+			if (userDetails.containsKey("corporationSysname")) {
+				Department corporation = departmentsPercistence.findDepartment(userDetails.getString("corporationSysname"));
+				user.setCorporation(corporation);
+			}
+
+			if (userDetails.containsKey("departmentSysname")) {
+				Department department = departmentsPercistence.findDepartment(userDetails.getString("departmentSysname"));
+				user.setDepartment(department);
+			}
 		}
-		
-		if (userDetails.containsKey("departmentSysname")) {
-			Department department = departmentsPercistence.findDepartment(userDetails.getString("departmentSysname"));
-			user.setDepartment(department);
-		}
-		
 		// update phones (incorrect from some schemas)
 		try {
 			if (user.getPhonesList() != null) {
