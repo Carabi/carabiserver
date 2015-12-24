@@ -16,8 +16,8 @@ import javax.persistence.Table;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
- *
- * @author sasha
+ * Телефон пользователя.
+ * @author sasha<kopilov.ad@gmail.com>
  */
 @Entity
 @Table(name="PHONE")
@@ -25,7 +25,7 @@ import ru.carabi.server.logging.CarabiLogging;
 	@NamedQuery(name="selectUserPhones",
 		query="select p from Phone p where p.owner.id = :ownerId")
 })
-public class Phone implements Serializable {
+public class Phone extends AbstractEntity {
 	private static final long serialVersionUID = 1L;
 	
 	@Id
@@ -177,25 +177,5 @@ public class Phone implements Serializable {
 	public void setSipSchema(ConnectionSchema sipSchema) {
 		this.sipSchema = sipSchema;
 	}
-	
-	@Override
-	public int hashCode() {
-		int hash = 0;
-		hash += (id != null ? id.hashCode() : 0);
-		return hash;
-	}
-	
-	@Override
-	public boolean equals(Object object) {
-		// TODO: Warning - this method won't work in the case the id fields are not set
-		if (!(object instanceof CarabiUser)) {
-			return false;
-		}
-		Phone other = (Phone) object;
-		if ((this.id == null && other.id != null) || (this.id != null && !this.id.equals(other.id))) {
-			return false;
-		}
-		return true;
-	}
-	
+
 }

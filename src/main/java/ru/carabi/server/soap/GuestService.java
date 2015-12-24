@@ -122,11 +122,6 @@ public class GuestService {
 			@WebParam(name = "info", mode = WebParam.Mode.OUT) Holder<SoapUserInfo> info//Результат
 		) throws CarabiException, RegisterException {
 		try {
-			logger.log(Level.INFO, "cg.tryConnectToOracle({0}, {1}, {2});", new Object[]{guestSesion.getSchemaID(), guestSesion.getSchemaName(), login});
-		} catch (Exception ex) {
-			logger.log(Level.SEVERE, null, ex);
-		}
-		try {
 			CarabiUser user = guest.searchUser(login);
 			user = guest.checkCurrentServer(user);
 			return guest.registerUser(user, passwordTokenClient, userAgent, getConnectionProperties(clientIp), version, vc, schemaID, info, guestSesion);

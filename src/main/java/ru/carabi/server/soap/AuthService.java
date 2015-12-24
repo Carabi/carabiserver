@@ -174,8 +174,8 @@ public class AuthService {
 	 * Отключение ({@link #disconnect(java.lang.String) }) и удаление токена из БД навсегда.
 	 * @param token Токен выходящего пользователя
 	 */
-	@WebMethod(operationName = "unauthorize")
-	public void unauthorize(@WebParam(name = "token") String token) {
+	@WebMethod(operationName = "removeToken")
+	public void removeToken(@WebParam(name = "token") String token) {
 		usersController.removeUserLogon(token, true);
 	}
 	

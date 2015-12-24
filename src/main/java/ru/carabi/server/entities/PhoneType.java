@@ -21,6 +21,11 @@ import javax.persistence.Table;
 	@NamedQuery(name = "selectAllPhoneTypes", query = "select PT from PhoneType PT")
 })
 public class PhoneType implements Serializable {
+	//typical sysnames
+	public static final String SIP = "SIP";
+	public static final String MOBILE = "mobile";
+	public static final String SIMPLE = "simple";
+
 	private static final long serialVersionUID = 1L;
 	
 	@Id
