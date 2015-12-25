@@ -32,7 +32,7 @@ import ru.carabi.server.logging.CarabiLogging;
  * Имеется два способа авторизации:
  * <ul>
  * <li>
- *		двухэтапный ({@linkplain #wellcomeNN}, {@linkplain #registerUser}) &ndash;
+ *		двухэтапный ({@linkplain #wellcomeNN}, {@link #createToken}) &ndash;
  *		для настольных приложений, создающих долгоживущую сессию и получающих информацию о клиенте;
  * </li>
  * <li>
@@ -56,7 +56,7 @@ public class AuthService {
 	
 	@Resource
 	private WebServiceContext context;
-//	
+	
 //	/**
 //	 * Предварительная авторизация.
 //	 * Первый этап двухэтапной авторизации.
@@ -77,31 +77,25 @@ public class AuthService {
 //	 * @param passwordTokenClient ключ &mdash; md5 (md5(login+password)+ (Settings.projectName + "9999" + Settings.serverName timestamp из welcome)) *[login и md5 -- в верхнем регистре]
 //	 * @param userAgent название программы-клиента
 //	 * @param clientIp локальный IP-адрес клиентского компьютера (для журналирования)
-//	 * @param schemaID
-//	 * @param info
+//	 * @param continuousConnection
+//	 * @param schemaName
+//	 * @param autoCloseableConnection
 //	 * @return код результата. 0(ноль) &mdash; успех, отрицательный &mdash; ошибка. 
 //	 */
-//	@WebMethod(operationName = "registerUser")
-//	public String registerUser(
+//	@WebMethod(operationName = "createToken")
+//	public String createToken(
 //			@WebParam(name = "login") String login,
-//			@WebParam(name = "password") String passwordTokenClient,
+//			@WebParam(name = "passwordTokenClient") String passwordTokenClient,
 //			@WebParam(name = "userAgent") String userAgent,
 //			@WebParam(name = "clientIp") String clientIp,
+//			@WebParam(name = "continuousConnection") boolean continuousConnection,
 //			@WebParam(name = "schemaName") final String schemaName,
-//			@WebParam(name = "autoCloseableConnection") boolean autoCloseableConnection,
-//			@WebParam(name = "notConnectToOracle") boolean notConnectToOracle,
-//			@WebParam(name = "schemaID", mode = WebParam.Mode.OUT) Holder<Integer> schemaID, //Порядковый номер схемы БД
-//			@WebParam(name = "info", mode = WebParam.Mode.OUT) Holder<SoapUserInfo> info//Результат
+//			@WebParam(name = "autoCloseableConnection") boolean autoCloseableConnection
 //		) throws CarabiException, RegisterException {
-//		try {
-//			logger.log(Level.INFO, "cg.tryConnectToOracle({0}, {1}, {2});", new Object[]{schemaID, schemaName, login});
-//		} catch (Exception ex) {
-//			logger.log(Level.SEVERE, null, ex);
-//		}
 //		try {
 //			CarabiUser user = auth.searchUser(login);
 //			user = auth.checkCurrentServer(user);
-//			return auth.registerUser(user, passwordTokenClient, userAgent, getConnectionProperties(clientIp), schemaID, info, authSesion);
+//			return auth.createToken(user, passwordTokenClient, userAgent, getConnectionProperties(clientIp), schemaName, authSesion);
 //		} catch (RegisterException e) {
 //			if (e.badLoginPassword()) {
 //				logger.log(Level.INFO, "", e);

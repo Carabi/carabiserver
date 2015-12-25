@@ -1,6 +1,5 @@
 package ru.carabi.server.kernel;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -48,30 +47,23 @@ public class AuthBean {
 //	 * Производит проверку версии, сохранение данных о клиенте в памяти, генерацию timestamp
 //	 * (шифровального дополнения к паролю), проверка доступности БД
 //	 * @param login Имя пользователя
-//	 * @param schemaID ID целевой схемы Oracle (-1 для выбора по названию)
-//	 * @param schemaName Название целевой схемы Oracle (пустое значение для выбора основной схемы)
-//	 * @param autoCloseableConnection Закрывать Oracle-сессию после каждого вызова -- рекомендуется при редком обращении, если не используются прокрутки
-//	 * @param notConnectToOracle Не подключаться к Oracle при авторизации (использование данной опции не позволит вернуть подробные данные о пользователе)
-//	 * @param timestamp Выходной параметр &mdash; выдача шифровального ключа для передачи пароля на втором этапе
-//	 * @return Код возврата:
-//	 *	<ul>
-//	 *		<li><strong>0</strong> при успешном выполнении</li>
-//	 *		<li>{@link Settings#VERSION_MISMATCH}, если vc != 0 и version != {@link Settings#projectVersion}</li>
-//	 *	</ul>
+//	 * @param authSesion
+//	 * @return 
 //	 */
 //	public String welcome(
 //			final String login,
-//			AuthSesion guestSesion
+//			AuthSesion authSesion
 //		) {
-//		guestSesion.setLogin(login);
+//		authSesion.setLogin(login);
 //		int cnt = (int)(Math.random() * 1000 + 1000);
 //		StringBuilder timestampBuilder = new StringBuilder(cnt);
 //		for (int i=0; i<cnt; i++) {
 //			timestampBuilder.append((char)(Math.random() * 90 + 32));
 //		}
 //		timestampBuilder.append(DateFormat.getInstance().format(new Date()));
-//		guestSesion.setTimeStamp(Settings.projectName + "9999" + Settings.serverName);
-//		return timestampBuilder.toString();
+//		String timestamp = timestampBuilder.toString();
+//		authSesion.setTimeStamp(Settings.projectName + "9999" + Settings.serverName + timestamp);
+//		return timestamp;
 //	}
 //	
 //	/**
@@ -81,33 +73,30 @@ public class AuthBean {
 //	 * @param passwordTokenClient ключ -- md5 (md5(login+password)+ (Settings.projectName + "9999" + Settings.serverName timestamp из welcome)) *[login и md5 -- в верхнем регистре]
 //	 * @param userAgent название программы-клиента
 //	 * @param connectionProperties свойства подключения клиента (для журналирования). Должны содержать ipAddrWhite, ipAddrGrey и serverContext.
-//	 * @param version Номер версии
-//	 * @param vc Проверять номер версии
-//	 * @param schemaID
-//	 * @param info
+//	 * @param schemaName
+//	 * @param authSesion
 //	 * @return токен
 //	 */
-//	public String registerUser(
+//	public String createToken(
 //			CarabiUser user,
 //			String passwordTokenClient,
 //			String userAgent,
 //			Properties connectionProperties,
-//			Holder<Integer> schemaID, //Порядковый номер схемы БД
-//			Holder<SoapUserInfo> info, //Результат
-//			AuthSesion guestSesion
+//			String schemaName,
+//			AuthSesion authSesion
 //		) throws CarabiException, RegisterException {
 //		String login = user.getLogin();
 //		try {
 //			logger.log(Level.INFO, messages.getString("registerStart"), login);
-//			//Получаем пользователя по имени из схемы с нужным номером или названием
-//			UserLogon logon = null;//createUserLogon(guestSesion.getSchemaID(), guestSesion.getSchemaName(), user, guestSesion.connectToOracle(), userAgent);
+//			//Создаём сессию для пользователя с привязкой к нужной вторичной БД
+//			UserLogon logon = createUserLogon(-1, schemaName, user, userAgent);
 //			//Сверяем пароль
 //			logger.log(Level.INFO, "passwordCipher: {0}", logon.getUser().getPassword());
-//			logger.log(Level.INFO, "timestamp: {0}", guestSesion.getTimeStamp());
-//			String passwordTokenServer = DigestUtils.md5Hex(logon.getUser().getPassword() + guestSesion.getTimeStamp());
+//			logger.log(Level.INFO, "timestamp: {0}", authSesion.getTimeStamp());
+//			String passwordTokenServer = DigestUtils.md5Hex(logon.getUser().getPassword() + authSesion.getTimeStamp());
 //			logger.log(Level.INFO, "passwordTokenServer: {0}", passwordTokenServer);
 //			logger.log(Level.INFO, "passwordTokenClient: {0}", passwordTokenClient);
-//			passwordTokenServer = DigestUtils.md5Hex(logon.getUser().getPassword() + guestSesion.getTimeStamp());
+//			passwordTokenServer = DigestUtils.md5Hex(logon.getUser().getPassword() + authSesion.getTimeStamp());
 //			if (!passwordTokenClient.equalsIgnoreCase(passwordTokenServer)) {
 //				throw new RegisterException(RegisterException.MessageCode.BAD_PASSWORD_KERNEL);
 //			}
@@ -115,13 +104,7 @@ public class AuthBean {
 //			logon.setGreyIpAddr(connectionProperties.getProperty("ipAddrGrey"));
 //			logon.setWhiteIpAddr(connectionProperties.getProperty("ipAddrWhite"));
 //			logon.setServerContext(connectionProperties.getProperty("serverContext"));
-//			String token = authorizeUserLogon(logon, true);//guestSesion.requireSession());
-//			//Готовим информацию для возврата
-//			SoapUserInfo soapUserInfo = authorize.createSoapUserInfo(userInfo);
-//			info.value = soapUserInfo;
-//			if (logon.getSchema() != null) {
-//				schemaID.value = logon.getSchema().getId();
-//			}
+//			String token = authorizeUserLogon(logon, true);
 //			return token;
 //		} catch (CarabiException e) {
 //			if (!RegisterException.class.isInstance(e)) {
