@@ -153,7 +153,11 @@ public class SqlQueryBean {
 				}
 				i++;
 			}
-			OracleUtls.fetchResultCursors(logon, parameters.value, fetchCount, connection, statement, cursorFetcher);
+			boolean cursorsOpened = OracleUtls.fetchResultCursors(logon, parameters.value, fetchCount, connection, statement, cursorFetcher);
+			if (!cursorsOpened) {
+				statement.close();
+				logon.freeConnection(connection);
+			}
 			return 0;
 		} catch (CarabiException ex) {
 			Logger.getLogger(SqlQueryBean.class.getName()).log(Level.SEVERE, null, ex);

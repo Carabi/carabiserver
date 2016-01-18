@@ -339,7 +339,6 @@ public class OracleUtls {
 					cursorsSaved = true;
 				} else {
 					cursor.close();
-					logon.freeConnection(connection);
 				}
 			}
 		}

@@ -233,6 +233,7 @@ public class QueryStorageBean {
 			String message;
 			if (!cursorsOpened) {
 				statement.close();
+				logon.freeConnection(connection);
 				message = "statementClosed";
 			} else {
 				message = "cursorsOpened";
