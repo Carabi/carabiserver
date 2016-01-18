@@ -1,21 +1,35 @@
 package ru.carabi.server.kernel;
 
 import java.sql.Connection;
-import java.util.HashMap;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.soap.SoapUserInfo;
 
 /**
  * Пустая реализация интерфейса {@link AuthorizeSecondary}.
- * Используется при отсутствии неядровой БД.
+ * Используется при отсутствии пользовательской базы в неядровой БД
+ * или при отсутствии неядровой БД вообще.
  * 
  * @author sasha<kopilov.ad@gmail.com>
  */
 public class AuthorizeSecondaryAbstract implements AuthorizeSecondary {
 	
+	@Override
+	public boolean hasUsersList() {
+		return false;
+	}
+	
+	@Override
+	public boolean supportsAuthorize() {
+		return false;
+	}
+	
 	/**
-	 * Ничего не делает, так как нет БД
+	 * Ничего не делает, так как БД отсутствует или не поддерживает авторизацию сессии
 	 */
 	@Override
 	public void authorizeUser(Connection connection, UserLogon logon) {
@@ -39,8 +53,8 @@ public class AuthorizeSecondaryAbstract implements AuthorizeSecondary {
 	 * @return пустая выборка
 	 */
 	@Override
-	public HashMap<String, ?> getDetailedUserInfo(Connection connection, String login) {
-		return new HashMap<>();
+	public Map<String, ?> getDetailedUserInfo(Connection connection, String login) {
+		return new ConcurrentHashMap<>();
 	}
 	
 	/**
@@ -49,7 +63,7 @@ public class AuthorizeSecondaryAbstract implements AuthorizeSecondary {
 	 * @return пустой объект SoapUserInfo.
 	 */
 	@Override
-	public SoapUserInfo createSoapUserInfo(HashMap<String, ?> detailedUserInfo) {
+	public SoapUserInfo createSoapUserInfo(Map<String, ?> detailedUserInfo) {
 		return new SoapUserInfo();
 	}
 	
@@ -59,12 +73,17 @@ public class AuthorizeSecondaryAbstract implements AuthorizeSecondary {
 	 * @return -1 (ID ненайденного пользователя)
 	 */
 	@Override
-	public long getUserID(HashMap<String, ?> detailedUserInfo) {
+	public long getSelectedUserID(Map<String, ?> detailedUserInfo) {
 		return -1;
 	}
 
 	@Override
-	public String getUserDisplayString(CarabiUser user, HashMap<String, ?> userInfo) {
+	public String getUserDisplayString(CarabiUser user, Map<String, ?> userInfo) {
 		return user.getFirstname() + " " + user.getMiddlename() + " " + user.getLastname();
+	}
+
+	@Override
+	public long getCurrentUserId(Connection connection) throws SQLException, CarabiException {
+		return -1;
 	}
 }

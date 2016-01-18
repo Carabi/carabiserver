@@ -12,8 +12,8 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -24,7 +24,6 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import javax.xml.ws.Holder;
@@ -63,7 +62,7 @@ public class GuestBean {
 	
 	@PersistenceContext(unitName = "ru.carabi.server_carabiserver-kernel")
 	private EntityManager em;
-	HashMap<String, ?> userInfo;
+	Map<String, ?> userInfo;
 	
 	private static final ResourceBundle messages = ResourceBundle.getBundle("ru.carabi.server.soap.Messages");
 
@@ -334,7 +333,7 @@ public class GuestBean {
 			}
 		}
 		UserLogon logon = new UserLogon();
-		logon.setExternalId(authorize.getUserID(userInfo));
+		logon.setExternalId(authorize.getSelectedUserID(userInfo));
 		logon.setUser(user);
 		//final String userDisplayString = authorize.getUserDisplayString(user, userInfo);
 		logon.setDisplay(authorize.getUserDisplayString(user, userInfo));

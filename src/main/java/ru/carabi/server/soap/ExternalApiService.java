@@ -24,10 +24,10 @@ public class ExternalApiService {
 	
 //	@WebMethod(operationName = "sendEmail")
 //	public void sendEmail (
-//		@WebParam(name = "senderToken") String senderToken,
-//		@WebParam(name = "receiverLogin") String receiverLogin,
-//		@WebParam(name = "subject") String subject,
-//		@WebParam(name = "text") String text
+//			@WebParam(name = "senderToken") String senderToken,
+//			@WebParam(name = "receiverLogin") String receiverLogin,
+//			@WebParam(name = "subject") String subject,
+//			@WebParam(name = "text") String text
 //		) throws CarabiException {
 //		try (UserLogon logon = usersController.tokenAuthorize(senderToken)) {
 //			logger.log(Level.INFO, "email:\nFrom: {0}\nTo: {1}\nSubjcet: {2}\n\n{3}", new Object[]{logon.userLogin(), receiverLogin, subject, text});
@@ -46,10 +46,10 @@ public class ExternalApiService {
 	 */
 	@WebMethod(operationName = "sendSms")
 	public void sendSms (
-		@WebParam(name = "token") String token,
-		@WebParam(name = "receiverLogin") String receiverLogin,
-		@WebParam(name = "text") String text,
-		@WebParam(name = "sender") String sender
+			@WebParam(name = "token") String token,
+			@WebParam(name = "receiverLogin") String receiverLogin,
+			@WebParam(name = "text") String text,
+			@WebParam(name = "sender") String sender
 		) throws CarabiException {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			smsSender.sendSmsMessage(logon, usersController.findUser(receiverLogin), text, sender);

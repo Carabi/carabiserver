@@ -315,21 +315,19 @@ public class LoadAvatar extends HttpServlet {
 			return;
 		}
 		try (UserLogon logon = uc.tokenAuthorize(token)) {
+			// если логин не указан, меняем аватарку пользователя, вызывающего метод
 			if (login == null) {
 				login = logon.userLogin();
+			} else {
+				logon.assertAllowed("ADMINISTRATING-USERS-EDIT");
 			}
 			
 			//Определяем владельца аватара
-			CarabiUser user;
-			if (logon.isPermanent()) {
-				if (StringUtils.isEmpty(login)) {
-					sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter login required");
-					return;
-				}
-				user = uc.findUser(login);
-			} else {
-				user = logon.getUser();
+			if (StringUtils.isEmpty(login)) { // если логин незаполнен, выдаем ошибку
+				sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter login required");
+				return;
 			}
+			CarabiUser user = uc.findUser(login);
 			if (user == null) {
 				sendError(response, HttpServletResponse.SC_NOT_FOUND, "User not found");
 				return;

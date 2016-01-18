@@ -148,7 +148,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	private String userAgent;
 	
 	@Transient
-	private int oracleSID = -1;//ID сессии в Oracle -- для журналирования и контроля
+	private int secondarySID = -1;//ID сессии во вторичной БД  -- для журналирования и контроля
 	
 	@Transient
 	private int carabiLogID = -1;//ID Carabi-журнала в Oracle
@@ -167,7 +167,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	/**
 	 * Возврашает ID пользователя в текущей неядровой БД
-	 * @return ID пользователя в текущей неядровой БД Oracle
+	 * @return ID пользователя в текущей неядровой БД
 	 */
 	public long getExternalId() {
 		return externalID;
@@ -238,7 +238,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	}
 	
 	/**
-	 * Получение рабочего подключения к Oracle.
+	 * Получение рабочего подключения к неядровой БД.
 	 * Создание центрального подключеия, если оно не создано.
 	 * @return connection
 	 */
@@ -290,8 +290,8 @@ public class UserLogon implements Serializable, AutoCloseable {
 	
 	/**
 	 * Проверка встроенного пула подключений.
-	 * Заняты ли они, закрытие давно не занятых. Должно вызываться по таймеру
-	 * из UsersControllerBean
+	 * Заняты ли они, закрытие давно не занятых. (ToDo: абстрагироваться от Oracle)
+	 * Должно вызываться по таймеру из UsersControllerBean
 	 * @param cursorFetcher ссылка на модуль прокрутки для доп. проверки занятости подключений
 	 */
 	public void monitorConnections(CursorFetcherBean cursorFetcher) {
@@ -342,13 +342,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * @return connection
 	 */
 	public synchronized Connection getMasterConnection() {
-		if (externalID < 0) {//ещё не вошли в неядровую БД
-			try (Connection connectionTmp = connectionsGate.connectToSchema(schema)) {
-				externalID = authorizeSecondary.getUserID(connectionTmp, userLogin());
-			} catch (CarabiException | NamingException | SQLException ex) {
-				Logger.getLogger(UserLogon.class.getName()).log(Level.SEVERE, null, ex);
-			}
-		}
 		checkMasterConnection();
 		return masterConnection;
 	}
@@ -453,8 +446,8 @@ public class UserLogon implements Serializable, AutoCloseable {
 		this.carabiLogID = carabiLogID;
 	}
 	
-	public int getOracleSID() {
-		return oracleSID;
+	public int getSecondarySID() {
+		return secondarySID;
 	}
 	
 	public Date getLogonDate() {
@@ -474,6 +467,16 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 * @throws SQLException 
 	 */
 	private void authorize(Connection connection, boolean openedFromPool) throws SQLException {
+		if (authorizeSecondary.supportsAuthorize()) {
+			if (externalID < 0) {
+				try (Connection connectionTmp = connectionsGate.connectToSchema(schema)) {
+					externalID = authorizeSecondary.getUserID(connectionTmp, userLogin());
+				} catch (CarabiException | NamingException | SQLException ex) {
+					Logger.getLogger(UserLogon.class.getName()).log(Level.WARNING, null, ex);
+				}
+			}
+			authorizeSecondary.authorizeUser(connection, this);
+		}
 		String postfix;
 		if (openedFromPool) {
 			postfix = "/Pooled";
@@ -481,7 +484,6 @@ public class UserLogon implements Serializable, AutoCloseable {
 			postfix = "/Master";
 		}
 		setSessionInfo(connection, "" + carabiLogID, userLogin() + postfix + "/SOAP_SERVER");
-		authorizeSecondary.authorizeUser(connection, this);
 	}
 	
 	public Collection<Permission> getPermissions() {
@@ -543,7 +545,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 			} finally {
 				masterConnection.close();
 				masterConnection = null;
-				oracleSID = -1;
+				secondarySID = -1;
 			}
 		}
 		for (Entry<Integer, Connection> connectionKey: connections.entrySet()) {
@@ -582,11 +584,14 @@ public class UserLogon implements Serializable, AutoCloseable {
 		try {
 			boolean ok = connection != null && !connection.isClosed() && connection.isValid(10);
 			if (ok) {
-				int currentUserID = selectUserID();
-				int currentOracleSID = selectOracleSID();
-				if (currentUserID != externalID || currentOracleSID != oracleSID) {
-					logger.log(Level.WARNING, "different id: current in oracle: {0}, in java: {1}", new Object[]{currentUserID, externalID});
-					authorize(connection, openedFromPool);
+				//Перепроверка, что подключение ассоциировано с нужным пользователем --
+				//только если БД поддерживает авторизацию
+				if (authorizeSecondary.supportsAuthorize()) {
+					long currentUserID = authorizeSecondary.getCurrentUserId(connection);
+					if (externalID >= 0  && (currentUserID != externalID)) {
+						logger.log(Level.WARNING, "different id: current in database: {0}, in java: {1}", new Object[]{currentUserID, externalID});
+						authorize(connection, openedFromPool);
+					}
 				}
 				return connection;
 			} else {
@@ -634,13 +639,13 @@ public class UserLogon implements Serializable, AutoCloseable {
 	 */
 	private boolean checkCarabiLog() {
 		try {
-			int currentOracleSID = selectOracleSID();
-			logger.log(Level.FINE, "checkCarabiLog: carabiLogID: {0}, currentOracleSID: {1}, oracleSID: {2}", new Object[]{carabiLogID, currentOracleSID, oracleSID});
-			if (carabiLogID == -1 || currentOracleSID != oracleSID) {
+			int currentSecondarySID = selectSecondarySID();
+			logger.log(Level.FINE, "checkCarabiLog: carabiLogID: {0}, currentOracleSID: {1}, oracleSID: {2}", new Object[]{carabiLogID, currentSecondarySID, secondarySID});
+			if (carabiLogID == -1 || currentSecondarySID != secondarySID) {
 				if (carabiLogID != -1) {
 					CarabiLogging.closeUserLog(this);
 				}
-				oracleSID = currentOracleSID;
+				secondarySID = currentSecondarySID;
 				carabiLogID = CarabiLogging.openUserLog(this, masterConnection);
 			}
 			return true;
@@ -656,6 +661,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	/**
 	 * Установка служебной информации в сессии Oracle.
 	 * Указание, что сессия принадлежит конкретному пользователю и данной программе.
+	 * ToDo: вынести из UserLogon, абстрагироваться от Oracle
 	 * @param connection подписываемая сессия
 	 * @param actionName информация о действии, передаваемая в Oracle &mdash; сейчас используется ID журнала
 	 * @param userName информация о текущем пользователе, передаваемая в Oracle
@@ -685,24 +691,11 @@ public class UserLogon implements Serializable, AutoCloseable {
 		}
 	}
 	/**
-	 * Получение ID сессии в Oracle.
+	 * Получение ID сессии в о вторичной БД.
+	 * ToDo: вынести из UserLogon, абстрагироваться от Oracle
 	 */
-	private int selectOracleSID() throws SQLException, CarabiException {
+	private int selectSecondarySID() throws SQLException, CarabiException {
 		String sql = "SELECT SID FROM V$MYSTAT WHERE ROWNUM = 1";
-		try (PreparedStatement statement = masterConnection.prepareStatement(sql)) {
-			ResultSet sidResultSet = statement.executeQuery();
-			if (sidResultSet.next()) {
-				return sidResultSet.getInt(1);
-			} else {
-				throw new CarabiException("could not get SID");
-			}
-		}
-	}
-	/**
-	 * Получение ID пользователя в Oracle.
-	 */
-	private int selectUserID() throws SQLException, CarabiException {
-		String sql = "SELECT documents.GET_USER_ID from dual";
 		try (PreparedStatement statement = masterConnection.prepareStatement(sql)) {
 			ResultSet sidResultSet = statement.executeQuery();
 			if (sidResultSet.next()) {
@@ -724,7 +717,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 		connections = original.connections;
 		connectionsFree = original.connectionsFree;
 		connectionsLastActive = original.connectionsLastActive;
-		oracleSID = original.oracleSID;
+		secondarySID = original.secondarySID;
 		carabiLogID = original.carabiLogID;
 		logonDate = original.logonDate;
 	}

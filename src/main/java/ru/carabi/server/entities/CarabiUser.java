@@ -42,7 +42,7 @@ import javax.persistence.Temporal;
 		query = "select U from CarabiUser U order by U.firstname, U.middlename, U.lastname"),
 	@NamedQuery(name="getActiveUsersList",
 		query = "select U from CarabiUser U where U.status.sysname = 'active' " +
-				"AND (U.department.sysname in :departments OR U.corporation.sysname in :departments) " +
+				"AND (U.corporation.sysname in :departments) " +
 				"order by U.firstname, U.middlename, U.lastname"),
 	@NamedQuery(name="getSelectedUsersList",
 		query = "select U from CarabiUser U where U.id in :idlist"),// order by U.firstname, U.middlename, U.lastname
@@ -51,7 +51,7 @@ import javax.persistence.Temporal;
 				"where (upper(U.login) like :search or upper(U.firstname) like :search " +
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " +
 				"or upper(U.carabiRole) like :search or upper(U.carabiDepartment) like :search) " +
-				"AND (U.department.sysname in :departments OR U.corporation.sysname in :departments) " +
+				"AND (U.corporation.sysname in :departments) " +
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getSelectedUsersListSearch",
 		query = "select U from CarabiUser U where U.id in :idlist and (" +
@@ -64,7 +64,7 @@ import javax.persistence.Temporal;
 				"upper(U.login) like :search or upper(U.firstname) like :search " + 
 				"or upper(U.middlename) like :search or upper(U.lastname) like :search " + 
 				"or upper(U.carabiRole) like :search or upper(U.carabiDepartment) like :search )" + 
-				"AND (U.department.sysname in :departments OR U.corporation.sysname in :departments) " +
+				"AND (U.corporation.sysname in :departments) " +
 				"order by U.firstname, U.middlename, U.lastname "),
 	@NamedQuery(name="getRelatedUsersList",
 		query = "select UR.relatedUser from UserRelation UR where UR.mainUser = :user")
