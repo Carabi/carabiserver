@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -91,7 +92,7 @@ public class QueryService {
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			final ArrayList<CarabiDocumentBean.CarabiDocProperty> propertiesList = carabiDocument.getPropertiesList(logon, kindId, documentId);
 			logger.log(Level.FINE, "We have {0} properties in service", propertiesList.size());
-			final String strPropertiesList = new JSONArray(propertiesList).toString();
+			final String strPropertiesList = new JSONArray((Collection)propertiesList).toString();
 			return strPropertiesList;
 		}
 	}
@@ -179,7 +180,7 @@ public class QueryService {
 			// in the bean (or interface), because, as you know, things do really happen
 
 			// stringify results as JSON
-			return new JSONArray(list.value).toString();
+			return Utls.listToJson(list.value).build().toString();
 		}
 	}
 
@@ -283,7 +284,7 @@ public class QueryService {
 			}
 
 			// stringify results as JSON
-			return new JSONArray(list.value).toString(); 
+			return Utls.listToJson(list.value).build().toString();
 		}
 	}
 	
@@ -395,8 +396,8 @@ public class QueryService {
 			Holder<ArrayList<ArrayList<String>>> columns = new Holder<>();
 			Holder<ArrayList<ArrayList<?>>> list = new Holder<>();
 			int result = xmlQuery.docSearchXmlFetch(logon, xmlTypefilter, startPos, fetchCount, queryTag, orderBy, idList, xmlUserfilter, docLike, kindId, nocount, browserMask, parentId, columns, list, endpos, lastTag, count);
-			columnsJson.value = new JSONArray(columns.value).toString();
-			listJson.value = new JSONArray(list.value).toString();
+			columnsJson.value = Utls.listToJson(columns.value).build().toString();
+			listJson.value = Utls.listToJson(list.value).build().toString();
 			return result;
 		}
 	}
