@@ -41,7 +41,7 @@
         <dependency>
             <groupId>ru.carabi</groupId>
             <artifactId>libs</artifactId>
-            <version>1.1</version>
+            <version>2.2</version>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
@@ -57,7 +57,7 @@
         <dependency>
             <groupId>ru.carabi</groupId>
             <artifactId>stub_free</artifactId>
-            <version>2.2.1</version>
+            <version>2.2.3</version>
         </dependency>
         <dependency>
             <groupId>commons-fileupload</groupId>
