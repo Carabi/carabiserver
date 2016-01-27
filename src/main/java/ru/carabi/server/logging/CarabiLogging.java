@@ -233,7 +233,10 @@ public abstract class CarabiLogging {
 	
 	public static void closeUserLog(UserLogon logon) throws SQLException {
 		personalLoggers.remove(logon.getToken());
-		closeDatabaseLog(logon.getMasterConnection(), logon);
+		if (logon.getExternalId() >= 0) {
+			Connection connection = logon.getMasterConnection();
+			closeDatabaseLog(connection, logon);
+		}
 	}
 
 	private static void closeDatabaseLog(Connection connection, UserLogon logon) throws SQLException {
