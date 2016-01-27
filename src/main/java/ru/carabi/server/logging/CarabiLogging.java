@@ -6,7 +6,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -22,12 +24,15 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import javax.naming.Context;
+import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletContextEvent;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.Settings;
 import ru.carabi.server.UserLogon;
+import ru.carabi.server.kernel.UsersControllerBean;
 
 /**
  * Вспомогательные функции для журналирования.
@@ -169,7 +174,32 @@ public abstract class CarabiLogging {
 	}
 
 	private static int openDatabaseLog(Connection connection, UserLogon logon) throws NamingException, SQLException {
-		return -1;//cutted
+		Context ctx = new InitialContext();
+		UsersControllerBean usersController = (UsersControllerBean) ctx.lookup("java:module/UsersControllerBean");
+		String sql = "declare \n" +
+				"i integer; \n" +
+				"begin \n" +
+				" i := open_user_log( \n" +
+				"  ?,\n" + // 1 ct_item_id
+				"  ?,\n" + // 2 sid  --SELECT SID FROM V$MYSTAT WHERE ROWNUM = 1
+				"  ?,\n" + // 3 ip
+				"  ?,\n" + // 4 file_name
+				"  ?,\n" + // 5 serversid
+				"  ? \n" + // 6 usernum
+				");\n" +
+				"? := i;" + // 7 result
+				"end;";
+		try (CallableStatement statement = connection.prepareCall(sql)) {
+			statement.setLong(1, logon.getExternalId());
+			statement.setInt(2, logon.getSecondarySID());
+			statement.setString(3, logon.getWhiteIpAddr() + "(" + logon.getGreyIpAddr() + ")->" + logon.getServerContext());
+			statement.setString(4, getLogonLogLocation(logon));
+			statement.setNull(5, Types.NUMERIC);
+			statement.setInt(6, usersController.getActiveUsers().size());
+			statement.registerOutParameter(7, Types.NUMERIC);
+			statement.execute();
+			return statement.getInt(7);
+		}
 	}
 	
 	private static final Map<String, Map<String, Logger>> personalLoggers = new ConcurrentHashMap<>();
@@ -224,7 +254,27 @@ public abstract class CarabiLogging {
 	}
 
 	private static void logToDatabase(UserLogon logon, String message, String details) {
-		//cutted
+		String sql = "begin\n" +
+		"write_user_log_event(\n" +
+		"  ?,\n" + //1 ulog_id
+		"  ?,\n" + //2 ct_item_id
+		"  ?,\n" + //3 sid
+		"  ?,\n" + //4 action_name
+		"  ?,\n" + //5 object_name
+		"  ? \n" + //6 document_id
+		");\n" +
+		"end;";
+		try (PreparedStatement statement = logon.getMasterConnection().prepareStatement(sql)) {
+			statement.setInt(1, logon.getCarabiLogID());
+			statement.setLong(2, logon.getExternalId());
+			statement.setInt(3, logon.getSecondarySID());
+			statement.setString(4, message);
+			statement.setString(5, details);
+			statement.setNull(6, Types.INTEGER);
+			statement.execute();
+		} catch (SQLException ex) {
+			getLogger(CarabiLogging.class).log(Level.SEVERE, "error in logging: log=" + logon.getCarabiLogID() + ", user=" +logon.getExternalId() + ", sid=" +logon.getSecondarySID() + "\n" +message + "\n" +details, ex);
+		}
 	}
 	
 	private static String getLogonLogLocation(UserLogon logon) {
@@ -240,7 +290,12 @@ public abstract class CarabiLogging {
 	}
 
 	private static void closeDatabaseLog(Connection connection, UserLogon logon) throws SQLException {
-		//cutted
+		String sql = "update user_log u set u.date_logoff = sysdate where ulog_id= ?";
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			statement.setInt(1, logon.getCarabiLogID());
+			statement.execute();
+			logon.setCarabiLogID(-1);
+		}
 	}
 	
 	private static final Formatter formatter = new CarabiFormatter();

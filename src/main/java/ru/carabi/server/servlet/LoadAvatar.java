@@ -76,10 +76,10 @@ public class LoadAvatar extends HttpServlet {
 			sendError(response, HttpServletResponse.SC_BAD_REQUEST, "Parameter token required");
 			return;
 		}
-		//ширина масштабирования (по умолчанию без масштабирования)
-		int width = parceIntParam(request, response, -1, "width", "w");
-		//высота масштабирования (по умолчанию без масштабирования)
-		int height = parceIntParam(request, response, -1, "height", "h");
+		//ширина масштабирования (по умолчанию 128)
+		int width = parceIntParam(request, response, 128, "width", "w");
+		//высота масштабирования (по умолчанию 128)
+		int height = parceIntParam(request, response, 128, "height", "h");
 		try (UserLogon logon = uc.tokenAuthorize(token)) {
 			String login = request.getParameter("login");
 			if (StringUtils.isEmpty(login)) {

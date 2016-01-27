@@ -29,7 +29,7 @@ import ru.carabi.server.entities.CarabiAppServer;
 import ru.carabi.server.entities.CarabiUser;
 import ru.carabi.server.entities.Permission;
 import ru.carabi.server.kernel.AuthorizeSecondary;
-import ru.carabi.server.kernel.AuthorizeSecondaryAbstract;
+import ru.carabi.server.kernel.AuthorizeSecondaryCarabi;
 import ru.carabi.server.kernel.ConnectionsGateBean;
 import ru.carabi.server.kernel.UsersControllerBean;
 import ru.carabi.server.kernel.oracle.CursorFetcherBean;
@@ -163,7 +163,7 @@ public class UserLogon implements Serializable, AutoCloseable {
 	private Map<String, Boolean> userHavePermission = new ConcurrentHashMap<>();
 	
 	@Transient
-	private AuthorizeSecondary authorizeSecondary = new AuthorizeSecondaryAbstract();
+	private AuthorizeSecondary authorizeSecondary = new AuthorizeSecondaryCarabi();
 	
 	/**
 	 * Возврашает ID пользователя в текущей неядровой БД

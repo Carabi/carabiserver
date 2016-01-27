@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>ru.carabi.server</groupId>
-    <artifactId>carabiserver_free</artifactId>
+    <artifactId>carabiserver_proprietary</artifactId>
     <version>2.2.3.2</version>
     <packaging>war</packaging>
 
-    <name>carabiserver_web_free</name>
+    <name>carabiserver_web_proprietary</name>
 
     <properties>
         <endorsed.dir>${project.build.directory}/endorsed</endorsed.dir>
@@ -56,13 +56,18 @@
         </dependency>
         <dependency>
             <groupId>ru.carabi</groupId>
-            <artifactId>stub_free</artifactId>
-            <version>2.2.3</version>
+            <artifactId>stub_proprietary</artifactId>
+            <version>2.2.1</version>
         </dependency>
         <dependency>
             <groupId>commons-fileupload</groupId>
             <artifactId>commons-fileupload</artifactId>
             <version>1.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20141113</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
