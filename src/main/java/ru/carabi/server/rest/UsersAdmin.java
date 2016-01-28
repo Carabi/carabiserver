@@ -96,10 +96,10 @@ public class UsersAdmin {
 		if (!userIsNew) {
 			try {
 				CarabiUser user = usersController.findUser(login);
-				//пользователь из новой БД должен иметь такой же пароль, чтобы быть принятым автоматически
-				if (!user.getDefaultSchema().getId().equals(schemaID) && !user.getAllowedSchemas().contains(connectionSchema) && !user.getPassword().equals(userData.getString("password"))) {
-					return "user " + login + " already registered with another database";
-				}
+//				//пользователь из новой БД должен иметь такой же пароль, чтобы быть принятым автоматически
+//				if (!user.getDefaultSchema().getId().equals(schemaID) && !user.getAllowedSchemas().contains(connectionSchema) && !user.getPassword().equals(userData.getString("password"))) {
+//					return "user " + login + " already registered with another database";
+//				}
 				userDataNew.add("id", ""+userID);
 			} catch (CarabiException ex) {
 				Logger.getLogger(UsersAdmin.class.getName()).log(Level.SEVERE, null, ex);
