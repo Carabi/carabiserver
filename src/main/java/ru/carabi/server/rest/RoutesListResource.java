@@ -159,7 +159,8 @@ public class RoutesListResource {
 		if (traceOrders == null) return;
 		for (LinkedHashMap<String, ? extends Object> traceOrder: traceOrders) {
 			String orderType = (String)traceOrder.remove("ORDER_TYPE");
-			Object orderIDObj = traceOrder.remove("ORDER_ID");
+			//Object orderIDObj = traceOrder.remove("ORDER_ID"); // Flint - removed 19-09-2016
+                        Object orderIDObj = traceOrder.get("ORDER_ID");
 			traceOrder.remove("ZAKAZ_TYPE");
 			Object zakazIDObj = traceOrder.remove("ZAKAZ_ID");
 			Object goalIDObj = traceOrder.get("GOAL_ID");
