@@ -15,7 +15,6 @@ To build and run it:
 * Install [PostgreSQL](http://www.postgresql.org/). If you use OS GNU/Linux, installing PostgreSQL from repository is recommended.
 * Download [Oracle JDBC](http://www.oracle.com/technetwork/database/jdbc-112010-090769.html).
 * Download [PostgreSQL JDBC](https://jdbc.postgresql.org/).
-and clients. Use `mvn compile assembly:single` to build a non-dependent jar.
 
 ####Prepare sources:
 * Clone this repository by Git

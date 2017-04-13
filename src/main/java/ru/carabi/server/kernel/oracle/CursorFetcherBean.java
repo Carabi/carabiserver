@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
-import javax.ejb.Singleton;
+import javax.ejb.Stateless;
 import javax.xml.ws.Holder;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.Settings;
@@ -17,18 +17,18 @@ import ru.carabi.server.UserLogon;
 
 /**
  * Управление прокрутками ({@link Fetch}).
- * Singleton-модуль, хранящий открытые пользовательские прокрутки.
+ * Модуль, хранящий открытые пользовательские прокрутки.
  * @author sasha<kopilov.ad@gmail.com>
  */
-@Singleton
+@Stateless
 public class CursorFetcherBean {
 	
 	//прокрутки, открытые пользователями
-	private final Map<String, Map<Integer, Fetch>> fetchesForUsers= new ConcurrentHashMap<>();
+	private static final Map<String, Map<Integer, Fetch>> fetchesForUsers= new ConcurrentHashMap<>();
 	//Номер сохранённой прокрутки у пользователя
-	private final Map<String, Integer> usersFetchTag = new ConcurrentHashMap<>();
+	private static final Map<String, Integer> usersFetchTag = new ConcurrentHashMap<>();
 	//прокрутки, открытые на одном запросе -- этот запрос надо закрыть после закрытия всех прокруток
-	private final Map<Statement, Set<Fetch>> fetchesOnStatements = new ConcurrentHashMap<>();
+	private static final Map<Statement, Set<Fetch>> fetchesOnStatements = new ConcurrentHashMap<>();
 	
 	/**
 	 * Поиск открытой прокрутки.

@@ -12,7 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
 import javax.ejb.Schedule;
-import javax.ejb.Singleton;
+import javax.ejb.Stateless;
 import javax.ejb.Timer;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,17 +26,17 @@ import ru.carabi.server.kernel.oracle.CursorFetcherBean;
 import ru.carabi.server.logging.CarabiLogging;
 
 /**
- * Единичный объект со списком активных пользователей.
+ * Управление активностью пользователей.
  * Авторизация аутентифицированных пользователей с выдачей токена, аутентификация по токену,
  * деавторизация по команде и по таймауту.
  * @author sasha<kopilov.ad@gmail.com>
  */
-@Singleton
+@Stateless
 public class UsersControllerBean {
 	private static final Logger logger = CarabiLogging.getLogger(UsersControllerBean.class);
 	
 	//Активные пользователи в соответствии с токенами.
-	private final Map<String, UserLogon> activeUsers = new ConcurrentHashMap<>();
+	private static final Map<String, UserLogon> activeUsers = new ConcurrentHashMap<>();
 	
 	@EJB private UsersPercistenceBean usersPercistence;
 	@EJB private ConnectionsGateBean connectionsGate;
