@@ -4,7 +4,7 @@
 
     <groupId>ru.carabi.server</groupId>
     <artifactId>carabiserver_proprietary</artifactId>
-    <version>2.2.3.3</version>
+    <version>2.2.3.4</version>
     <packaging>war</packaging>
 
     <name>carabiserver_web_proprietary</name>
@@ -57,7 +57,7 @@
         <dependency>
             <groupId>ru.carabi</groupId>
             <artifactId>stub_proprietary</artifactId>
-            <version>2.2.1</version>
+            <version>2.2.3</version>
         </dependency>
         <dependency>
             <groupId>commons-fileupload</groupId>
