@@ -16,6 +16,7 @@ import javax.ws.rs.DefaultValue;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.QueryParam;
+import org.apache.commons.lang3.StringUtils;
 import ru.carabi.server.CarabiException;
 import ru.carabi.server.UserLogon;
 import ru.carabi.server.entities.CarabiUser;
@@ -57,7 +58,11 @@ public class ProductionAdmin {
 		JsonObjectBuilder result = Json.createObjectBuilder();
 		try (UserLogon logon = usersController.tokenAuthorize(token)) {
 			String login = data.getString("login");
+			String projectSysname = data.getString("project", "");
 			String productSysname = data.getString("product");
+			if (!StringUtils.isEmpty(projectSysname)) {
+				productSysname = productSysname + "-" + projectSysname;
+			}
 			boolean allow = data.getBoolean("allow");
 			boolean autocreate = data.getBoolean("autocreate");
 			productionBean.allowForUser(logon, productSysname, login, allow, autocreate);
@@ -77,12 +82,14 @@ public class ProductionAdmin {
 	public String allowForUser(
 			@QueryParam("token") String token,
 			@FormParam("login") String login,
+			@FormParam("project") String project,
 			@FormParam("product") String product,
 			@FormParam("allow") String allow,
 			@FormParam("autocreate") @DefaultValue("false") String autocreate
 		) {
 		JsonObjectBuilder data = Json.createObjectBuilder();
 		data.add("login", login);
+		data.add("project", project);
 		data.add("product", product);
 		data.add("allow", Boolean.valueOf(allow));
 		data.add("autocreate", Boolean.valueOf(autocreate));

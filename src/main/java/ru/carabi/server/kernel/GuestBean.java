@@ -51,7 +51,7 @@ public class GuestBean {
 	
 	Context ctx;
 	
-	AuthorizeSecondary authorize = new AuthorizeSecondaryAbstract();
+	AuthorizeSecondary authorize = new AuthorizeSecondaryCarabi();
 	
 	@EJB private UsersControllerBean usersController;
 	@EJB private UsersPercistenceBean usersPercistence;
@@ -333,6 +333,11 @@ public class GuestBean {
 			}
 		}
 		UserLogon logon = new UserLogon();
+		if (userInfo == null) {
+			authorize = new AuthorizeSecondaryAbstract();
+		} else {
+			authorize = new AuthorizeSecondaryCarabi();
+		}
 		logon.setExternalId(authorize.getSelectedUserID(userInfo));
 		logon.setUser(user);
 		//final String userDisplayString = authorize.getUserDisplayString(user, userInfo);

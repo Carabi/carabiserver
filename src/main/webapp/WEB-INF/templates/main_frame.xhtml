@@ -43,7 +43,8 @@
 						</div>
 						<div class="hgroup" style="margin-top: -45px">
 							<ul class="breadcrumb pull-right">
-								<li class="active">Carabi</li>
+								<li><a href="#{root}"><i class="fa fa-home"></i></a></li>
+								<li class="active">#{l10n.techSupport}</li>
 							</ul>
 						</div>
 					</div>
@@ -53,7 +54,7 @@
 				<div class="row row-offcanvas row-offcanvas-right plan">
 					<div class="col-xs-12 col-sm-9">
 						<section class="hgroup" style="border-bottom: 0;">
-							<h1><ui:insert name="h1">#{l10n.indexWelcome}</ui:insert></h1>
+							<h1><ui:insert name="h1">#{l10n.techSupport}</ui:insert></h1>
 						</section>
 					</div>
 				</div>
@@ -62,13 +63,7 @@
 			<div id="footerPlaceholder"></div>
 		</div>
 		<footer>
-			<div id="copyright">
-				<a href="http://carabi.ru/">CarabiServer <img src="images/carabi-ico.png" alt="(Logo)"/></a>
-				&#160;
-				<a href="https://github.com/Kopilov/carabiserver">Get the free version<img src="images/octocat-ico.png" alt="on GitHub"/></a>
-				&#160;
-				<a href="https://glassfish.java.net/">Powered by GlassFish<img src="images/glassfish-ico.png" alt="(Logo)"/></a>
-			</div>
+			<ui:include src="../includes/footerInc.xhtml"></ui:include>
 		</footer>
 	</body>
 	</f:view>

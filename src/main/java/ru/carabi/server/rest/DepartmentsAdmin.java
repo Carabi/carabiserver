@@ -102,7 +102,7 @@ public class DepartmentsAdmin {
 		}
 		JsonObject savedDepartmentJson = saveDepartmentJson(token, departmentData.build());
 		if (savedDepartmentJson.containsKey("id") && savedDepartmentJson.containsKey("sysname")) {
-			return "id=" + savedDepartmentJson.getString("id") +"&sysname=" + savedDepartmentJson.getString("sysname");
+			return savedDepartmentJson.getString("sysname");
 		} else if (savedDepartmentJson.containsKey("error")){
 			return "error: " + savedDepartmentJson.getString("error");
 		} else {
