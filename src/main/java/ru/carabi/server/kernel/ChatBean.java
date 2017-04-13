@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.ejb.EJB;
-import javax.ejb.Singleton;
+import javax.ejb.Stateless;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -67,7 +67,7 @@ import ru.carabi.stub.ChatService_Service;
  *
  * @author sasha<kopilov.ad@gmail.com>
  */
-@Singleton
+@Stateless
 public class ChatBean {
 	private static final Logger logger = CarabiLogging.getLogger(ChatBean.class);
 	
